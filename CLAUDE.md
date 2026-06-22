@@ -88,6 +88,13 @@ Base: `/Volumes/T7 Shield/obsidian/4-Resources/Courses/VPL/FDUClasses/26VU_CSCI_
 - W3 lecture notes: `generated/Week03/notes.md` · Research synthesis: `_inbox/2026-05-27-research-synthesis.md`
 - Summary PDF (submitted 2026-06-20): `deliverables/2026-06-20-work-summary.pdf`
 
+## Status (2026-06-22)
+- ✅ **Baseline REPRODUCED** on RTX 4090 48GB / CUDA 12.1 (恒源云). FCFS vs LTR, rates {2..64}.
+  Result: LTR cuts TTFT up to **2.9×** under load (rate ≥16) — reproduces the base paper.
+  Env fixes + result recorded in `docs/ENV-NOTES.md`; raw data in `…/deliverables/04-evaluation/baseline-2026-06-22/`.
+- `scripts/setup.sh` is now the battle-tested one-shot setup (re-run = ~10-15 min, not 1 h of debugging).
+
 ## Next action
-Run the baseline reproduction → `docs/REPRODUCTION.md` (**Tonight quick-start**). PARS comes after
-baseline. Wednesday: present progress + PARS plan → `docs/presentation-plan.md`.
+**PARS** — write the pairwise-margin + BERT predictor (Dazhi's contribution), train it, compare its
+generalization gap vs listMLE. Plus: draw Fig E1 (latency-vs-rate) from the baseline data for Wednesday
+(`docs/presentation-plan.md`). Classification baseline has a benchmark-side `IndexError` to fix if a 3rd line is wanted.
