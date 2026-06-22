@@ -16,7 +16,19 @@ PORT="${PORT:-3343}"
 LTR_CFG="MODEL/results/opt-125m-llama3-8b-lmsys-score-trainbucket10-b32/usage_config.json"
 CLS_CFG="MODEL/results/opt-125m-llama3-8b-lmsys-class-trainbucket820-b32/usage_config.json"
 
+# activate the conda env from setup.sh — a fresh tmux shell does NOT inherit it
+source "$(conda info --base 2>/dev/null)/etc/profile.d/conda.sh" 2>/dev/null \
+  && conda activate "${ENV_NAME:-vllm-ltr}" 2>/dev/null \
+  || echo "WARN: conda env '${ENV_NAME:-vllm-ltr}' not activated — make sure the vllm-ltr python is on PATH"
+
 cd "$FORK_DIR/train"   # benchmark_serving_real.py + dataset jsonl live relative to train/ (mirrors bench-lmsys.sh)
+
+# sanity: pretrained predictor config must exist (run-id names must match LLM-ltr/OPT-Predictors)
+if [ ! -f "$LTR_CFG" ]; then
+  echo "WARN: LTR predictor config NOT found: $LTR_CFG"
+  echo "      predictor dirs actually present in MODEL/results/:"; ls MODEL/results/ 2>/dev/null || echo "      (none — download failed?)"
+  echo "      → adjust LTR_CFG/CLS_CFG run-id to a real name, or train the predictor first. Skipping LTR."
+fi
 
 sweep () {  # $1=server schedule-type  $2=client schedule-type  $3...=extra server args
   local sty="$1" csty="$2"; shift 2
@@ -37,8 +49,12 @@ sweep () {  # $1=server schedule-type  $2=client schedule-type  $3...=extra serv
 }
 
 # --- core (must-have for Wednesday) ---
-sweep fcfs    fcfs    --swap-space 16
-sweep opt-xxx opt-xxx --swap-space 32 --prefill-predictor-model-config "$LTR_CFG"
+sweep fcfs fcfs --swap-space 16
+if [ -f "$LTR_CFG" ]; then
+  sweep opt-xxx opt-xxx --swap-space 32 --prefill-predictor-model-config "$LTR_CFG"
+else
+  echo "SKIP LTR: predictor config missing (see warning above) — FCFS still ran."
+fi
 
 # --- optional: classification baseline (needs the class predictor config in MODEL/) ---
 if [ -f "$CLS_CFG" ]; then
