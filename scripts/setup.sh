@@ -8,9 +8,12 @@
 # DO NOT use Blackwell (5090 / PRO 6000, sm_120) — the old fork's torch 2.2.1 / CUDA 12.1 stack won't build on it.
 set -euo pipefail
 
-FORK_DIR="${FORK_DIR:-$HOME/vllm-ltr}"
+FORK_DIR="${FORK_DIR:-/hy-tmp/vllm-ltr}"            # DATA disk — NOT /root (20G system disk fills up)
 ENV_NAME="${ENV_NAME:-vllm-ltr}"
 ARCH="${TORCH_CUDA_ARCH_LIST:-8.9}"
+export HF_HOME="${HF_HOME:-/hy-tmp/hf-cache}"       # Llama-3-8B (~16G) + HF cache on DATA disk, not system disk
+export PIP_CACHE_DIR="${PIP_CACHE_DIR:-/hy-tmp/pip-cache}"
+mkdir -p "$HF_HOME" "$PIP_CACHE_DIR"
 
 echo "[1/5] clone base fork -> $FORK_DIR"
 [ -d "$FORK_DIR/.git" ] || git clone https://github.com/hao-ai-lab/vllm-ltr.git "$FORK_DIR"
