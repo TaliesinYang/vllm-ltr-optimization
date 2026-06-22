@@ -1,0 +1,19 @@
+# heavy / generated — never commit
+RESULTS/
+MODEL/
+jsonfiles/
+*.jsonl
+*.tgz
+*.tar.gz
+*.pt
+*.bin
+*.safetensors
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# the base fork is cloned separately on the GPU box, not vendored here
+vllm-ltr/
+
+# keep run manifests (text) — do NOT ignore runs/*.md
