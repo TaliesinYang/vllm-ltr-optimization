@@ -22,7 +22,7 @@ def marginRanking(y_pred, y_true, true_lengths=None, margin=1.0, delta=0.0,
     :param delta:        min relative length diff to keep a pair (PARS: 0.2 Llama/GPT-4, 0.25 DS-R1)
     """
     y_pred = y_pred.clone()
-    y_true = y_true.clone()
+    y_true = y_true.clone().float()   # labels arrive as int64; -inf masking + diffs need float
 
     mask = y_true == padded_value_indicator
     y_pred[mask] = float('-inf')
