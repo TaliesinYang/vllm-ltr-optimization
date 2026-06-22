@@ -47,10 +47,12 @@ if __name__ == "__main__":
     llama_tok = AutoTokenizer.from_pretrained(a.tokenizer)
     with set_default_torch_dtype(torch.float32):
         with torch.device('cuda'):
+            # weights load from finetuned path; tokenizer from the BASE backbone (finetuned dir has no tokenizer)
             predictor = prefill_predictor_model(
                 pred_model=cfg.model.path, num_labels=cfg.model.num_labels,
                 mtype=cfg.model.mtype, activation=cfg.model.activation,
-                max_length=cfg.model.max_length, max_batch_size=cfg.model.max_batch_size)
+                max_length=cfg.model.max_length, max_batch_size=cfg.model.max_batch_size,
+                tokenizer_name=cfg.model.pred_model)
 
     tau_in    = tau_on(predictor, cfg, a.in_file,    llama_tok, a.group_size, held_out_tail=True)
     tau_cross = tau_on(predictor, cfg, a.cross_file, llama_tok, a.group_size)
