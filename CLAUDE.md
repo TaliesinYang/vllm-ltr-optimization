@@ -70,6 +70,11 @@ Flow (scripts in `scripts/`): `hy_deploy.sh` (instance: network_turbo + clone re
 `hf-mirror.com`, optional OSS-staged data) → in tmux `hy_run_and_upload.sh` (run baseline → collect →
 `oss cp oss://backup/` → shutdown). Pre-upload heavy data to OSS once to skip HF on later runs.
 
+**China network (HF + GitHub blocked/slow):** (a) `source /etc/network_turbo` (恒源云 built-in proxy →
+GitHub + HF); (b) gated **Llama-3-8B from ModelScope** `LLM-Research/Meta-Llama-3-8B-Instruct` (no HF
+token needed) → local `/hy-tmp/models/...`, `run_baseline.sh` defaults to that path; (c) non-gated LTR
+trace + predictors via `HF_ENDPOINT=https://hf-mirror.com`. GitHub fallback if still slow: mirror repos to Gitee.
+
 ## Repos
 - This repo (implementation): `github.com/TaliesinYang/vllm-ltr-optimization`
 - Base fork to reproduce: `/Users/alex/develop/vllm-ltr` (`github.com/hao-ai-lab/vllm-ltr`)

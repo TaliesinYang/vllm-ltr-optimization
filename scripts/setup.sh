@@ -31,12 +31,18 @@ echo "[4/5] build vllm-ltr CUDA kernels for arch=$ARCH (~20-40 min)"
 export TORCH_CUDA_ARCH_LIST="$ARCH"
 pip install -e .
 
-echo "[5/5] HF login + download dataset + pretrained predictors (skip training)"
-huggingface-cli whoami >/dev/null 2>&1 || huggingface-cli login   # needs Llama license access
+echo "[5/6] LTR trace + pretrained predictors via HF mirror (NOT gated — no token needed)"
+export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"   # China HF mirror
 cd train
 huggingface-cli download LLM-ltr/Llama3-Trace   --local-dir jsonfiles --repo-type dataset
 huggingface-cli download LLM-ltr/OPT-Predictors --local-dir MODEL     --repo-type model
 
+echo "[6/6] Llama-3-8B from ModelScope (China-native — avoids HF gated token entirely)"
+pip install -q modelscope
+MODEL_DIR="${MODEL_DIR:-/hy-tmp/models/Meta-Llama-3-8B-Instruct}"
+[ -d "$MODEL_DIR" ] || modelscope download --model LLM-Research/Meta-Llama-3-8B-Instruct --local_dir "$MODEL_DIR"
+
 echo
-echo "DONE. Env ready, data + pretrained predictors downloaded."
-echo "Next: bash <this-repo>/scripts/run_baseline.sh    # P3 baseline sweep (FCFS / LTR / classification)"
+echo "DONE. Env + data + predictors + model ready."
+echo "Served model: $MODEL_DIR"
+echo "Next: MODEL=$MODEL_DIR bash <this-repo>/scripts/run_baseline.sh   # (run_baseline defaults to this path)"

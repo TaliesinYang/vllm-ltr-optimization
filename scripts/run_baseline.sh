@@ -7,8 +7,9 @@
 set -euo pipefail
 
 FORK_DIR="${FORK_DIR:-/hy-tmp/vllm-ltr}"            # data disk
-export HF_HOME="${HF_HOME:-/hy-tmp/hf-cache}"       # serve step downloads the 8B model here, not the 20G system disk
-MODEL="${MODEL:-meta-llama/Meta-Llama-3-8B-Instruct}"
+export HF_HOME="${HF_HOME:-/hy-tmp/hf-cache}"       # serve step caches here, not the 20G system disk
+# local model dir from ModelScope (China, no gated token). Set MODEL=meta-llama/Meta-Llama-3-8B-Instruct to use HF instead.
+MODEL="${MODEL:-/hy-tmp/models/Meta-Llama-3-8B-Instruct}"
 DATASET="${DATASET:-lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl}"
 RATES="${RATES:-2 4 8 16 32 64}"
 PORT="${PORT:-3343}"
