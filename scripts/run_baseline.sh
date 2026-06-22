@@ -30,6 +30,16 @@ if [ ! -f "$LTR_CFG" ]; then
   echo "      → adjust LTR_CFG/CLS_CFG run-id to a real name, or train the predictor first. Skipping LTR."
 fi
 
+# resolve the dataset to a real path — benchmark_serving_real.py does open(dataset_path) literally,
+# but Llama3-Trace downloads under jsonfiles/, so a bare filename in CWD won't be found.
+DATASET_FILE="$(find "$FORK_DIR/train" -maxdepth 3 -name "$DATASET" 2>/dev/null | head -1)"
+if [ -z "$DATASET_FILE" ]; then
+  echo "ERROR: dataset '$DATASET' not found under $FORK_DIR/train. Files in jsonfiles/:"
+  ls "$FORK_DIR/train/jsonfiles" 2>/dev/null | head
+  exit 1
+fi
+echo "dataset resolved: $DATASET_FILE"
+
 sweep () {  # $1=server schedule-type  $2=client schedule-type  $3...=extra server args
   local sty="$1" csty="$2"; shift 2
   echo "================ method: $sty ================"
@@ -41,7 +51,7 @@ sweep () {  # $1=server schedule-type  $2=client schedule-type  $3...=extra serv
   for r in $RATES; do
     echo "---- $sty @ rate $r ----"
     python ../benchmarks/benchmark_serving_real.py --backend vllm \
-      --model "$MODEL" --tokenizer "$MODEL" --dataset "$DATASET" \
+      --model "$MODEL" --tokenizer "$MODEL" --dataset "$DATASET_FILE" \
       --num-prompts -1 --request-time 60 --schedule-type "$csty" --output-len -1 \
       --request-rate "$r" --result-dir RESULTS --port "$PORT"
   done

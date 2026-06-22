@@ -109,6 +109,11 @@ Fill `runs/MANIFEST-TEMPLATE.md` with the numbers + Kendall's Tau.
 - `scheduler.py` parses schedule types by **prefix** (`startswith`): `fcfs`, `opt` (→`opt-xxx`), `tpt` (→`tpt-class10-xxx`), `mlfq`, plus `sjf`. All script values are valid.
 - Predictor config `config_prefill_opt.txt` = `facebook/opt-125m`, `mtype: rank`. PARS hook = swap `pred_model`→BERT + `--loss` → pairwise.
 
+**Found + fixed during review (🔧):**
+- **Dataset path bug** — `benchmark_serving_real.py` calls `open(dataset_path)` literally, but `Llama3-Trace` downloads under `jsonfiles/`; a bare filename in CWD would not be found → the whole sweep would fail. `run_baseline.sh` now resolves the real path via `find` and aborts early if missing.
+- **conda not active in tmux** — `run_baseline.sh` now `conda activate`s the env.
+- **LTR predictor-config guard** — skips LTR (FCFS still runs) and prints actual `MODEL/results/` names if the config path is wrong.
+
 **Residual risks (cannot verify without the GPU/download — gated in the runbook):**
 1. **Pretrained predictor run-id names** in `LLM-ltr/OPT-Predictors` must match `LTR_CFG`/`CLS_CFG`. The authors' `bench-lmsys.sh` uses these exact names, but confirm at the Phase-1 gate (`ls MODEL/results/`).
 2. **`trainer.py` default tokenizer = Llama-3-70B** — for PARS *training* (later) pass `--tokenizer meta-llama/Meta-Llama-3-8B-Instruct`. Irrelevant to the baseline (no training).
