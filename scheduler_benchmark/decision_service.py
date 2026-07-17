@@ -1,0 +1,335 @@
+"""Schema-bound request-time prediction service for VeloxMesh."""
+
+from __future__ import annotations
+
+import json
+import threading
+from dataclasses import dataclass
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from typing import Mapping
+
+from scheduler_benchmark.predictor import Predictor, PredictorInput
+
+SCHEMA_VERSION = "1.0"
+DEFAULT_RELIABILITY_THRESHOLD = 0.8
+MAX_ESTIMATED_TOKENS = 2048
+FEATURE_VARIANTS = {
+    "prompt": (),
+    "prompt_schema": ("tools",),
+    "prompt_schema_history": ("tools", "conversation_id"),
+    "prompt_schema_history_workflow": (
+        "tools",
+        "conversation_id",
+        "workflow_id",
+        "step_id",
+        "previous_tool_gap_ms",
+    ),
+}
+REQUIRED_FIELDS = (
+    "request_id",
+    "decision_id",
+    "model_id",
+    "request_age_ms",
+    "messages",
+    "generation_controls",
+)
+ID_LIMITS = {
+    "request_id": 128,
+    "decision_id": 128,
+    "model_id": 256,
+    "workflow_id": 128,
+    "step_id": 128,
+    "conversation_id": 128,
+}
+SUPPORTED_CONTROL_KEYS = {
+    "temperature",
+    "top_p",
+    "seed",
+    "max_tokens",
+    "stop",
+    "response_format",
+    "stream",
+}
+
+
+@dataclass(frozen=True)
+class DecisionError(Exception):
+    status: int
+    error_code: str
+    retryable: bool = False
+
+    @property
+    def body(self) -> dict[str, object]:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "error_code": self.error_code,
+            "retryable": self.retryable,
+        }
+
+
+class DecisionApplication:
+    """Validate one decision request and adapt Artifact 1 predictor output."""
+
+    def __init__(
+        self,
+        *,
+        predictor: Predictor,
+        predictor_revision: str,
+        feature_variant: str,
+        reliability_threshold: float = DEFAULT_RELIABILITY_THRESHOLD,
+        ready: bool = True,
+        max_concurrency: int = 8,
+    ) -> None:
+        if feature_variant not in FEATURE_VARIANTS:
+            raise ValueError(f"unknown feature variant: {feature_variant}")
+        if not 0.0 <= reliability_threshold <= 1.0:
+            raise ValueError("reliability_threshold must be between 0 and 1")
+        if max_concurrency < 1:
+            raise ValueError("max_concurrency must be positive")
+        self._predictor = predictor
+        self._predictor_revision = predictor_revision
+        self._feature_variant = feature_variant
+        self._reliability_threshold = reliability_threshold
+        self._ready = ready
+        self._capacity = threading.BoundedSemaphore(max_concurrency)
+
+    @property
+    def is_ready(self) -> bool:
+        return self._ready
+
+    def decide(self, request: Mapping[str, object]) -> dict[str, object]:
+        if not self._ready:
+            raise DecisionError(503, "not_ready", retryable=True)
+        validated = _validate_request(request)
+        if not self._capacity.acquire(blocking=False):
+            raise DecisionError(429, "rate_limited", retryable=True)
+        try:
+            prediction = self._predictor.predict(_predictor_input(validated))
+        except DecisionError:
+            raise
+        except Exception as exc:
+            raise DecisionError(503, "internal_error", retryable=True) from exc
+        finally:
+            self._capacity.release()
+
+        missing_optional = _has_missing_optional_features(
+            validated, self._feature_variant
+        )
+        reason = _reason_code(
+            ood=prediction.ood,
+            confidence=prediction.confidence,
+            missing_optional=missing_optional,
+            threshold=self._reliability_threshold,
+        )
+        is_reliable = reason == "prediction_reliable"
+        response: dict[str, object] = {
+            "schema_version": SCHEMA_VERSION,
+            "decision_id": validated["decision_id"],
+            "reliability_probability": prediction.confidence,
+            "ood_score": 1.0 if prediction.ood else 0.0,
+            "prediction_reliable": is_reliable,
+            "predictor_revision": self._predictor_revision,
+            "feature_variant": self._feature_variant,
+            "reason_code": reason,
+        }
+        if is_reliable:
+            response["estimated_tokens"] = _score_to_estimated_tokens(
+                prediction.score
+            )
+        return response
+
+
+def _validate_request(request: Mapping[str, object]) -> dict[str, object]:
+    if not isinstance(request, Mapping):
+        raise DecisionError(422, "invalid_request")
+    if request.get("schema_version") != SCHEMA_VERSION:
+        raise DecisionError(400, "invalid_schema")
+    if "queue_summary" in request or "cache_pressure" in request:
+        raise DecisionError(422, "invalid_request")
+    for field in REQUIRED_FIELDS:
+        if field not in request:
+            raise DecisionError(422, "invalid_request")
+    for field, limit in ID_LIMITS.items():
+        value = request.get(field)
+        if value is None and field not in REQUIRED_FIELDS:
+            continue
+        if not isinstance(value, str) or not 1 <= len(value.encode("utf-8")) <= limit:
+            raise DecisionError(422, "invalid_request")
+    age = request["request_age_ms"]
+    if isinstance(age, bool) or not isinstance(age, int) or age < 0:
+        raise DecisionError(422, "invalid_request")
+    _validate_messages(request["messages"])
+    tools = request.get("tools")
+    if tools is not None and not isinstance(tools, list):
+        raise DecisionError(422, "invalid_request")
+    gap = request.get("previous_tool_gap_ms")
+    if gap is not None and (
+        isinstance(gap, bool) or not isinstance(gap, int) or gap < 0
+    ):
+        raise DecisionError(422, "invalid_request")
+    _validate_generation_controls(request["generation_controls"])
+    return dict(request)
+
+
+def _validate_messages(value: object) -> None:
+    if not isinstance(value, list) or not value:
+        raise DecisionError(422, "invalid_request")
+    for message in value:
+        if not isinstance(message, Mapping):
+            raise DecisionError(422, "invalid_request")
+        if message.get("role") not in {"system", "user", "assistant", "tool"}:
+            raise DecisionError(422, "invalid_request")
+        if "content" not in message and "tool_calls" not in message:
+            raise DecisionError(422, "invalid_request")
+
+
+def _validate_generation_controls(value: object) -> None:
+    if not isinstance(value, Mapping):
+        raise DecisionError(422, "invalid_request")
+    if set(value) - SUPPORTED_CONTROL_KEYS:
+        raise DecisionError(422, "unsupported_controls")
+    supported_profile = {
+        "temperature": 0.0,
+        "top_p": 1.0,
+        "seed": 42,
+        "max_tokens": 2048,
+    }
+    if any(value.get(key) != expected for key, expected in supported_profile.items()):
+        raise DecisionError(422, "unsupported_controls")
+
+
+def _predictor_input(request: Mapping[str, object]) -> PredictorInput:
+    serialized = json.dumps(
+        {
+            "messages": request["messages"],
+            "tools": request.get("tools"),
+            "workflow_id": request.get("workflow_id"),
+            "step_id": request.get("step_id"),
+            "conversation_id": request.get("conversation_id"),
+            "previous_tool_gap_ms": request.get("previous_tool_gap_ms"),
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    metadata = {
+        "model_id": request["model_id"],
+        "request_age_ms": request["request_age_ms"],
+        "generation_controls": request["generation_controls"],
+    }
+    return PredictorInput(
+        request_id=str(request["request_id"]),
+        prompt_token_ids=tuple(serialized.encode("utf-8")),
+        metadata=metadata,
+    )
+
+
+def _has_missing_optional_features(
+    request: Mapping[str, object], feature_variant: str
+) -> bool:
+    required_optional = FEATURE_VARIANTS[feature_variant]
+    return any(request.get(field) is None for field in required_optional)
+
+
+def _reason_code(
+    *, ood: bool, confidence: float, missing_optional: bool, threshold: float
+) -> str:
+    if ood:
+        return "ood_rejected"
+    if confidence < threshold:
+        return "low_reliability"
+    if missing_optional:
+        return "missing_optional_features"
+    return "prediction_reliable"
+
+
+def _score_to_estimated_tokens(score: float) -> int:
+    return max(1, min(MAX_ESTIMATED_TOKENS, round(score * MAX_ESTIMATED_TOKENS)))
+
+
+class DecisionHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def __init__(
+        self,
+        server_address: tuple[str, int],
+        application: DecisionApplication,
+        max_body_bytes: int,
+    ) -> None:
+        if max_body_bytes < 1:
+            raise ValueError("max_body_bytes must be positive")
+        self.application = application
+        self.max_body_bytes = max_body_bytes
+        super().__init__(server_address, DecisionRequestHandler)
+
+
+class DecisionRequestHandler(BaseHTTPRequestHandler):
+    server: DecisionHTTPServer
+
+    def do_GET(self) -> None:
+        if self.path != "/healthz":
+            self._write_error(DecisionError(404, "invalid_request"))
+            return
+        if not self.server.application.is_ready:
+            self._write_error(DecisionError(503, "not_ready", retryable=True))
+            return
+        self._write_json(200, {"schema_version": SCHEMA_VERSION, "ready": True})
+
+    def do_POST(self) -> None:
+        if self.path != "/v1/decision":
+            self._write_error(DecisionError(404, "invalid_request"))
+            return
+        try:
+            content_length = self._content_length()
+            if content_length > self.server.max_body_bytes:
+                raise DecisionError(413, "body_too_large")
+            body = self.rfile.read(content_length)
+            if len(body) != content_length:
+                raise DecisionError(422, "invalid_request")
+            try:
+                request = json.loads(body)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise DecisionError(422, "invalid_request") from exc
+            response = self.server.application.decide(request)
+        except DecisionError as exc:
+            self._write_error(exc)
+            return
+        except Exception as exc:
+            self._write_error(
+                DecisionError(503, "internal_error", retryable=True)
+            )
+            return
+        self._write_json(200, response)
+
+    def _content_length(self) -> int:
+        raw_length = self.headers.get("Content-Length")
+        try:
+            content_length = int(raw_length) if raw_length is not None else -1
+        except ValueError as exc:
+            raise DecisionError(422, "invalid_request") from exc
+        if content_length < 0:
+            raise DecisionError(422, "invalid_request")
+        return content_length
+
+    def _write_error(self, error: DecisionError) -> None:
+        self._write_json(error.status, error.body)
+
+    def _write_json(self, status: int, body: Mapping[str, object]) -> None:
+        encoded = (json.dumps(body, separators=(",", ":")) + "\n").encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
+
+    def log_message(self, format: str, *args: object) -> None:
+        del format, args
+
+
+def create_decision_server(
+    application: DecisionApplication,
+    *,
+    host: str = "127.0.0.1",
+    port: int = 8081,
+    max_body_bytes: int = 2 * 1024 * 1024,
+) -> DecisionHTTPServer:
+    return DecisionHTTPServer((host, port), application, max_body_bytes)
