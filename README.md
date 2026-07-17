@@ -156,6 +156,7 @@ python scripts/run_gateway_overhead.py \
   --model /path/to/Qwen3.5-9B \
   --workload /path/to/workload.jsonl \
   --capacity-rps 8 \
+  --scheduler-cls vllm.v1.core.sched.scheduler.Scheduler \
   --output results/gateway-overhead-fcfs.json
 ```
 
