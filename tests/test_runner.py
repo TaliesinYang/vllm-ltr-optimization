@@ -12,6 +12,8 @@ from scheduler_benchmark.runner import (
     assess_completeness,
     build_arrival_offsets,
     benchmark_scenarios,
+    gateway_manifest,
+    gateway_request_headers,
     load_workload,
     make_completion_payload,
     policy_for_scheduler_cls,
@@ -145,6 +147,32 @@ def test_completion_payload_carries_scheduler_visible_metadata() -> None:
     }
 
 
+def test_runner_allocates_gateway_workflow_headers() -> None:
+    request = WorkloadRequest(
+        request_id="req-1",
+        prompt="hello",
+        baseline_service_ms=100.0,
+    )
+
+    headers = gateway_request_headers(request, api_key="secret")
+
+    assert headers == {
+        "X-Request-Id": "req-1",
+        "X-Workflow-Id": "req-1",
+        "X-Step-Id": "0",
+        "X-Conversation-Id": "req-1",
+        "X-Previous-Tool-Gap-Ms": "0",
+        "Authorization": "Bearer secret",
+    }
+
+
+def test_runner_manifest_declares_gateway_main_path() -> None:
+    assert gateway_manifest("http://gateway/v1/completions") == {
+        "request_path": "client->gateway->decision->vllm",
+        "gateway_endpoint": "http://gateway/v1/completions",
+    }
+
+
 def test_runner_script_is_directly_executable() -> None:
     result = subprocess.run(
         [sys.executable, "scripts/run_scheduler_benchmark.py", "--help"],
@@ -155,3 +183,4 @@ def test_runner_script_is_directly_executable() -> None:
     )
 
     assert result.returncode == 0, result.stderr
+    assert "VeloxMesh" in result.stdout

@@ -222,6 +222,28 @@ def make_completion_payload(
     }
 
 
+def gateway_request_headers(
+    request: WorkloadRequest, api_key: str | None
+) -> dict[str, str]:
+    headers = {
+        "X-Request-Id": request.request_id,
+        "X-Workflow-Id": request.request_id,
+        "X-Step-Id": "0",
+        "X-Conversation-Id": request.request_id,
+        "X-Previous-Tool-Gap-Ms": "0",
+    }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    return headers
+
+
+def gateway_manifest(endpoint: str) -> dict[str, str]:
+    return {
+        "request_path": "client->gateway->decision->vllm",
+        "gateway_endpoint": endpoint,
+    }
+
+
 async def stream_completion(
     session,
     endpoint: str,
@@ -229,9 +251,7 @@ async def stream_completion(
     request: WorkloadRequest,
     api_key: str | None,
 ) -> ResponseSample:
-    headers = {"X-Request-Id": request.request_id}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+    headers = gateway_request_headers(request, api_key)
     started = time.perf_counter()
     first_token_at: float | None = None
     output_tokens: int | None = None
@@ -361,6 +381,7 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
     return {
         "schema_version": 1,
         "valid": is_valid,
+        **gateway_manifest(args.endpoint),
         "policy": policy_for_scheduler_cls(args.scheduler_cls),
         "scheduler_cls": args.scheduler_cls,
         "model": args.model,
@@ -375,7 +396,11 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--endpoint", required=True)
+    parser.add_argument(
+        "--endpoint",
+        required=True,
+        help="VeloxMesh OpenAI-compatible gateway endpoint; never direct vLLM",
+    )
     parser.add_argument("--model", required=True)
     parser.add_argument("--workload", required=True, type=Path)
     parser.add_argument("--capacity-rps", required=True, type=float)
