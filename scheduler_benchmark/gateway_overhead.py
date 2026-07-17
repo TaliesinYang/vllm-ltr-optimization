@@ -14,6 +14,7 @@ from typing import Awaitable, Callable, Mapping
 from scheduler_benchmark.runner import (
     ResponseSample,
     ReplayScenario,
+    STOCK_SCHEDULER_CLS,
     WorkloadRequest,
     build_arrival_offsets,
     load_workload,
@@ -34,6 +35,10 @@ OVERHEAD_METRICS = (
     "output_tokens_per_s",
 )
 Sender = Callable[[WorkloadRequest], Awaitable[ResponseSample]]
+FCFS_SCHEDULER_CLASSES = (
+    STOCK_SCHEDULER_CLS,
+    "scheduler_benchmark.vllm_scheduler.StockFCFSShim",
+)
 
 
 def absolute_overhead(
@@ -147,6 +152,7 @@ async def run_live_overhead(args: argparse.Namespace) -> dict[str, object]:
             "direct_endpoint": args.direct_endpoint,
             "gateway_endpoint": args.gateway_endpoint,
             "model": args.model,
+            "scheduler_cls": args.scheduler_cls,
             "capacity_rps": args.capacity_rps,
             "saturation": args.saturation,
             "seed": args.seed,
@@ -166,6 +172,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--model", required=True)
     parser.add_argument("--workload", required=True, type=Path)
     parser.add_argument("--capacity-rps", required=True, type=float)
+    parser.add_argument(
+        "--scheduler-cls",
+        required=True,
+        choices=FCFS_SCHEDULER_CLASSES,
+        help="FCFS scheduler used by both direct and gateway paths",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--saturation", type=float, default=0.4)
     parser.add_argument("--api-key")
