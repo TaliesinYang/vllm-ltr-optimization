@@ -20,3 +20,4 @@ vllm-ltr/
 .worktrees/
 
 # keep run manifests (text) — do NOT ignore runs/*.md
+checkpoints_best_predictor/
