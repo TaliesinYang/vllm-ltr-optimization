@@ -78,6 +78,11 @@ Split 規則:按 session / task template / tool schema 劃分,禁止按單條 pr
 | 3 真機 benchmark | 48G 卡 1-2 天:負載按 saturation 40/70/90%+burst;全負載只跑 FCFS/pure-LTR/tail-safe/gated 四策略;oracle/random/aging 只在一個高負載點;**先跑 stock-FCFS vs custom-shim parity(預定義 3-5% 容差)**;predictor CPU 延遲計入端到端;主指標 TTLT/normalized slowdown/P95/P99(不是 TTFT);3 次重複+CI | ✅ 縮減版 |
 | 4 VeloxMesh E2E | **7 月只放 architecture diagram + integration stub**,真 E2E 延後 | ⏸️ |
 
+**Gateway 集成準備(7 月唯一要做的兩件,spec §12 為準)**:
+- 架構方向:邏輯全留本 repo,VeloxMesh 只做 transport(POST `/v1/decision` → `PredictionBundle`;可信預測經 `vllm_xargs` 進引擎)。**不存在「代碼合併進 gateway」**;KV cache 策略 = 9 月後。
+- ① 把 spec §12 schema 發給 Mingye 凍結(`docs/superpowers/specs/2026-07-15-server-training-data-storage-veloxmesh-design.md`),順帶確認其 main 是否仍兼容(釘的 fc20873 已舊)+ repo 交法(7/22 一個還是各交)。
+- ② Codex #2 完成 artifact 1-5 後追加 **ARTIFACT 6**:`/v1/decision` stub 服務——按 spec §12 最小 HTTP 實現,消費 artifact 1 的 stub predictor,echo `decision_id`,支持 `prediction_reliable=false→fallback_native`,附 curl 示例,供 gateway 方對接開發。
+
 ## 6. 被服務模型選型理由(報告 Methodology 素材)
 
 1. 單卡 BF16 裝得下且留足 KV 池(權重≈18G;顯存公式:GB≈參數B×2+2~3G 雜項,其餘全給 KV;agentic 長上下文請求一條 KV 0.6-1.4G+,並發實驗吃的就是這個池)
