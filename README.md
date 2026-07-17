@@ -94,3 +94,72 @@ This endpoint currently adapts Artifact 1's constant predictor stub and uses a
 deterministic byte serializer. It proves the HTTP contract only. Replace the
 stub adapter with the trained checkpoint and exact training serializer before
 reporting predictor quality or live latency.
+
+## Gateway-path benchmark wiring
+
+Run the dependency-light CPU E2E first:
+
+```bash
+python -m pytest tests/test_mock_stack.py -q
+```
+
+That test starts three loopback HTTP servers and exercises the real client
+parser through this exact path:
+
+```text
+runner client -> mock VeloxMesh -> /v1/decision -> mock SSE vLLM
+```
+
+For manual adapter work, keep the local stack running with:
+
+```bash
+python scripts/run_mock_gateway_stack.py \
+  --gateway-port 8080 \
+  --decision-port 8081 \
+  --engine-port 8082
+```
+
+The mock stack is wiring evidence only. It is not a vLLM scheduler benchmark,
+GPU result, real VeloxMesh measurement, real-checkpoint result, or two-turn
+tool-call proof.
+
+On the rented GPU host, every four-policy benchmark invocation points
+`--endpoint` at the VeloxMesh OpenAI-compatible endpoint, never directly at
+vLLM:
+
+```bash
+python scripts/run_scheduler_benchmark.py \
+  --endpoint http://127.0.0.1:8080/v1/completions \
+  --model /path/to/Qwen3.5-9B \
+  --workload /path/to/workload.jsonl \
+  --capacity-rps 8 \
+  --scheduler-cls scheduler_benchmark.vllm_scheduler.GatedHybridScheduler \
+  --output results/gated-hybrid.json
+```
+
+The result manifest records
+`client->gateway->decision->vllm`. Reliable predictions arrive at the engine
+through `vllm_xargs.workflow_estimated_tokens`; unreliable predictions omit
+that field and use native fallback. Policy and scheduler implementations remain
+the committed Artifact 1-5 code.
+
+## Isolated gateway-overhead run
+
+Gateway overhead is not a fifth policy and does not enter Fig. 6. Run the same
+FCFS workload and arrival schedule once against the engine and once through the
+gateway:
+
+```bash
+python scripts/run_gateway_overhead.py \
+  --direct-endpoint http://127.0.0.1:8000/v1/completions \
+  --gateway-endpoint http://127.0.0.1:8080/v1/completions \
+  --model /path/to/Qwen3.5-9B \
+  --workload /path/to/workload.jsonl \
+  --capacity-rps 8 \
+  --output results/gateway-overhead-fcfs.json
+```
+
+Output mode is `gateway_overhead_fcfs`, `repeats` is `1`, and
+`absolute_gateway_minus_direct` contains signed TTLT, TTFT, throughput, and
+token-rate deltas. Report these as absolute request-path overhead on this
+testbed, not as a scheduling-policy improvement.
