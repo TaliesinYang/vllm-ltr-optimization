@@ -1,0 +1,7 @@
+{
+  "placeholder": true,
+  "figure": "Figure 6",
+  "policies": ["fcfs", "pure_ltr", "tail_safe", "gated_hybrid"],
+  "saturation_pct": [40, 70, 90],
+  "measurements": []
+}
