@@ -1,0 +1,16 @@
+{
+  "run_name": "bert-prompt-only-tier1-seed42",
+  "variant": "prompt_only",
+  "seed": 42,
+  "label_tier": 1,
+  "train_sources": ["toolace"],
+  "backbone": "google-bert/bert-base-uncased",
+  "backbone_revision": "86b5e0934494bd15c9632b12f734a8a67f723594",
+  "max_length": 512,
+  "relative_pair_delta": 0.2,
+  "margin": 1.0,
+  "learning_rate": 0.00002,
+  "batch_size": 16,
+  "epochs": 1,
+  "save_steps": 10
+}

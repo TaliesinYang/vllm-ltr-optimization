@@ -1,0 +1,31 @@
+{
+  "toolace": {
+    "repository": "Team-ACE/ToolACE",
+    "revision": "6bda777c88d21e5a204703c1ee45597a8fa4f734",
+    "files": {
+      "data.json": "ba12c083fca7e8da48c67ad5b895e495447da7c66e39a2e19742c082e6cb537e"
+    },
+    "generator_id": "toolace-synthetic-generator-unspecified",
+    "role": "semantic_training_and_schema_diversity"
+  },
+  "lmcache": {
+    "repository": "sammshen/lmcache-agentic-traces",
+    "revision": "6e043b9e89865df3aec19fd5679286b683bfd70e",
+    "files": {
+      "data/train-00000-of-00005.parquet": "7d8fde279e899c0cd97e1b4b73dd2a0d76132c533e77ac1cdd310494710d7447",
+      "data/train-00001-of-00005.parquet": "594c934498c9d099e75f9d3332feaaed3587b8b0b8eeb5063e79514cc2aedc8f",
+      "data/train-00002-of-00005.parquet": "476b661879f28732bf5c56af4887666194b4f489a1128af59e58bdbfdf6d1ccc",
+      "data/train-00003-of-00005.parquet": "ca61176d73e4de62e273983a44531ceeacb251405f8db3b92a791d9343e2c66f",
+      "data/train-00004-of-00005.parquet": "a59fe71cf84ae0beb460cabb4edfd3e04f7da945c5d6777ae5df18716eceab71"
+    },
+    "role": "session_arrival_and_kv_replay"
+  },
+  "toolace_label_tokenizer": {
+    "repository": "Qwen/Qwen3.5-9B",
+    "revision": "c202236235762e1c871ad0ccb60c8ee5ba337b9a"
+  },
+  "bert_backbone": {
+    "repository": "google-bert/bert-base-uncased",
+    "revision": "86b5e0934494bd15c9632b12f734a8a67f723594"
+  }
+}

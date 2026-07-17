@@ -46,7 +46,7 @@ Every source is downloaded by immutable revision. The downloader rejects a movin
 | Role | Source | Immutable revision | License/use boundary |
 |---|---|---|---|
 | Primary tool-aware training | `Team-ACE/ToolACE` | `6bda777c88d21e5a204703c1ee45597a8fa4f734` | Apache-2.0; API/domain grouped split |
-| Workflow/history/KV replay | `DiscoPosse/lmcache-agentic-traces` | `9e1de874521be873b2c92621049ecb836b536257` | CC-BY-4.0; session grouped split |
+| Workflow/history/KV replay | `sammshen/lmcache-agentic-traces` | `6e043b9e89865df3aec19fd5679286b683bfd70e` | Canonical CC-BY-4.0 source; session grouped split |
 | External coding-agent test | `Inferact/codex_swebenchpro_traces` | `0d52ae8c75738117be9e58c7071bd9a5b43ff78f` | MIT; external test only |
 | Cache-locality stress trace | `semianalysisai/cc-traces-weka-no-subagents-051226` | `0ae681ae27a0e3e716b344cb21f1b01bb1313d52` | Apache-2.0; no text-predictor training |
 | Tool-call OOD test | `gorilla-llm/Berkeley-Function-Calling-Leaderboard` | `61fc0608cfd831fcfbbaa676ebdfef0ed963eeda` | Evaluation only; never predictor training |
