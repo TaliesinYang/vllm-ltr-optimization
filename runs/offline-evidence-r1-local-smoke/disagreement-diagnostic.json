@@ -1,0 +1,6 @@
+{
+  "domains": {},
+  "reason": "missing_checkpoints",
+  "schema_version": "disagreement-diagnostic-v1",
+  "status": "blocked"
+}

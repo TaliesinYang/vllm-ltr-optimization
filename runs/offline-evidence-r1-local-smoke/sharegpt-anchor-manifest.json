@@ -1,0 +1,23 @@
+{
+  "baseline_service_ms": {
+    "claim": "proxy; not isolated service timing",
+    "formula": "output_length * per_token_ms",
+    "kind": "output_length_per_token_proxy",
+    "per_token_ms": 2.5
+  },
+  "extraction_scope": "first-assistant-invocation-only",
+  "input_path": "tests/fixtures/offline_r1/sharegpt.jsonl",
+  "input_sha256": "e569b056c5c566ffcf29a05019db4e30215f7d68378802ac013df54a51bd4f95",
+  "lengths_sha256": "4d5e1f21b4a6488b67f2b8d9634cc34b9154eb6da6f0cd99f98695858474d316",
+  "max_tokens": 4096,
+  "output_path": "runs/offline-evidence-r1-local-smoke/sharegpt-anchor-workload.jsonl",
+  "output_sha256": "ea2f90187febe549535d54280858f64583d1fdf17170a5e5ddcf986b84759f96",
+  "row_count": 2,
+  "sample_size_requested": 2,
+  "sampling_seed": 17,
+  "schema_version": "chat-anchor-workload-v1",
+  "source": "sharegpt",
+  "source_revision": [
+    "fixture-sharegpt"
+  ]
+}

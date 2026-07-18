@@ -1,0 +1,8 @@
+{
+  "detail": "No module named 'lightgbm'",
+  "grid_size": 20,
+  "input_path": "tests/fixtures/offline_r1/lightgbm.jsonl",
+  "reason": "lightgbm_not_installed",
+  "schema_version": "lightgbm-search-v1",
+  "status": "blocked"
+}

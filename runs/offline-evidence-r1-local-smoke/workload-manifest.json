@@ -1,0 +1,21 @@
+{
+  "baseline_service_ms": {
+    "claim": "proxy; not isolated service timing",
+    "formula": "output_length * per_token_ms",
+    "kind": "output_length_per_token_proxy",
+    "per_token_ms": 2.5
+  },
+  "input_sha256": {
+    "ood": "d74cc503a7d7b2d33ab48ca62504882e42c1aef30c99ae5540ca40e768c1c843"
+  },
+  "lengths_path": "tests/fixtures/offline_r1/lengths.jsonl",
+  "lengths_sha256": "4b8ace7b1bf55d39ebf88b8fb410c6ff920eb4d2dda14ec51c87ea2519da80f8",
+  "max_tokens": 4096,
+  "output_path": "runs/offline-evidence-r1-local-smoke/ood-workload.jsonl",
+  "output_sha256": "01f805a895a9c58cd5a712dd8dbdbd0b67f96b4f6181015599b728112e862041",
+  "profile": "ood",
+  "request_count": 2,
+  "runner_compatibility": "unverified_scheduler_benchmark_frozen",
+  "sampling_seed": 42,
+  "schema_version": "offline-workload-v1"
+}

@@ -1,0 +1,16 @@
+{
+  "input_path": "runs/offline-evidence-r1-local-smoke/bfcl-label-inputs.jsonl",
+  "missing": [
+    "runs/offline-evidence-r1-local-smoke/missing-seed17",
+    "runs/offline-evidence-r1-local-smoke/missing-seed42",
+    "runs/offline-evidence-r1-local-smoke/missing-seed73"
+  ],
+  "reason": "missing_checkpoints",
+  "required_seeds": [
+    17,
+    42,
+    73
+  ],
+  "schema_version": "offline-ensemble-scores-v1",
+  "status": "blocked"
+}

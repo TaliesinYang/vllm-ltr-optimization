@@ -1,0 +1,219 @@
+{
+  "bootstrap": {
+    "ci": "95% percentile",
+    "cluster_units": {
+      "bfcl": "id/task_id",
+      "toolace": "session_id",
+      "toolathlon": "canonical task_name/task_id"
+    },
+    "iterations": 1000,
+    "kind": "session-level cluster bootstrap",
+    "seed": 73
+  },
+  "inputs_sha256": {
+    "ood": "d74cc503a7d7b2d33ab48ca62504882e42c1aef30c99ae5540ca40e768c1c843",
+    "scores": "d83ed35b7c6459a3e0f00f78c2d5b64b8e6a3d843a874a64c7e95ecf227c10c6",
+    "test": "5600afad39331b9679d27a31d1c5adf4bce49355e4438bc4c5a5ce46d99c9ee0",
+    "train": "dd62f052819ba0f68db3f790b91b361ddc24a0df07245590def4e72af997000c",
+    "validation": "e7d8c3a8d46f19926d09eba7ec69fba7c0d039a4ea42f03442b725e0008c729f"
+  },
+  "kendalltau_variant": "b",
+  "leakage": {
+    "schema_hash": {
+      "canonicalization": "JSON sort_keys + type dict/list normalization + SHA-256",
+      "toolace_ood": {
+        "intersection_count": 0,
+        "intersection_sha256": [],
+        "left_unique": 5,
+        "right_unique": 1
+      },
+      "train_test": {
+        "intersection_count": 0,
+        "intersection_sha256": [],
+        "left_unique": 2,
+        "right_unique": 2
+      },
+      "train_validation": {
+        "intersection_count": 1,
+        "intersection_sha256": [
+          "3365d43fbb1e9ad13efca620641377adff25a775afcb8b0c1933bec57a166985"
+        ],
+        "left_unique": 2,
+        "right_unique": 2
+      }
+    },
+    "session_hash": {
+      "canonicalization": "canonical JSON sort_keys + SHA-256",
+      "toolace_ood": {
+        "intersection_count": 0,
+        "intersection_sha256": [],
+        "left_unique": 6,
+        "right_unique": 2
+      },
+      "train_test": {
+        "intersection_count": 0,
+        "intersection_sha256": [],
+        "left_unique": 2,
+        "right_unique": 2
+      },
+      "train_validation": {
+        "intersection_count": 0,
+        "intersection_sha256": [],
+        "left_unique": 2,
+        "right_unique": 2
+      }
+    }
+  },
+  "schema_version": "offline-evidence-analysis-v1",
+  "statistics": {
+    "id": {
+      "ensemble_rank": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      },
+      "rank_seed17": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      },
+      "rank_seed42": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      },
+      "rank_seed73": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      }
+    },
+    "ood": {
+      "ensemble_rank": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      },
+      "rank_seed17": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      },
+      "rank_seed42": {
+        "tau": {
+          "ci95_percentile": [
+            -1.0,
+            0.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": -1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      },
+      "rank_seed73": {
+        "tau": {
+          "ci95_percentile": [
+            0.0,
+            1.0
+          ],
+          "cluster_count": 2,
+          "cluster_key": "_cluster_id",
+          "iterations": 1000,
+          "point_tau_b": 1.0,
+          "seed": 73,
+          "variant": "b"
+        },
+        "ties": {
+          "prediction_tie_proportion": 0.0,
+          "true_length_tie_proportion": 0.0
+        }
+      }
+    }
+  },
+  "status": "done"
+}

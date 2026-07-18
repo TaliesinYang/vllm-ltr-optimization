@@ -1,0 +1,54 @@
+{
+  "families": [
+    {
+      "backbone": "opt",
+      "checkpoint": "runs/offline-evidence-r1-local-smoke/course-deliverables/listmle-opt",
+      "family": "listmle-opt",
+      "head": "rank",
+      "reason": "checkpoint_missing",
+      "score_direction": "reversed_to_longer_is_higher",
+      "status": "blocked"
+    },
+    {
+      "backbone": "opt",
+      "checkpoint": "runs/offline-evidence-r1-local-smoke/course-deliverables/classification-opt",
+      "family": "classification-opt",
+      "head": "classification",
+      "reason": "checkpoint_missing",
+      "score_direction": "reversed_to_longer_is_higher",
+      "status": "blocked"
+    },
+    {
+      "backbone": "bert",
+      "checkpoint": "runs/offline-evidence-r1-local-smoke/course-deliverables/pars-bert",
+      "family": "pars-bert",
+      "head": "rank",
+      "reason": "checkpoint_missing",
+      "score_direction": "reversed_to_longer_is_higher",
+      "status": "blocked"
+    },
+    {
+      "backbone": "opt",
+      "checkpoint": "runs/offline-evidence-r1-local-smoke/course-deliverables/a1-opt",
+      "family": "a1-opt",
+      "head": "rank",
+      "reason": "checkpoint_missing",
+      "score_direction": "reversed_to_longer_is_higher",
+      "status": "blocked"
+    },
+    {
+      "backbone": "bert",
+      "checkpoint": "runs/offline-evidence-r1-local-smoke/course-deliverables/a2-bert",
+      "family": "a2-bert",
+      "head": "rank",
+      "reason": "checkpoint_missing",
+      "score_direction": "reversed_to_longer_is_higher",
+      "status": "blocked"
+    }
+  ],
+  "priority": "P2_optional",
+  "r1_blocking": false,
+  "schema_version": "legacy-zero-shot-v1",
+  "score_contract": "all outputs transformed to longer-is-higher",
+  "status": "blocked"
+}

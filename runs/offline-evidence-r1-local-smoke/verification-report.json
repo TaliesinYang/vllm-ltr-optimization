@@ -1,0 +1,85 @@
+{
+  "schema_version": "offline-evidence-r1-verification-v1",
+  "scope": "local small-scale verification; no rented-server inference",
+  "status": "done_with_declared_environment_blocks",
+  "source_conversion": {
+    "bfcl": {
+      "rows": 2,
+      "unique_tasks": 2,
+      "unique_inputs": 2,
+      "unique_schemas": 1,
+      "conversion_errors": 0
+    },
+    "toolathlon": {
+      "rows": 2,
+      "unique_tasks": 2,
+      "unique_inputs": 2,
+      "unique_schemas": 2,
+      "conversion_errors": 0
+    }
+  },
+  "workloads": {
+    "ood_rows": 2,
+    "sharegpt_anchor_rows": 2,
+    "max_tokens": 4096,
+    "per_token_ms_fixture": 2.5,
+    "runner_read_only_load_check": {
+      "status": "passed",
+      "rows": 2,
+      "max_tokens_4096_rows": 2,
+      "category_rows": 2,
+      "scheduler_benchmark_files_modified_by_this_batch": 0
+    }
+  },
+  "statistics_smoke": {
+    "rows": 4,
+    "domains": 2,
+    "bootstrap_iterations": 1000,
+    "bootstrap_seed": 73,
+    "kendall_variant": "b"
+  },
+  "tests": {
+    "r1_focused": {
+      "passed": 26,
+      "failed": 0,
+      "errors": 0,
+      "seconds": 0.44
+    },
+    "compileall": {
+      "exit_code": 0
+    },
+    "full_suite_first_attempt": {
+      "status": "blocked_at_collection",
+      "reason": "torch_not_installed",
+      "collection_errors": 2
+    },
+    "full_suite_without_torch_files": {
+      "passed": 120,
+      "failed": 10,
+      "errors": 2,
+      "environment_failures": {
+        "local_socket_bind_denied": 7,
+        "protobuf_gencode_runtime_mismatch": 3,
+        "huggingface_network_unavailable": 2
+      }
+    }
+  },
+  "declared_blocks": {
+    "three_seed_inference": {
+      "status": "blocked",
+      "missing_checkpoints": 3,
+      "r1_script_blocking": false
+    },
+    "lightgbm_local_execution": {
+      "status": "blocked",
+      "reason": "lightgbm_not_installed",
+      "grid_logic_unit_tested_configs": 20
+    },
+    "legacy_zero_shot": {
+      "status": "blocked",
+      "missing_checkpoint_families": 5,
+      "priority": "P2_optional",
+      "r1_blocking": false
+    }
+  }
+}

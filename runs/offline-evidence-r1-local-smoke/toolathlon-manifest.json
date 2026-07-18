@@ -1,0 +1,35 @@
+{
+  "conversion_error_count": 0,
+  "conversion_errors": [],
+  "converted_before_sampling": 2,
+  "domain_separation": {
+    "claim": "source-identity disjoint; schema overlap requires measured hashes",
+    "schema_hash": "measured",
+    "source_identity": "disjoint"
+  },
+  "extraction_scope": "first-assistant-invocation-only",
+  "input_path": "tests/fixtures/offline_r1/toolathlon.jsonl",
+  "input_row_count": 2,
+  "input_sha256": "e15f3a46aa45f656001fecd640452139655c40052292ad1eb1508a35c3c7c8e7",
+  "output_path": "runs/offline-evidence-r1-local-smoke/toolathlon-label-inputs.jsonl",
+  "output_sha256": "3df83e3e0fd674d94b9369211575839d6aeefedd89ab8cbb4a1eee5d4ee393fe",
+  "repository": "hkust-nlp/Toolathlon-Trajectories",
+  "revision": "6194034105bc27fa438447172be0e7b4e35396e4",
+  "row_count": 2,
+  "sample_ids": [
+    "toolathlon:model_1:run-1:0000",
+    "toolathlon:model_2:run-2:0000"
+  ],
+  "sample_size_requested": 2,
+  "sampling_seed": 17,
+  "schema_version": "label-input-v1",
+  "source": "toolathlon",
+  "source_revisions": {
+    "toolathlon": [
+      "6194034105bc27fa438447172be0e7b4e35396e4"
+    ]
+  },
+  "unique_input_hash_count": 2,
+  "unique_schema_hash_count": 2,
+  "unique_task_count": 2
+}
