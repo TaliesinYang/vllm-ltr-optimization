@@ -4,20 +4,24 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import csv
 import hashlib
+import io
 import json
 import math
 import random
 import statistics
 import time
+import uuid
 from dataclasses import dataclass
 from dataclasses import asdict
+from dataclasses import replace
 from importlib.metadata import PackageNotFoundError, version as distribution_version
 from pathlib import Path
 from typing import Awaitable, Callable
 
 REPEAT_COUNT = 3
-T_CRITICAL_95_DF2 = 4.303
+SCHEMA_VERSION = 2
 STOCK_SCHEDULER_CLS = "vllm.v1.core.sched.scheduler.Scheduler"
 SCHEDULER_CLASS_TO_POLICY = {
     STOCK_SCHEDULER_CLS: "stock_fcfs",
@@ -25,6 +29,8 @@ SCHEDULER_CLASS_TO_POLICY = {
     "scheduler_benchmark.vllm_scheduler.PureLTRScheduler": "pure_ltr",
     "scheduler_benchmark.vllm_scheduler.TailSafeScheduler": "tail_safe",
     "scheduler_benchmark.vllm_scheduler.GatedHybridScheduler": "gated_hybrid",
+    "scheduler_benchmark.vllm_scheduler.PromptLengthSJFScheduler": "prompt_sjf",
+    "scheduler_benchmark.vllm_scheduler.LTRAgingScheduler": "ltr_aging",
 }
 
 
@@ -45,6 +51,16 @@ class ResponseSample:
     ttlt_ms: float
     output_tokens: int
     baseline_service_ms: float
+    send_ttft_ms: float | None = None
+    send_ttlt_ms: float | None = None
+    dispatch_lag_ms: float = 0.0
+    category: str = ""
+    policy: str = ""
+    profile: str = ""
+    scheduled_at_unix_s: float | None = None
+    dispatched_at_unix_s: float | None = None
+    first_token_at_unix_s: float | None = None
+    completed_at_unix_s: float | None = None
     error: str | None = None
 
 
@@ -63,6 +79,137 @@ def benchmark_scenarios() -> tuple[ReplayScenario, ...]:
         ReplayScenario("saturation-90", 0.9),
         ReplayScenario("burst-90", 0.9, burst_multiplier=2.0, burst_fraction=0.2),
     )
+
+
+def resolve_scenario_matrix(
+    requested_scenarios: list[str] | None,
+    requested_loads: list[int] | None,
+) -> list[ReplayScenario]:
+    if requested_scenarios is None and requested_loads is None:
+        return list(benchmark_scenarios())
+    scenario_kinds = sorted(
+        set(requested_scenarios or ["steady"]), key=("steady", "burst").index
+    )
+    loads = sorted(set(requested_loads or [40, 70, 90]))
+    scenarios: list[ReplayScenario] = []
+    for kind in scenario_kinds:
+        for load in loads:
+            saturation = load / 100.0
+            if kind == "steady":
+                scenarios.append(ReplayScenario(f"saturation-{load}", saturation))
+            elif kind == "burst":
+                scenarios.append(
+                    ReplayScenario(
+                        f"burst-{load}",
+                        saturation,
+                        burst_multiplier=2.0,
+                        burst_fraction=0.2,
+                    )
+                )
+            else:
+                raise ValueError(f"unknown scenario kind: {kind}")
+    return scenarios
+
+
+def derive_run_seed(*, profile: str, load_pct: int, repeat: int) -> int:
+    payload = json.dumps(
+        [profile, int(load_pct), int(repeat)], separators=(",", ":")
+    ).encode()
+    return int.from_bytes(hashlib.sha256(payload).digest()[:4], "big") & 0x7FFFFFFF
+
+
+def select_workload_profile(
+    workload: list[WorkloadRequest], profile: str
+) -> list[WorkloadRequest]:
+    if profile == "mixed":
+        selected = list(workload)
+    elif profile in {"id", "ood"}:
+        prefix = f"{profile}:"
+        selected = [
+            request
+            for request in workload
+            if request.category.lower() == profile
+            or request.category.lower().startswith(prefix)
+        ]
+    else:
+        raise ValueError(f"unknown workload profile: {profile}")
+    if not selected:
+        raise ValueError(f"workload profile {profile} selected no requests")
+    return selected
+
+
+def subrun_fingerprint(record: dict[str, object]) -> str:
+    scenario = record.get("scenario")
+    if not isinstance(scenario, dict):
+        raise ValueError("subrun record lacks scenario")
+    identity = {
+        "schema_version": record["schema_version"],
+        "workload_sha256": record["workload_sha256"],
+        "policy": record["policy"],
+        "scenario": scenario.get("name"),
+        "load_pct": record["load_pct"],
+        "profile": record["profile"],
+        "seed": record["seed"],
+        "warmup": record["warmup"],
+        "completed": record["completed"],
+        "errors": record["errors"],
+    }
+    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(path)
+
+
+def write_subrun_artifacts(
+    runs_dir: Path,
+    record: dict[str, object],
+    samples: list[ResponseSample],
+) -> tuple[Path, Path]:
+    expected = subrun_fingerprint(record)
+    if record.get("fingerprint") != expected:
+        raise ValueError("subrun fingerprint does not match record")
+    json_path = runs_dir / f"{expected}.json"
+    csv_path = runs_dir / f"{expected}.samples.csv"
+    fieldnames = (
+        list(asdict(samples[0]).keys())
+        if samples
+        else list(ResponseSample.__dataclass_fields__)
+    )
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=fieldnames)
+    writer.writeheader()
+    for sample in samples:
+        writer.writerow(asdict(sample))
+    _atomic_write_text(csv_path, buffer.getvalue())
+    persisted = dict(record)
+    persisted["samples_csv"] = csv_path.name
+    _atomic_write_text(
+        json_path, json.dumps(persisted, indent=2, sort_keys=True) + "\n"
+    )
+    return json_path, csv_path
+
+
+def load_completed_subruns(runs_dir: Path) -> list[dict[str, object]]:
+    if not runs_dir.exists():
+        return []
+    completed: list[dict[str, object]] = []
+    for path in sorted(runs_dir.glob("*.json")):
+        record = json.loads(path.read_text())
+        if record.get("status") != "complete":
+            continue
+        expected = subrun_fingerprint(record)
+        if record.get("fingerprint") != expected or path.stem != expected:
+            raise ValueError(f"invalid subrun fingerprint: {path}")
+        samples_csv = record.get("samples_csv")
+        if not isinstance(samples_csv, str) or not (runs_dir / samples_csv).is_file():
+            raise ValueError(f"subrun sample CSV is missing: {path}")
+        completed.append(record)
+    return completed
 
 
 def policy_for_scheduler_cls(scheduler_cls: str) -> str:
@@ -119,6 +266,15 @@ def summarize_samples(
     completed = [sample for sample in samples if sample.error is None]
     ttlt = [sample.ttlt_ms for sample in completed]
     ttft = [sample.ttft_ms for sample in completed]
+    send_ttlt = [
+        sample.send_ttlt_ms if sample.send_ttlt_ms is not None else sample.ttlt_ms
+        for sample in completed
+    ]
+    send_ttft = [
+        sample.send_ttft_ms if sample.send_ttft_ms is not None else sample.ttft_ms
+        for sample in completed
+    ]
+    dispatch_lag = [sample.dispatch_lag_ms for sample in completed]
     slowdown = [sample.ttlt_ms / sample.baseline_service_ms for sample in completed]
     output_tokens = sum(sample.output_tokens for sample in completed)
     safe_wall_time = max(wall_time_s, 1e-9)
@@ -136,6 +292,17 @@ def summarize_samples(
         "mean_ttft_ms": round(statistics.mean(ttft), 6) if ttft else 0.0,
         "p95_ttft_ms": round(_percentile(ttft, 95), 6),
         "p99_ttft_ms": round(_percentile(ttft, 99), 6),
+        "mean_send_ttlt_ms": round(statistics.mean(send_ttlt), 6) if send_ttlt else 0.0,
+        "p95_send_ttlt_ms": round(_percentile(send_ttlt, 95), 6),
+        "p99_send_ttlt_ms": round(_percentile(send_ttlt, 99), 6),
+        "mean_send_ttft_ms": round(statistics.mean(send_ttft), 6) if send_ttft else 0.0,
+        "p95_send_ttft_ms": round(_percentile(send_ttft, 95), 6),
+        "p99_send_ttft_ms": round(_percentile(send_ttft, 99), 6),
+        "mean_dispatch_lag_ms": (
+            round(statistics.mean(dispatch_lag), 6) if dispatch_lag else 0.0
+        ),
+        "p95_dispatch_lag_ms": round(_percentile(dispatch_lag, 95), 6),
+        "p99_dispatch_lag_ms": round(_percentile(dispatch_lag, 99), 6),
         "throughput_rps": round(len(completed) / safe_wall_time, 6),
         "output_tokens_per_s": round(output_tokens / safe_wall_time, 6),
     }
@@ -144,19 +311,66 @@ def summarize_samples(
 def aggregate_repeats(
     repeats: list[dict[str, float | int]],
 ) -> dict[str, object]:
-    if len(repeats) != REPEAT_COUNT:
-        raise ValueError(f"benchmark requires exactly {REPEAT_COUNT} repeats")
+    if not repeats:
+        raise ValueError("benchmark requires at least one repeat")
     metrics: dict[str, dict[str, float]] = {}
     for name in repeats[0]:
         values = [float(repeat[name]) for repeat in repeats]
         mean = statistics.mean(values)
-        margin = T_CRITICAL_95_DF2 * statistics.stdev(values) / math.sqrt(REPEAT_COUNT)
         metrics[name] = {
+            "values": values,
             "mean": round(mean, 6),
-            "ci95_low": round(mean - margin, 6),
-            "ci95_high": round(mean + margin, 6),
+            "min": round(min(values), 6),
+            "max": round(max(values), 6),
         }
-    return {"repeats": REPEAT_COUNT, "metrics": metrics}
+    return {"repeats": len(repeats), "metrics": metrics}
+
+
+def resolve_warmup_requests(
+    total_requests: int,
+    *,
+    requested_count: int | None = None,
+    requested_ratio: float | None = None,
+) -> int:
+    if requested_count is not None and requested_ratio is not None:
+        raise ValueError("warmup count and ratio are mutually exclusive")
+    if total_requests < 1:
+        raise ValueError("total_requests must be positive")
+    if requested_count is not None:
+        if requested_count < 0:
+            raise ValueError("warmup request count must be non-negative")
+        resolved = requested_count
+    elif requested_ratio is not None:
+        if not 0.0 <= requested_ratio < 1.0:
+            raise ValueError("warmup ratio must be between zero and one")
+        resolved = math.floor(total_requests * requested_ratio)
+    else:
+        resolved = 0
+    if resolved >= total_requests:
+        raise ValueError("warmup must leave at least one measurement request")
+    return resolved
+
+
+def measurement_window(
+    samples: list[ResponseSample], *, warmup_requests: int
+) -> tuple[list[ResponseSample], float]:
+    if not 0 <= warmup_requests < len(samples):
+        raise ValueError("warmup_requests must leave a non-empty measurement window")
+    measured = samples[warmup_requests:]
+    starts = [
+        sample.scheduled_at_unix_s
+        for sample in measured
+        if sample.scheduled_at_unix_s is not None
+    ]
+    finishes = [
+        sample.completed_at_unix_s
+        for sample in measured
+        if sample.completed_at_unix_s is not None
+    ]
+    if len(starts) != len(measured) or len(finishes) != len(measured):
+        raise ValueError("measurement window requires absolute sample timestamps")
+    duration_s = max(max(finishes) - min(starts), 1e-9)
+    return measured, duration_s
 
 
 def assess_completeness(repeats, *, expected_requests):
@@ -253,7 +467,9 @@ async def stream_completion(
 ) -> ResponseSample:
     headers = gateway_request_headers(request, api_key)
     started = time.perf_counter()
+    dispatched_at_unix_s = time.time()
     first_token_at: float | None = None
+    first_token_at_unix_s: float | None = None
     output_tokens: int | None = None
     async with session.post(
         endpoint,
@@ -282,17 +498,24 @@ async def stream_completion(
             if text:
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
+                    first_token_at_unix_s = time.time()
     finished = time.perf_counter()
+    completed_at_unix_s = time.time()
     if output_tokens is None:
         raise RuntimeError("stream response omitted completion_tokens usage")
-    ttlt_ms = (finished - started) * 1000.0
-    ttft_ms = ((first_token_at or finished) - started) * 1000.0
+    send_ttlt_ms = (finished - started) * 1000.0
+    send_ttft_ms = ((first_token_at or finished) - started) * 1000.0
     return ResponseSample(
         request_id=request.request_id,
-        ttft_ms=ttft_ms,
-        ttlt_ms=ttlt_ms,
+        ttft_ms=send_ttft_ms,
+        ttlt_ms=send_ttlt_ms,
         output_tokens=output_tokens,
         baseline_service_ms=request.baseline_service_ms,
+        send_ttft_ms=send_ttft_ms,
+        send_ttlt_ms=send_ttlt_ms,
+        dispatched_at_unix_s=dispatched_at_unix_s,
+        first_token_at_unix_s=first_token_at_unix_s,
+        completed_at_unix_s=completed_at_unix_s,
     )
 
 
@@ -300,23 +523,78 @@ async def run_replay(
     workload: list[WorkloadRequest],
     offsets: list[float],
     sender: Callable[[WorkloadRequest], Awaitable[ResponseSample]],
+    *,
+    policy: str = "",
+    profile: str = "mixed",
 ) -> tuple[list[ResponseSample], float]:
     if len(workload) != len(offsets):
         raise ValueError("workload and arrival offsets must have equal length")
     loop = asyncio.get_running_loop()
     replay_started = loop.time()
+    replay_started_unix_s = time.time()
 
     async def send_at_offset(request: WorkloadRequest, offset: float) -> ResponseSample:
-        await asyncio.sleep(max(0.0, replay_started + offset - loop.time()))
+        scheduled_at = replay_started + offset
+        scheduled_at_unix_s = replay_started_unix_s + offset
+        await asyncio.sleep(max(0.0, scheduled_at - loop.time()))
+        dispatched_at = loop.time()
+        dispatched_at_unix_s = time.time()
+        dispatch_lag_ms = max(0.0, (dispatched_at - scheduled_at) * 1000.0)
         try:
-            return await sender(request)
+            sample = await sender(request)
+            send_ttft_ms = (
+                sample.send_ttft_ms
+                if sample.send_ttft_ms is not None
+                else sample.ttft_ms
+            )
+            send_ttlt_ms = (
+                sample.send_ttlt_ms
+                if sample.send_ttlt_ms is not None
+                else sample.ttlt_ms
+            )
+            return replace(
+                sample,
+                ttft_ms=dispatch_lag_ms + send_ttft_ms,
+                ttlt_ms=dispatch_lag_ms + send_ttlt_ms,
+                send_ttft_ms=send_ttft_ms,
+                send_ttlt_ms=send_ttlt_ms,
+                dispatch_lag_ms=dispatch_lag_ms,
+                category=request.category,
+                policy=policy,
+                profile=profile,
+                scheduled_at_unix_s=scheduled_at_unix_s,
+                dispatched_at_unix_s=dispatched_at_unix_s,
+                first_token_at_unix_s=(
+                    sample.first_token_at_unix_s
+                    if sample.first_token_at_unix_s is not None
+                    else dispatched_at_unix_s + send_ttft_ms / 1000.0
+                ),
+                completed_at_unix_s=(
+                    sample.completed_at_unix_s
+                    if sample.completed_at_unix_s is not None
+                    else dispatched_at_unix_s + send_ttlt_ms / 1000.0
+                ),
+            )
         except Exception as exc:
+            failed_at = loop.time()
+            failed_at_unix_s = time.time()
+            send_elapsed_ms = max(0.0, (failed_at - dispatched_at) * 1000.0)
             return ResponseSample(
                 request_id=request.request_id,
-                ttft_ms=0.0,
-                ttlt_ms=0.0,
+                ttft_ms=dispatch_lag_ms + send_elapsed_ms,
+                ttlt_ms=dispatch_lag_ms + send_elapsed_ms,
                 output_tokens=0,
                 baseline_service_ms=request.baseline_service_ms,
+                send_ttft_ms=send_elapsed_ms,
+                send_ttlt_ms=send_elapsed_ms,
+                dispatch_lag_ms=dispatch_lag_ms,
+                category=request.category,
+                policy=policy,
+                profile=profile,
+                scheduled_at_unix_s=scheduled_at_unix_s,
+                dispatched_at_unix_s=dispatched_at_unix_s,
+                first_token_at_unix_s=failed_at_unix_s,
+                completed_at_unix_s=failed_at_unix_s,
                 error=str(exc),
             )
 
@@ -336,60 +614,157 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, object]:
         vllm_version = validate_vllm_version(distribution_version("vllm"))
     except PackageNotFoundError as exc:
         raise RuntimeError("vLLM 0.24.x must be installed for live replay") from exc
+    if args.repeats < 1:
+        raise ValueError("repeats must be positive")
     workload = load_workload(args.workload)
+    workload_sha256 = hashlib.sha256(args.workload.read_bytes()).hexdigest()
+    policy = policy_for_scheduler_cls(args.scheduler_cls)
+    profiles = list(dict.fromkeys(args.profile or ["mixed"]))
+    scenarios = resolve_scenario_matrix(args.scenario, args.load)
+    runs_dir = args.output.parent / f"{args.output.stem}.runs"
+    completed_subruns = load_completed_subruns(runs_dir) if args.resume else []
     timeout = aiohttp.ClientTimeout(total=args.timeout_s)
     scenario_results: list[dict[str, object]] = []
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        for scenario_index, scenario in enumerate(benchmark_scenarios()):
-            runs: list[dict[str, object]] = []
-            repeat_metrics: list[dict[str, float | int]] = []
-            for repeat in range(REPEAT_COUNT):
-                offsets = build_arrival_offsets(
-                    len(workload),
-                    capacity_rps=args.capacity_rps,
-                    scenario=scenario,
-                    seed=args.seed + scenario_index * 100 + repeat,
-                )
+        for profile in profiles:
+            profile_workload = select_workload_profile(workload, profile)
+            warmup_requests = resolve_warmup_requests(
+                len(profile_workload),
+                requested_count=args.warmup_requests,
+                requested_ratio=args.warmup_ratio,
+            )
+            for scenario in scenarios:
+                load_pct = int(round(scenario.saturation * 100))
+                runs: list[dict[str, object]] = []
+                repeat_metrics: list[dict[str, float | int]] = []
+                full_counts: list[dict[str, int]] = []
+                for repeat in range(1, args.repeats + 1):
+                    seed = derive_run_seed(
+                        profile=profile, load_pct=load_pct, repeat=repeat
+                    )
+                    warmup_manifest = {
+                        "requested": {
+                            "count": args.warmup_requests,
+                            "ratio": args.warmup_ratio,
+                        },
+                        "resolved": warmup_requests,
+                        "measured": len(profile_workload) - warmup_requests,
+                        "discarded": warmup_requests,
+                    }
+                    expected_identity = {
+                        "schema_version": SCHEMA_VERSION,
+                        "workload_sha256": workload_sha256,
+                        "policy": policy,
+                        "scheduler_cls": args.scheduler_cls,
+                        "model": args.model,
+                        "capacity_rps": args.capacity_rps,
+                        "scenario": asdict(scenario),
+                        "load_pct": load_pct,
+                        "profile": profile,
+                        "repeat": repeat,
+                        "seed": seed,
+                        "warmup": warmup_manifest,
+                    }
+                    resumed = next(
+                        (
+                            record
+                            for record in completed_subruns
+                            if all(
+                                record.get(key) == value
+                                for key, value in expected_identity.items()
+                            )
+                        ),
+                        None,
+                    )
+                    if resumed is not None:
+                        runs.append(resumed)
+                        repeat_metrics.append(resumed["metrics"])
+                        full_counts.append(
+                            {
+                                "completed": int(resumed["completed"]),
+                                "errors": int(resumed["errors"]),
+                            }
+                        )
+                        continue
 
-                async def sender(request: WorkloadRequest) -> ResponseSample:
-                    return await stream_completion(
-                        session, args.endpoint, args.model, request, args.api_key
+                    offsets = build_arrival_offsets(
+                        len(profile_workload),
+                        capacity_rps=args.capacity_rps,
+                        scenario=scenario,
+                        seed=seed,
                     )
 
-                samples, wall_time_s = await run_replay(workload, offsets, sender)
-                metrics = summarize_samples(samples, wall_time_s=wall_time_s)
-                repeat_metrics.append(metrics)
-                runs.append(
-                    {
-                        "repeat": repeat + 1,
+                    async def sender(request: WorkloadRequest) -> ResponseSample:
+                        return await stream_completion(
+                            session, args.endpoint, args.model, request, args.api_key
+                        )
+
+                    started_at_unix_s = time.time()
+                    samples, wall_time_s = await run_replay(
+                        profile_workload,
+                        offsets,
+                        sender,
+                        policy=policy,
+                        profile=profile,
+                    )
+                    completed_at_unix_s = time.time()
+                    measured_samples, measurement_wall_time_s = measurement_window(
+                        samples, warmup_requests=warmup_requests
+                    )
+                    metrics = summarize_samples(
+                        measured_samples, wall_time_s=measurement_wall_time_s
+                    )
+                    full_completed = sum(sample.error is None for sample in samples)
+                    full_errors = len(samples) - full_completed
+                    record: dict[str, object] = {
+                        **expected_identity,
+                        "status": "complete",
+                        "completed": full_completed,
+                        "errors": full_errors,
+                        "started_at_unix_s": started_at_unix_s,
+                        "completed_at_unix_s": completed_at_unix_s,
                         "wall_time_s": wall_time_s,
+                        "measurement_wall_time_s": measurement_wall_time_s,
                         "metrics": metrics,
-                        "samples": [asdict(sample) for sample in samples],
+                    }
+                    record["fingerprint"] = subrun_fingerprint(record)
+                    write_subrun_artifacts(runs_dir, record, samples)
+                    runs.append(record)
+                    repeat_metrics.append(metrics)
+                    full_counts.append(
+                        {"completed": full_completed, "errors": full_errors}
+                    )
+                scenario_results.append(
+                    {
+                        "scenario": asdict(scenario),
+                        "load_pct": load_pct,
+                        "profile": profile,
+                        "runs": runs,
+                        "aggregate": aggregate_repeats(repeat_metrics),
+                        "completeness": assess_completeness(
+                            full_counts, expected_requests=len(profile_workload)
+                        ),
                     }
                 )
-            scenario_results.append(
-                {
-                    "scenario": asdict(scenario),
-                    "runs": runs,
-                    "aggregate": aggregate_repeats(repeat_metrics),
-                    "completeness": assess_completeness(
-                        repeat_metrics, expected_requests=len(workload)
-                    ),
-                }
-            )
     is_valid = all(bool(result["completeness"]["valid"]) for result in scenario_results)
     return {
-        "schema_version": 1,
+        "schema_version": SCHEMA_VERSION,
         "valid": is_valid,
         **gateway_manifest(args.endpoint),
-        "policy": policy_for_scheduler_cls(args.scheduler_cls),
+        "policy": policy,
         "scheduler_cls": args.scheduler_cls,
         "model": args.model,
         "capacity_rps": args.capacity_rps,
-        "workload_sha256": hashlib.sha256(args.workload.read_bytes()).hexdigest(),
-        "seed": args.seed,
+        "workload_sha256": workload_sha256,
+        "seed_derivation": "sha256(profile,load_pct,repeat)",
         "vllm_version": vllm_version,
-        "repeats": REPEAT_COUNT,
+        "repeats": args.repeats,
+        "profiles": profiles,
+        "warmup_requested": {
+            "count": args.warmup_requests,
+            "ratio": args.warmup_ratio,
+        },
+        "runs_dir": str(runs_dir),
         "scenarios": scenario_results,
     }
 
@@ -411,7 +786,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--api-key")
-    parser.add_argument("--seed", type=int, default=17)
+    parser.add_argument(
+        "--scenario",
+        action="append",
+        choices=("steady", "burst"),
+        help="Scenario family; repeat to select multiple. Defaults to the legacy matrix.",
+    )
+    parser.add_argument(
+        "--load",
+        action="append",
+        type=int,
+        choices=(40, 70, 90),
+        help="Offered load percentage; repeat to select multiple.",
+    )
+    parser.add_argument(
+        "--profile",
+        action="append",
+        choices=("id", "ood", "mixed"),
+        help="Workload category profile; repeat to select multiple. Defaults to mixed.",
+    )
+    parser.add_argument("--repeats", type=int, default=REPEAT_COUNT)
+    warmup = parser.add_mutually_exclusive_group()
+    warmup.add_argument("--warmup-requests", type=int)
+    warmup.add_argument("--warmup-ratio", type=float)
+    parser.add_argument("--resume", action="store_true")
     parser.add_argument("--timeout-s", type=float, default=600.0)
     return parser.parse_args(argv)
 
@@ -419,6 +817,5 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     result = asyncio.run(run_benchmark(args))
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2) + "\n")
+    _atomic_write_text(args.output, json.dumps(result, indent=2) + "\n")
     return 0 if result["valid"] else 2

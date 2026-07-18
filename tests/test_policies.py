@@ -23,6 +23,7 @@ def request(
     ood: bool = False,
     kind: str = "chat",
     category: str = "",
+    prompt_token_count: int = 1,
 ) -> RequestContext:
     return RequestContext(
         request_id=request_id,
@@ -30,6 +31,7 @@ def request(
         prediction=prediction(score, confidence=confidence, ood=ood),
         kind=kind,
         category=category,
+        prompt_token_count=prompt_token_count,
     )
 
 
@@ -121,6 +123,40 @@ def test_gated_hybrid_falls_back_for_low_confidence_chat() -> None:
     assert ordered[0].request_id == "older"
 
 
-def test_policy_name_is_closed_to_four_benchmark_policies() -> None:
+def test_prompt_sjf_orders_by_prompt_token_count_without_prediction() -> None:
+    waiting = [
+        request("long", 1.0, 0.01, prompt_token_count=100),
+        request("short", 2.0, 0.99, prompt_token_count=10),
+    ]
+
+    ordered = order_waiting_requests(waiting, "prompt_sjf", now_s=3.0)
+
+    assert [item.request_id for item in ordered] == ["short", "long"]
+
+
+def test_prompt_sjf_falls_back_to_fcfs_when_prompt_is_empty() -> None:
+    waiting = [
+        request("new-empty", 2.0, 0.01, prompt_token_count=0),
+        request("old", 1.0, 0.99, prompt_token_count=100),
+    ]
+
+    ordered = order_waiting_requests(waiting, "prompt_sjf", now_s=3.0)
+
+    assert [item.request_id for item in ordered] == ["old", "new-empty"]
+
+
+def test_ltr_aging_promotes_sufficiently_old_high_score_request() -> None:
+    config = PolicyConfig(deadline_ms=1000.0, ltr_scale=400.0)
+    waiting = [
+        request("old-long", 0.0, 0.9),
+        request("new-short", 9.9, 0.1),
+    ]
+
+    ordered = order_waiting_requests(waiting, "ltr_aging", now_s=10.0, config=config)
+
+    assert [item.request_id for item in ordered] == ["old-long", "new-short"]
+
+
+def test_policy_name_is_closed_to_six_benchmark_policies() -> None:
     with pytest.raises(ValueError, match="unknown policy"):
         order_waiting_requests([], "oracle", now_s=0.0, config=PolicyConfig())

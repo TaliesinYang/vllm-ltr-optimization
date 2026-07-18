@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from scheduler_benchmark.predictor import Prediction
 from scheduler_benchmark.vllm_scheduler import (
     FCFS_PARITY_TOLERANCES,
+    LTRAgingScheduler,
+    PromptLengthSJFScheduler,
     SCHEDULER_CLASSES,
     StockFCFSShim,
     TailSafeScheduler,
@@ -37,17 +39,40 @@ def test_stock_fcfs_shim_does_not_override_scheduler_behavior() -> None:
     assert "add_request" not in StockFCFSShim.__dict__
 
 
-def test_scheduler_class_roster_matches_four_benchmark_policies() -> None:
+def test_scheduler_class_roster_matches_six_benchmark_policies() -> None:
     assert set(SCHEDULER_CLASSES) == {
         "fcfs",
         "pure_ltr",
         "tail_safe",
         "gated_hybrid",
+        "prompt_sjf",
+        "ltr_aging",
     }
 
 
 def test_tail_safe_scheduler_does_not_invoke_predictor() -> None:
     assert TailSafeScheduler.uses_predictor is False
+
+
+def test_prompt_sjf_has_zero_predictor_inference_overhead() -> None:
+    assert PromptLengthSJFScheduler.uses_predictor is False
+    assert LTRAgingScheduler.uses_predictor is True
+
+
+def test_request_context_passes_prompt_token_count_to_prompt_sjf() -> None:
+    queue = FakeQueue(
+        [
+            FakeRequest("long", 1.0, [1, 2, 3], {}),
+            FakeRequest("short", 2.0, [1], {}),
+        ]
+    )
+    predictions = {
+        request.request_id: Prediction(1.0, 0.0, True, 0.0) for request in queue
+    }
+
+    reorder_request_queue(queue, "prompt_sjf", predictions, now_s=3.0)
+
+    assert [request.request_id for request in queue] == ["short", "long"]
 
 
 def test_predictor_error_returns_ood_fallback_instead_of_aborting() -> None:

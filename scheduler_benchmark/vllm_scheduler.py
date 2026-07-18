@@ -94,6 +94,7 @@ def _request_context(request, prediction: Prediction) -> RequestContext:
         prediction=prediction,
         kind=str(metadata.get("kind", "chat")),
         category=str(metadata.get("category", "")),
+        prompt_token_count=len(request.prompt_token_ids or ()),
     )
 
 
@@ -192,11 +193,24 @@ class GatedHybridScheduler(_PolicyScheduler):
     policy_name = "gated_hybrid"
 
 
+class PromptLengthSJFScheduler(_PolicyScheduler):
+    """Prompt-length SJF with zero predictor inference overhead."""
+
+    policy_name = "prompt_sjf"
+    uses_predictor = False
+
+
+class LTRAgingScheduler(_PolicyScheduler):
+    policy_name = "ltr_aging"
+
+
 SCHEDULER_CLASSES = {
     "fcfs": StockFCFSShim,
     "pure_ltr": PureLTRScheduler,
     "tail_safe": TailSafeScheduler,
     "gated_hybrid": GatedHybridScheduler,
+    "prompt_sjf": PromptLengthSJFScheduler,
+    "ltr_aging": LTRAgingScheduler,
 }
 
 FCFS_PARITY_TOLERANCES = {
@@ -263,13 +277,17 @@ def evaluate_parity_report(stock_result, shim_result):
         "model",
         "workload_sha256",
         "capacity_rps",
-        "seed",
         "vllm_version",
         "repeats",
     )
+    optional_identity_fields = ("seed", "seed_derivation", "warmup_requested")
     for field in identity_fields:
         if stock_result.get(field) != shim_result.get(field):
             raise ValueError(f"parity inputs disagree on {field}")
+    for field in optional_identity_fields:
+        if field in stock_result or field in shim_result:
+            if stock_result.get(field) != shim_result.get(field):
+                raise ValueError(f"parity inputs disagree on {field}")
     for label, result in (("stock", stock_result), ("shim", shim_result)):
         if any(
             row.get("completeness", {}).get("valid") is not True
@@ -279,7 +297,9 @@ def evaluate_parity_report(stock_result, shim_result):
 
     def scenarios_by_name(result):
         return {
-            row["scenario"]["name"]: row["aggregate"]["metrics"]
+            (row["scenario"]["name"], row.get("profile", "mixed")): row["aggregate"][
+                "metrics"
+            ]
             for row in result["scenarios"]
         }
 
@@ -289,18 +309,20 @@ def evaluate_parity_report(stock_result, shim_result):
         raise ValueError("stock and shim scenario sets must match")
     scenario_reports: dict[str, object] = {}
     all_passed = True
-    for name in sorted(stock_scenarios):
+    for name, profile in sorted(stock_scenarios):
+        key = (name, profile)
         stock_metrics = {
-            metric: stock_scenarios[name][metric]["mean"]
+            metric: stock_scenarios[key][metric]["mean"]
             for metric in FCFS_PARITY_TOLERANCES
         }
         shim_metrics = {
-            metric: shim_scenarios[name][metric]["mean"]
+            metric: shim_scenarios[key][metric]["mean"]
             for metric in FCFS_PARITY_TOLERANCES
         }
         result = evaluate_fcfs_parity(stock_metrics, shim_metrics)
         all_passed = all_passed and result.passed
-        scenario_reports[name] = {
+        report_name = name if profile == "mixed" else f"{name}/{profile}"
+        scenario_reports[report_name] = {
             "passed": result.passed,
             "checks": {
                 metric: asdict(check) for metric, check in result.checks.items()

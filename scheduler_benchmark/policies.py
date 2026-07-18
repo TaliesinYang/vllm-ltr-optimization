@@ -6,7 +6,14 @@ from dataclasses import dataclass
 
 from .predictor import Prediction
 
-POLICIES = ("fcfs", "pure_ltr", "tail_safe", "gated_hybrid")
+POLICIES = (
+    "fcfs",
+    "pure_ltr",
+    "tail_safe",
+    "gated_hybrid",
+    "prompt_sjf",
+    "ltr_aging",
+)
 
 
 @dataclass(frozen=True)
@@ -24,6 +31,7 @@ class RequestContext:
     prediction: Prediction
     kind: str = "chat"
     category: str = ""
+    prompt_token_count: int = 0
 
 
 def _age_ms(item: RequestContext, now_s: float) -> float:
@@ -99,6 +107,11 @@ def order_waiting_requests(
         raise ValueError(f"unknown policy: {policy}")
     resolved_config = config or PolicyConfig()
     queue_depth = len(waiting)
+    if policy == "prompt_sjf" and any(item.prompt_token_count <= 0 for item in waiting):
+        return sorted(
+            waiting,
+            key=lambda item: (item.arrival_time_s, item.request_id),
+        )
 
     def key(item: RequestContext) -> tuple[float, float, str]:
         if policy == "fcfs":
@@ -107,8 +120,12 @@ def order_waiting_requests(
             score = item.prediction.score
         elif policy == "tail_safe":
             score = _tail_safe_score(item, now_s, resolved_config)
-        else:
+        elif policy == "gated_hybrid":
             score = _gated_score(item, now_s, queue_depth, resolved_config)
+        elif policy == "prompt_sjf":
+            score = float(item.prompt_token_count)
+        else:
+            score = _ltr_score(item, now_s, resolved_config)
         return (score, item.arrival_time_s, item.request_id)
 
     return sorted(waiting, key=key)

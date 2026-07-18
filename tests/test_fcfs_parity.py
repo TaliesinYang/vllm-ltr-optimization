@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import unittest
+import asyncio
 from pathlib import Path
 
 from ltr_training.fcfs_parity import (
@@ -11,6 +12,8 @@ from ltr_training.fcfs_parity import (
 from ltr_training.fcfs_replay import (
     REPEAT_COUNT,
     ResponseSample,
+    WorkloadRequest,
+    _run_replay,
     benchmark_scenarios,
     summarize_samples,
 )
@@ -39,6 +42,29 @@ def benchmark_result(*, throughput: float, p99: float) -> dict[str, object]:
 
 
 class StockFcfsParityTest(unittest.TestCase):
+    def test_parity_replay_uses_scheduled_origin_and_keeps_send_latency(self) -> None:
+        async def sender(_request):
+            return ResponseSample(
+                ttft_ms=5.0,
+                ttlt_ms=10.0,
+                output_tokens=1,
+                send_ttft_ms=5.0,
+                send_ttlt_ms=10.0,
+            )
+
+        samples, _ = asyncio.run(
+            _run_replay(
+                [WorkloadRequest("req", "hello", 1)],
+                [-0.02],
+                sender,
+            )
+        )
+
+        sample = samples[0]
+        self.assertGreaterEqual(sample.dispatch_lag_ms, 15.0)
+        self.assertAlmostEqual(sample.ttlt_ms, sample.dispatch_lag_ms + 10.0)
+        self.assertEqual(sample.send_ttlt_ms, 10.0)
+
     def test_live_harness_uses_four_loads_and_three_repeats(self) -> None:
         self.assertEqual(REPEAT_COUNT, 3)
         self.assertEqual(

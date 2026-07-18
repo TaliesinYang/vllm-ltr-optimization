@@ -33,6 +33,26 @@ class SourceManifestTest(unittest.TestCase):
         self.assertEqual(run["backbone"], "google-bert/bert-base-uncased")
         self.assertEqual(run["label_tier"], 1)
 
+    def test_ood_sources_are_pinned_in_mainline(self) -> None:
+        declarations = json.loads(
+            (ROOT / "configs" / "source-declarations.json").read_text()
+        )
+
+        self.assertEqual(
+            declarations["bfcl"],
+            {
+                "repository": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+                "revision": "61fc0608cfd831fcfbbaa676ebdfef0ed963eeda",
+            },
+        )
+        self.assertEqual(
+            declarations["toolathlon"],
+            {
+                "repository": "hkust-nlp/Toolathlon-Trajectories",
+                "revision": "6194034105bc27fa438447172be0e7b4e35396e4",
+            },
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,17 +9,19 @@ def test_load_policy_result_extracts_load_sweep_means(tmp_path) -> None:
         json.dumps(
             {
                 "valid": True,
+                "schema_version": 2,
                 "policy": "fcfs",
                 "scheduler_cls": "scheduler_benchmark.vllm_scheduler.StockFCFSShim",
                 "model": "model",
                 "workload_sha256": "abc",
                 "capacity_rps": 10.0,
-                "seed": 17,
+                "seed_derivation": "sha256(profile,load_pct,repeat)",
                 "vllm_version": "0.24.0",
                 "repeats": 3,
                 "scenarios": [
                     {
                         "scenario": {"name": "saturation-40", "saturation": 0.4},
+                        "profile": "mixed",
                         "aggregate": {
                             "metrics": {
                                 "p95_ttlt_ms": {"mean": 100.0},
@@ -30,6 +32,7 @@ def test_load_policy_result_extracts_load_sweep_means(tmp_path) -> None:
                     },
                     {
                         "scenario": {"name": "burst-90", "saturation": 0.9},
+                        "profile": "mixed",
                         "aggregate": {
                             "metrics": {
                                 "p95_ttlt_ms": {"mean": 999.0},
@@ -54,12 +57,48 @@ def test_load_policy_result_extracts_load_sweep_means(tmp_path) -> None:
             "model": "model",
             "workload_sha256": "abc",
             "capacity_rps": 10.0,
-            "seed": 17,
+            "seed_derivation": "sha256(profile,load_pct,repeat)",
             "vllm_version": "0.24.0",
             "repeats": 3,
             "scheduler_cls": "scheduler_benchmark.vllm_scheduler.StockFCFSShim",
+            "profile": "mixed",
         }
     ]
+
+
+def test_live_figure_accepts_arbitrary_policy_and_repeat_counts(tmp_path) -> None:
+    rows = []
+    for policy, scheduler_cls, repeats in (
+        (
+            "prompt_sjf",
+            "scheduler_benchmark.vllm_scheduler.PromptLengthSJFScheduler",
+            5,
+        ),
+        ("ltr_aging", "scheduler_benchmark.vllm_scheduler.LTRAgingScheduler", 5),
+    ):
+        for load in (40.0, 90.0):
+            rows.append(
+                {
+                    "policy": policy,
+                    "profile": "ood",
+                    "saturation_pct": load,
+                    "p95_ttlt_ms": load + 10,
+                    "p99_ttlt_ms": load + 20,
+                    "scheduler_cls": scheduler_cls,
+                    "model": "model",
+                    "workload_sha256": "abc",
+                    "capacity_rps": 10.0,
+                    "seed_derivation": "sha256(profile,load_pct,repeat)",
+                    "vllm_version": "0.24.0",
+                    "repeats": repeats,
+                }
+            )
+
+    output = tmp_path / "dynamic.pdf"
+    plot_figure(rows, output)
+
+    assert output.exists()
+    assert output.stat().st_size > 0
 
 
 def test_load_policy_result_rejects_incomplete_run(tmp_path) -> None:

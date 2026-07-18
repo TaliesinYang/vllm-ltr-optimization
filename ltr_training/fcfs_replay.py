@@ -6,7 +6,7 @@ import math
 import random
 import statistics
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Awaitable, Callable
 
@@ -27,6 +27,9 @@ class ResponseSample:
     ttft_ms: float
     ttlt_ms: float
     output_tokens: int
+    send_ttft_ms: float | None = None
+    send_ttlt_ms: float | None = None
+    dispatch_lag_ms: float = 0.0
     error: str | None = None
 
 
@@ -86,9 +89,7 @@ def build_arrival_offsets(
     burst_end = int(count * (0.5 + scenario.burst_fraction / 2))
     for index in range(count):
         multiplier = (
-            scenario.burst_multiplier
-            if burst_start <= index < burst_end
-            else 1.0
+            scenario.burst_multiplier if burst_start <= index < burst_end else 1.0
         )
         elapsed += rng.expovariate(capacity_rps * scenario.saturation * multiplier)
         offsets.append(elapsed)
@@ -165,7 +166,9 @@ async def _stream_completion(
     token_events = 0
     async with session.post(endpoint, json=payload, headers=headers) as response:
         if response.status >= 400:
-            raise RuntimeError(f"HTTP {response.status}: {(await response.text())[:500]}")
+            raise RuntimeError(
+                f"HTTP {response.status}: {(await response.text())[:500]}"
+            )
         while not response.content.at_eof():
             raw_line = await response.content.readline()
             if not raw_line:
@@ -185,10 +188,14 @@ async def _stream_completion(
                 token_events += 1
                 first_token_at = first_token_at or time.perf_counter()
     finished = time.perf_counter()
+    send_ttft_ms = ((first_token_at or finished) - started) * 1000
+    send_ttlt_ms = (finished - started) * 1000
     return ResponseSample(
-        ttft_ms=((first_token_at or finished) - started) * 1000,
-        ttlt_ms=(finished - started) * 1000,
+        ttft_ms=send_ttft_ms,
+        ttlt_ms=send_ttlt_ms,
         output_tokens=output_tokens or token_events,
+        send_ttft_ms=send_ttft_ms,
+        send_ttlt_ms=send_ttlt_ms,
     )
 
 
@@ -201,11 +208,41 @@ async def _run_replay(
     started = loop.time()
 
     async def send_at(request: WorkloadRequest, offset: float) -> ResponseSample:
-        await asyncio.sleep(max(0.0, started + offset - loop.time()))
+        scheduled_at = started + offset
+        await asyncio.sleep(max(0.0, scheduled_at - loop.time()))
+        dispatched_at = loop.time()
+        dispatch_lag_ms = max(0.0, (dispatched_at - scheduled_at) * 1000.0)
         try:
-            return await sender(request)
+            sample = await sender(request)
+            send_ttft_ms = (
+                sample.send_ttft_ms
+                if sample.send_ttft_ms is not None
+                else sample.ttft_ms
+            )
+            send_ttlt_ms = (
+                sample.send_ttlt_ms
+                if sample.send_ttlt_ms is not None
+                else sample.ttlt_ms
+            )
+            return replace(
+                sample,
+                ttft_ms=dispatch_lag_ms + send_ttft_ms,
+                ttlt_ms=dispatch_lag_ms + send_ttlt_ms,
+                send_ttft_ms=send_ttft_ms,
+                send_ttlt_ms=send_ttlt_ms,
+                dispatch_lag_ms=dispatch_lag_ms,
+            )
         except Exception as error:
-            return ResponseSample(0.0, 0.0, 0, error=str(error))
+            send_elapsed_ms = max(0.0, (loop.time() - dispatched_at) * 1000.0)
+            return ResponseSample(
+                dispatch_lag_ms + send_elapsed_ms,
+                dispatch_lag_ms + send_elapsed_ms,
+                0,
+                send_ttft_ms=send_elapsed_ms,
+                send_ttlt_ms=send_elapsed_ms,
+                dispatch_lag_ms=dispatch_lag_ms,
+                error=str(error),
+            )
 
     samples = await asyncio.gather(
         *(send_at(request, offset) for request, offset in zip(workload, offsets))
@@ -267,4 +304,3 @@ async def benchmark_endpoint(
                 }
             )
     return {"model": model, "capacity_rps": capacity_rps, "scenarios": scenario_results}
-
