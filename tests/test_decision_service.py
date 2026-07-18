@@ -9,7 +9,7 @@ from scheduler_benchmark.decision_service import (
     DecisionError,
     create_decision_server,
 )
-from scheduler_benchmark.predictor import ConstantPredictor
+from scheduler_benchmark.predictor import ConstantPredictor, Prediction
 
 
 def valid_request(*, with_optional: bool = True) -> dict[str, object]:
@@ -108,6 +108,37 @@ def test_prompt_variant_does_not_require_optional_features() -> None:
 
     assert response["prediction_reliable"] is True
     assert response["reason_code"] == "prediction_reliable"
+
+
+def test_decision_application_transports_exact_prompt_schema_training_text() -> None:
+    class CapturingPredictor:
+        def __init__(self) -> None:
+            self.predictor_input = None
+
+        def predict(self, predictor_input):
+            self.predictor_input = predictor_input
+            return Prediction(0.25, 0.9, False, 1.0)
+
+    predictor = CapturingPredictor()
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="capture",
+        feature_variant="prompt_schema",
+    )
+    request = valid_request()
+    request["messages"] = [
+        {"role": "system", "content": "raw ToolACE system\nwith spacing\n"},
+        {"role": "user", "content": "current prompt"},
+    ]
+
+    response = app.decide(request)
+
+    assert response["reason_code"] == "prediction_reliable"
+    assert predictor.predictor_input.metadata["prompt_text"] == "current prompt"
+    assert (
+        predictor.predictor_input.metadata["tool_schema_text"]
+        == "raw ToolACE system\nwith spacing\n"
+    )
 
 
 @pytest.mark.parametrize(

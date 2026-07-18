@@ -216,6 +216,19 @@ def _predictor_input(request: Mapping[str, object]) -> PredictorInput:
         "request_age_ms": request["request_age_ms"],
         "generation_controls": request["generation_controls"],
     }
+    messages = request["messages"]
+    final_content = messages[-1].get("content")
+    if isinstance(final_content, str) and final_content:
+        metadata["prompt_text"] = final_content
+    system_contents = [
+        message.get("content")
+        for message in messages
+        if message.get("role") == "system"
+        and isinstance(message.get("content"), str)
+        and message.get("content")
+    ]
+    if len(system_contents) == 1:
+        metadata["tool_schema_text"] = system_contents[0]
     return PredictorInput(
         request_id=str(request["request_id"]),
         prompt_token_ids=tuple(serialized.encode("utf-8")),

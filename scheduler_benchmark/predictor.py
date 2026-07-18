@@ -1,4 +1,4 @@
-"""Admission-time predictor contract and development stubs."""
+"""Admission-time predictor contract and implementations."""
 
 from __future__ import annotations
 
@@ -25,8 +25,9 @@ class Prediction:
     """Normalized scheduler prediction.
 
     ``score`` is a rank-space cost in [0, 1], where lower schedules earlier.
-    ``confidence`` is calibrated reliability in [0, 1]. ``ood`` marks an
-    out-of-distribution input. ``latency_ms`` is predictor wall-clock cost.
+    ``confidence`` is a reliability signal in [0, 1]; each predictor documents
+    whether it is calibrated. ``ood`` marks an out-of-distribution input.
+    ``latency_ms`` is predictor wall-clock cost.
     """
 
     score: float
@@ -45,6 +46,60 @@ class Prediction:
 
 class Predictor(Protocol):
     def predict(self, predictor_input: PredictorInput) -> Prediction: ...
+
+
+class BertPredictor:
+    """CPU predictor for the trained ToolACE prompt-schema ranker."""
+
+    MAX_LENGTH = 512
+    PLACEHOLDER_CONFIDENCE = 0.9
+
+    def __init__(self, checkpoint: Path) -> None:
+        import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        self._torch = torch
+        self._device = torch.device("cpu")
+        self._tokenizer = AutoTokenizer.from_pretrained(
+            checkpoint, local_files_only=True
+        )
+        self._model = AutoModelForSequenceClassification.from_pretrained(
+            checkpoint, local_files_only=True
+        )
+        self._model.to(self._device)
+        self._model.eval()
+
+    def predict(self, predictor_input: PredictorInput) -> Prediction:
+        started = time.perf_counter()
+        prompt = _required_metadata_text(predictor_input, "prompt_text")
+        tool_schema = _required_metadata_text(predictor_input, "tool_schema_text")
+        rendered = f"[USER]\n{prompt}\n[TOOLS]\n{tool_schema}"
+        inputs = self._tokenizer(
+            [rendered],
+            padding=True,
+            truncation=True,
+            max_length=self.MAX_LENGTH,
+            return_tensors="pt",
+        ).to(self._device)
+        with self._torch.inference_mode():
+            logits = self._model(**inputs).logits.reshape(-1)
+        if logits.numel() != 1:
+            raise ValueError("BERT predictor must return exactly one logit")
+        score = float(self._torch.sigmoid(logits[0]).item())
+        latency_ms = (time.perf_counter() - started) * 1000.0
+        # Placeholder only; not a calibrated probability. Ensemble-based
+        # confidence is future work.
+        confidence = self.PLACEHOLDER_CONFIDENCE
+        # No evaluated OOD detector is implemented yet.
+        ood = False
+        return Prediction(score, confidence, ood, latency_ms)
+
+
+def _required_metadata_text(predictor_input: PredictorInput, key: str) -> str:
+    value = predictor_input.metadata.get(key)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"BERT predictor requires non-empty {key}")
+    return value
 
 
 class ConstantPredictor:
