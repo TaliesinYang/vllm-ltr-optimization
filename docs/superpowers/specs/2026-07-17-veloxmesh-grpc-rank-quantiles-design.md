@@ -25,7 +25,7 @@ arbitrary live requests whose text is absent from the replay sidecar.
 Copy VeloxMesh's generated `predictor_pb2.py` and `predictor_pb2_grpc.py` into a
 local `predictorv1` package without editing generated definitions. The worker
 implements `OutputTokenPredictorServicer` and listens on `--addr`, defaulting to
-`127.0.0.1:50052`.
+`:50052`, as required by the original worker contract.
 
 `BatchPredict` preserves request order and returns exactly one `Prediction` for
 each input `TaskFeature`. `TaskFeature.task_id` is interpreted as the replay
@@ -163,7 +163,7 @@ reports end-to-end RPC latency separately from the predictor's internal latency.
 
 The worker CLI accepts:
 
-- `--addr` with default `127.0.0.1:50052`;
+- `--addr` with default `:50052`;
 - `--checkpoint`, required;
 - `--replay-sidecar`, required;
 - `--quantile-manifest`, required;
