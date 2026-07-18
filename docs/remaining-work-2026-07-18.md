@@ -67,3 +67,12 @@
 
 GPU 相關(B4/Fig.6)= 周末租卡,今天做不了。
 報告正文(B6)= 圖齊之後,你寫。
+
+## B8. 结果接入 VeloxMesh Dashboard(benchmark 数据落地后)
+
+- VeloxMesh `dashboard` 分支已有 benchmark 展示:`/bff/admin/benchmarks` + 请求级
+  raw_requests.csv + ZIP 报告(report.html/summary.csv/4 张 SVG 图表)。
+- 任务:runner 逐请求输出 → dashboard raw_requests.csv 字段映射转换器(~1-2h);
+  summary 指标(request_count/avg/p95/success·error·timeout rate)同构可直接对上。
+- 时点:周末 benchmark 数据出来后;用途:报告系统完整性截图 + 7/29 presentation
+  演示 + 网关线成果闭环。
