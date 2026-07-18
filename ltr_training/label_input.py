@@ -11,15 +11,10 @@ def _normalize_json(value: object) -> object:
         return [_normalize_json(item) for item in value]
     if not isinstance(value, dict):
         return value
-    normalized = {
+    return {
         str(key): _normalize_json(item)
         for key, item in sorted(value.items(), key=lambda item: str(item[0]))
     }
-    if normalized.get("type") == "dict":
-        normalized["type"] = "object"
-    elif normalized.get("type") == "list":
-        normalized["type"] = "array"
-    return normalized
 
 
 def canonical_json(value: object) -> str:

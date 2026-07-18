@@ -8,6 +8,21 @@ from typing import Iterable, Mapping, Sequence
 from .label_input import LabelInput, canonical_json, canonical_schema
 
 
+def _normalize_schema_types(value: object) -> object:
+    if isinstance(value, list):
+        return [_normalize_schema_types(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    normalized = {
+        str(key): _normalize_schema_types(item) for key, item in value.items()
+    }
+    if normalized.get("type") == "dict":
+        normalized["type"] = "object"
+    elif normalized.get("type") == "list":
+        normalized["type"] = "array"
+    return normalized
+
+
 def decode_json_string(value: object) -> object:
     if not isinstance(value, str):
         return value
@@ -38,7 +53,7 @@ def _normalize_tools(raw_tools: object) -> list[dict[str, object]]:
             continue
         function.setdefault("description", "")
         function.setdefault("parameters", {"type": "object", "properties": {}})
-        tools.append({"type": "function", "function": function})
+        tools.append({"type": "function", "function": _normalize_schema_types(function)})
     return json.loads(canonical_json(tools))
 
 

@@ -102,7 +102,7 @@ def build_workload(
                 "baseline_service_ms": round(output_length * per_token_ms, 6),
                 "max_tokens": 4096,
                 "kind": "tool",
-                "category": f"{domain}/{item.source}",
+                "category": f"{domain}:{item.source}",
                 "profile": profile,
                 "source": item.source,
                 "source_revision": item.source_revision,

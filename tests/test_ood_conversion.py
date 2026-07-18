@@ -31,6 +31,14 @@ def test_label_input_is_separate_and_request_id_matches_sample_id() -> None:
     assert "output_length" not in item.to_dict()
 
 
+def test_schema_hash_is_sha256_of_sort_key_canonical_json_only() -> None:
+    schema = '{"type":"dict","b":2,"a":1}'
+
+    assert canonical_schema_hash(schema) == (
+        "58a51a12ab3e3400ba619d2dbc65b26e287a832262bd97e99b8e20b5481f684b"
+    )
+
+
 def test_bfcl_converter_keeps_only_first_assistant_invocation() -> None:
     row = {
         "id": "multi_turn_base_1",

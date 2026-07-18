@@ -67,7 +67,12 @@
   "declared_blocks": {
     "three_seed_inference": {
       "status": "blocked",
-      "missing_checkpoints": 3,
+      "checkpoint_status": {
+        "seed17": "present",
+        "seed42": "missing",
+        "seed73": "missing"
+      },
+      "missing_checkpoints": 2,
       "r1_script_blocking": false
     },
     "lightgbm_local_execution": {

@@ -154,3 +154,38 @@ def test_missing_ensemble_and_legacy_checkpoints_write_blocked_reports(tmp_path)
     payload = json.loads(legacy_report.read_text())
     assert payload["priority"] == "P2_optional"
     assert all(item["status"] == "blocked" for item in payload["families"])
+
+
+def test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds(
+    tmp_path,
+) -> None:
+    inputs = tmp_path / "inputs.jsonl"
+    inputs.write_text("")
+    lengths = tmp_path / "lengths.jsonl"
+    lengths.write_text("")
+    report = tmp_path / "report.json"
+
+    result = _run(
+        "scripts/score_offline_ensemble.py",
+        "--input",
+        str(inputs),
+        "--lengths",
+        str(lengths),
+        "--scores-output",
+        str(tmp_path / "scores.jsonl"),
+        "--report",
+        str(report),
+        "--diagnostic",
+        str(tmp_path / "diagnostic.json"),
+    )
+
+    assert result.returncode == 2
+    payload = json.loads(report.read_text())
+    assert payload["reason"] == "missing_required_checkpoints"
+    assert payload["missing_seeds"] == [42, 73]
+    assert payload["checkpoints"]["17"]["status"] == "present"
+    assert payload["checkpoints"]["17"]["path"] == str(
+        ROOT / "checkpoints_best_predictor"
+    )
+    assert payload["checkpoints"]["42"]["status"] == "missing"
+    assert payload["checkpoints"]["73"]["status"] == "missing"

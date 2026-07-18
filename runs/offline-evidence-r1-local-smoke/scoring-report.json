@@ -1,16 +1,34 @@
 {
+  "checkpoints": {
+    "17": {
+      "path": "/Users/alex/develop/vllm-ltr-optimization/checkpoints_best_predictor",
+      "sha256": "9755fd9f510dd39e85f2dfd8aefb0b6fc76725cdc43920e42df8304daa6b4740",
+      "status": "present"
+    },
+    "42": {
+      "path": "/Users/alex/develop/vllm-ltr-optimization/checkpoints_best_predictor_seed42",
+      "status": "missing"
+    },
+    "73": {
+      "path": "/Users/alex/develop/vllm-ltr-optimization/checkpoints_best_predictor_seed73",
+      "status": "missing"
+    }
+  },
   "input_path": "runs/offline-evidence-r1-local-smoke/bfcl-label-inputs.jsonl",
-  "missing": [
-    "runs/offline-evidence-r1-local-smoke/missing-seed17",
-    "runs/offline-evidence-r1-local-smoke/missing-seed42",
-    "runs/offline-evidence-r1-local-smoke/missing-seed73"
+  "missing_seeds": [
+    42,
+    73
   ],
-  "reason": "missing_checkpoints",
+  "reason": "missing_required_checkpoints",
   "required_seeds": [
     17,
     42,
     73
   ],
   "schema_version": "offline-ensemble-scores-v1",
-  "status": "blocked"
+  "status": "blocked",
+  "unavailable_seeds": [
+    42,
+    73
+  ]
 }
