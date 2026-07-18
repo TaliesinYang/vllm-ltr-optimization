@@ -35,7 +35,7 @@ for r in 4 8 16 32; do
     --tokenizer /hy-tmp/models/Meta-Llama-3-8B-Instruct \
     --dataset jsonfiles/lmsys-Meta-Llama-3-8B-Instruct-t1.0-s0-l8192-c10000-rFalse.jsonl \
     --num-prompts -1 --request-time 60 --schedule-type $ST \
-    --output-len -1 --request-rate $r --result-dir RESULTS
+    --output-len -1 --request-rate $r --result-dir RESULTS --port 3344
 done
 
 kill $SERVER_PID 2>/dev/null
