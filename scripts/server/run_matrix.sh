@@ -399,7 +399,7 @@ run_policy() {
 for path in "$MIXED_WORKLOAD" "$OOD_WORKLOAD" "$ARTIFACTS/rank_quantiles.json" "$CAPACITY_MANIFEST"; do
   [[ -f "$path" ]] || { echo "required matrix input missing: $path" >&2; exit 1; }
 done
-BUDGET_MANIFEST="$RUN_ROOT/rental-budget.json"
+BUDGET_MANIFEST="${BUDGET_MANIFEST:-$LTR_ROOT/rental-budget.json}"
 [[ -f "$BUDGET_MANIFEST" ]] || { echo "NO-GO: rental-budget.json missing; run compute_rental_budget.sh first" >&2; exit 1; }
 python3 - "$BUDGET_MANIFEST" "$CAPACITY_MANIFEST" "$MIXED_WORKLOAD" "$OOD_WORKLOAD" <<'BUDGET_PY'
 import json, sys
