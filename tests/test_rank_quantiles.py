@@ -90,3 +90,56 @@ def test_mapper_clamps_interpolates_ratios_and_signals(tmp_path):
     }
     assert mapper.map_score(0.0).quantiles[50] == 600.0
     assert mapper.map_score(1.0).quantiles[50] == 5_940.0
+
+
+def _valid_manifest() -> dict[str, object]:
+    from scheduler_benchmark.rank_quantiles import (
+        APPROXIMATION_NOTICE,
+        MAPPING_VERSION,
+    )
+    global RankQuantileMapper
+    from scheduler_benchmark.rank_quantiles import RankQuantileMapper
+
+    return {
+        "mapping_version": MAPPING_VERSION,
+        "model_version": "test-model",
+        "approximation_notice": APPROXIMATION_NOTICE,
+        "sample_count": 6000,
+        "percentiles": {str(p): float(10 + p) for p in range(10, 100)},
+        "global_quantiles": {"50": 60.0, "70": 80.0, "90": 100.0},
+    }
+
+
+def test_manifest_accepts_declared_structural_exclusions() -> None:
+    manifest = _valid_manifest()
+    manifest["sample_count"] = 5997
+    manifest["structural_exclusions"] = [
+        {"sample_id": f"toolace-00000{i}:0005", "reason": "context length"}
+        for i in range(3)
+    ]
+    RankQuantileMapper(manifest)  # 不抛
+
+
+def test_manifest_rejects_shortfall_without_exclusions() -> None:
+    manifest = _valid_manifest()
+    manifest["sample_count"] = 5997
+    try:
+        RankQuantileMapper(manifest)
+    except ValueError as exc:
+        assert "structural exclusions" in str(exc)
+    else:
+        raise AssertionError("5997 without declared exclusions must fail")
+
+
+def test_manifest_rejects_excessive_exclusions() -> None:
+    manifest = _valid_manifest()
+    manifest["sample_count"] = 5994
+    manifest["structural_exclusions"] = [
+        {"sample_id": f"s{i}", "reason": "r"} for i in range(6)
+    ]
+    try:
+        RankQuantileMapper(manifest)
+    except ValueError as exc:
+        assert "at most 5" in str(exc)
+    else:
+        raise AssertionError("6 exclusions must fail")

@@ -24,7 +24,11 @@ def read_jsonl(path: Path) -> list[dict[str, object]]:
     return rows
 
 
-def merge(samples_path: Path, ledger_path: Path) -> list[dict[str, object]]:
+def merge(
+    samples_path: Path,
+    ledger_path: Path,
+    allowed_exclusions: frozenset[str] = frozenset(),
+) -> list[dict[str, object]]:
     samples = read_jsonl(samples_path)
     if len(samples) != EXPECTED_COUNT:
         raise ValueError(
@@ -71,13 +75,16 @@ def merge(samples_path: Path, ledger_path: Path) -> list[dict[str, object]]:
                 "output_length": output_length,
             }
         )
-    if failures:
+    if set(failures) != set(allowed_exclusions):
+        unexpected = sorted(set(failures) - set(allowed_exclusions))
+        vanished = sorted(set(allowed_exclusions) - set(failures))
         raise ValueError(
-            f"NO-GO: {len(failures)} samples lack a latest successful output length: "
-            f"{failures[:10]}"
+            "NO-GO: failure set must exactly match declared structural exclusions; "
+            f"unexpected={unexpected[:10]} declared-but-now-labelable={vanished[:10]}"
         )
-    if len(merged) != EXPECTED_COUNT:
-        raise ValueError(f"NO-GO: merged count is {len(merged)}, expected {EXPECTED_COUNT}")
+    expected_merged = EXPECTED_COUNT - len(allowed_exclusions)
+    if len(merged) != expected_merged:
+        raise ValueError(f"NO-GO: merged count is {len(merged)}, expected {expected_merged}")
     return merged
 
 
@@ -86,12 +93,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--samples", required=True, type=Path)
     parser.add_argument("--ledger", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--structural-exclusions", type=Path)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
-    rows = merge(args.samples, args.ledger)
+    allowed: frozenset[str] = frozenset()
+    if args.structural_exclusions is not None:
+        entries = json.loads(args.structural_exclusions.read_text(encoding="utf-8"))
+        if not isinstance(entries, list) or len(entries) > 5:
+            raise SystemExit("NO-GO: structural exclusions must be a list of at most 5")
+        for entry in entries:
+            if not entry.get("sample_id") or not entry.get("reason"):
+                raise SystemExit("NO-GO: each exclusion needs sample_id and reason")
+        allowed = frozenset(str(entry["sample_id"]) for entry in entries)
+    rows = merge(args.samples, args.ledger, allowed_exclusions=allowed)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(args.output.suffix + ".partial")
     with temporary.open("w", encoding="utf-8") as handle:

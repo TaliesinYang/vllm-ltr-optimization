@@ -193,8 +193,22 @@ def _validate_manifest(manifest: Mapping[str, object]) -> None:
         "model_version"
     ]:
         raise ValueError("manifest model_version must be non-empty")
-    if manifest.get("sample_count") != 6_000:
-        raise ValueError("manifest sample_count must be exactly 6000")
+    exclusions = manifest.get("structural_exclusions", [])
+    if not isinstance(exclusions, list) or len(exclusions) > 5:
+        raise ValueError("structural_exclusions must be a list of at most 5 entries")
+    for entry in exclusions:
+        if (
+            not isinstance(entry, Mapping)
+            or not isinstance(entry.get("sample_id"), str)
+            or not entry["sample_id"]
+            or not isinstance(entry.get("reason"), str)
+            or not entry["reason"]
+        ):
+            raise ValueError("each structural exclusion needs sample_id and reason")
+    if manifest.get("sample_count") != 6_000 - len(exclusions):
+        raise ValueError(
+            "manifest sample_count plus structural exclusions must equal 6000"
+        )
 
     percentile_rows = manifest.get("percentiles")
     expected_keys = {
@@ -239,6 +253,7 @@ def build_rank_quantile_artifacts(
     manifest_path: Path,
     model_version: str,
     expected_count: int,
+    structural_exclusions: tuple[Mapping[str, object], ...] = (),
 ) -> dict[str, object]:
     if not model_version:
         raise ValueError("model_version must be non-empty")
@@ -266,6 +281,7 @@ def build_rank_quantile_artifacts(
         "model_version": model_version,
         "approximation_notice": APPROXIMATION_NOTICE,
         "sample_count": len(records),
+        "structural_exclusions": list(structural_exclusions),
         "source_sha256": sha256_file(labels_path),
         "checkpoint_sha256": sha256_file(checkpoint / "model.safetensors"),
         "percentiles": percentiles,

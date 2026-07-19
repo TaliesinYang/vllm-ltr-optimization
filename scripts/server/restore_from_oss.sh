@@ -172,16 +172,53 @@ if [[ "$PREPARE_QUANTILES" == 1 ]]; then
     --report "$release/tier2-replay-repair-report.json" \
     --endpoint "${VLLM_CHAT_ENDPOINT:-http://127.0.0.1:8000/v1/chat/completions}" \
     --model qwen3.5-9b --max-tokens 4096 --concurrency "${REPLAY_CONCURRENCY:-1}"
+  # Derive structural exclusions: ONLY deterministic context-length 400s
+  # (prompt + frozen max_tokens 4096 > frozen max-model-len 8192) qualify.
+  # Any other lingering failure is a hard NO-GO, not an exclusion.
+  "$VENV/bin/python" - "$release" <<'EXCL_PY'
+import json, sys
+release = sys.argv[1]
+latest = {}
+for line in open(f"{release}/tier2-toolace-6000-ledger.jsonl"):
+    row = json.loads(line)
+    latest[str(row.get("sample_id", ""))] = row
+exclusions = []
+for sample_id, row in latest.items():
+    if row.get("status") == "ok":
+        continue
+    error = str(row.get("error", ""))
+    if "maximum context length" not in error:
+        raise SystemExit(
+            f"NO-GO: non-structural failure for {sample_id}: {error[:160]}"
+        )
+    exclusions.append(
+        {
+            "sample_id": sample_id,
+            "reason": "prompt tokens + frozen max_tokens 4096 exceed frozen max-model-len 8192",
+            "http_status": 400,
+            "error_snippet": error[:200],
+        }
+    )
+if len(exclusions) > 5:
+    raise SystemExit(f"NO-GO: too many structural exclusions: {len(exclusions)}")
+with open(f"{release}/structural-exclusions.json", "w") as handle:
+    json.dump(sorted(exclusions, key=lambda e: e["sample_id"]), handle, indent=2)
+print(f"structural exclusions: {len(exclusions)}")
+EXCL_PY
+  exclusion_count="$("$VENV/bin/python" -c "import json,sys; print(len(json.load(open(sys.argv[1]))))" "$release/structural-exclusions.json")"
   "$VENV/bin/python" "$REPO_ROOT/scripts/server/merge_quantile_labels.py" \
     --samples "$release/tier2-toolace-sample-6000.jsonl" \
     --ledger "$release/tier2-toolace-6000-ledger.jsonl" \
+    --structural-exclusions "$release/structural-exclusions.json" \
     --output "$release/labels-merged-6k.jsonl"
   "$VENV/bin/python" "$REPO_ROOT/scripts/build_rank_quantiles.py" \
     --labels "$release/labels-merged-6k.jsonl" \
     --checkpoint "$release/checkpoints_best_predictor" \
     --sidecar-output "$release/replay-sidecar.jsonl" \
     --manifest-output "$release/rank_quantiles.json" \
-    --model-version bert-prompt_schema-tier2-seed17 --expected-count 6000
+    --model-version bert-prompt_schema-tier2-seed17 \
+    --expected-count "$((6000 - exclusion_count))" \
+    --structural-exclusions "$release/structural-exclusions.json"
 fi
 
 echo "artifacts restored at $release (current symlink updated)"

@@ -27,11 +27,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--manifest-output", type=Path, required=True)
     parser.add_argument("--model-version", required=True)
     parser.add_argument("--expected-count", type=int, default=6_000)
+    parser.add_argument("--structural-exclusions", type=Path)
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    exclusions: tuple = ()
+    if args.structural_exclusions is not None:
+        loaded = json.loads(args.structural_exclusions.read_text(encoding="utf-8"))
+        exclusions = tuple(loaded)
     manifest = build_rank_quantile_artifacts(
         labels_path=args.labels,
         checkpoint=args.checkpoint,
@@ -39,6 +44,7 @@ def main(argv: list[str] | None = None) -> int:
         manifest_path=args.manifest_output,
         model_version=args.model_version,
         expected_count=args.expected_count,
+        structural_exclusions=exclusions,
     )
     print(
         json.dumps(
