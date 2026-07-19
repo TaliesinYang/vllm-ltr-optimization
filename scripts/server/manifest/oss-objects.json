@@ -1,0 +1,33 @@
+{
+  "schema_version": "rental-readiness-oss-v1",
+  "generated_at_utc": null,
+  "objects": [
+    {
+      "name": "tier2-checkpoints.tar",
+      "source_path": "/Volumes/T7 Shield/vllm-ltr-results/tier2-checkpoints.tar",
+      "oss_uri": "oss://tier2-checkpoints.tar",
+      "size_bytes": null,
+      "sha256": null,
+      "archive_format": "tar",
+      "unpacks_to": null
+    },
+    {
+      "name": "tier2-results.tar.gz",
+      "source_path": "/Volumes/T7 Shield/vllm-ltr-results/tier2-results.tar.gz",
+      "oss_uri": "oss://tier2-results.tar.gz",
+      "size_bytes": null,
+      "sha256": null,
+      "archive_format": "tar.gz",
+      "unpacks_to": null
+    },
+    {
+      "name": "benchmark-bundle.tar.gz",
+      "source_path": "/Volumes/T7 Shield/vllm-ltr-results/benchmark-bundle.tar.gz",
+      "oss_uri": "oss://benchmark-bundle.tar.gz",
+      "size_bytes": null,
+      "sha256": null,
+      "archive_format": "tar.gz",
+      "unpacks_to": null
+    }
+  ]
+}
