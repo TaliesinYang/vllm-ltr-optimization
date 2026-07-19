@@ -36,11 +36,19 @@ for rps in "${GRID[@]}"; do
   }
   rm -f "$grid_output"
   rm -rf "$grid_runs"
+  # runner returns 2 when a subrun is invalid (over-saturated) — that is a
+  # DATA POINT for calibration, not a fatal error. Capture it, keep going.
+  runner_rc=0
   "$VENV/bin/python" -m scheduler_benchmark.runner \
     --endpoint "$ENDPOINT" --model "$MODEL" --workload "$SUBSET" \
     --capacity-rps "$rps" --scheduler-cls "$SCHEDULER_CLS" \
     --output "$grid_output" --api-key vx-dev \
-    --scenario steady --load 90 --profile mixed --repeats 1
+    --scenario steady --load 90 --profile mixed --repeats 1 || runner_rc=$?
+  if [[ "$runner_rc" != 0 && "$runner_rc" != 2 ]]; then
+    echo "NO-GO: calibration runner crashed at rps=$rps (rc=$runner_rc)" >&2
+    exit 1
+  fi
+  [[ -s "$grid_output" ]] || { echo "NO-GO: no grid output at rps=$rps" >&2; exit 1; }
 done
 
 python3 - "$OUTPUT_DIR" "${GRID[@]}" <<'PY'
