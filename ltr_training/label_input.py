@@ -32,7 +32,9 @@ def canonical_schema(schema: str | object) -> str:
         try:
             value = json.loads(schema)
         except json.JSONDecodeError:
-            value = schema
+            # Raw non-JSON schema text (e.g. ToolACE) IS the canonical training
+            # feature — re-encoding it would double-quote and break parity.
+            return schema
     return canonical_json(value)
 
 
