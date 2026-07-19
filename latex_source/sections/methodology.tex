@@ -1,0 +1,53 @@
+% Page budget: exactly 1 page; no figures; at least two tables; no bullets.
+\clearpage
+\section{Methodology}
+
+% [作者手写区] 要点: 定义研究问题、ID/OOD/mixed 场景和端到端测量边界；真机 request shape 与 Tier-2 label generation 一致: chat completions, full history, enable_thinking=false, temperature=0, max_tokens=4096。Bib keys: toolace2024, bfcl, toolathlon2025.
+
+\begin{table}[!t]
+  \centering
+  \caption{Pinned experimental platform.}
+  \label{tab:platform}
+  \footnotesize
+  \begin{tabularx}{\columnwidth}{@{}lX@{}}
+    \toprule
+    Component & Pinned value \\
+    \midrule
+    Labeling GPU & NVIDIA GeForce RTX 3090 \\
+    Benchmark GPU & Single rented GPU, 48 GB VRAM; exact SKU from run manifest \\
+    Host & Ubuntu image on Hengyuan Cloud \\
+    vLLM & 0.24.0; source rev. \texttt{ee0da84ab9e0} \\
+    PyTorch & 2.11.0+cu130 \\
+    Transformers & 5.14.1 \\
+    Serving model & Qwen/Qwen3.5-9B; rev. \texttt{c20223623576} \\
+    Gateway & VeloxMesh base \texttt{4b4b5ad}; branch \texttt{feat/ltr-decision-adapter}; pin \texttt{d49d79d} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{table}[!t]
+  \centering
+  \caption{Predictor, labels, and training configuration.}
+  \label{tab:model-config}
+  \footnotesize
+  \begin{tabularx}{\columnwidth}{@{}lX@{}}
+    \toprule
+    Item & Pinned value \\
+    \midrule
+    Backbone & \texttt{google-bert/bert-base-uncased}; rev. \texttt{86b5e0934494} \\
+    Primary input & Current prompt + tool schema \\
+    Objective & Pairwise margin ranking; margin 1.0; relative-length filter 0.2 \\
+    Input/training & 512 tokens; batch 16; 1 epoch; learning rate $2\times10^{-5}$ \\
+    Replications & Seeds 17, 42, and 73 \\
+    Label tiers & Tier 1 recorded/source-derived; Tier 2 Qwen3.5-9B replay \\
+    Tier-2 sample & 6,000 examples; seed 42; session-preserving 4-length-bucket stratification \\
+    Split & 4,000 train / 1,000 validation / 1,000 test \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% [作者手写区] 要点: 交代 6000 条的 4 桶计数 1265/1560/1769/1406、session boundary preserved、sample SHA-256=ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709；schema hash 是 canonical JSON 的 SHA-256，必须引用 manifest 而非手算。
+
+% [作者手写区] 要点: 标签质量与 censor 处理；Tier-2 观测到 censor 约 0.05%，普通 tau/MAE 排除 right-censored 行并另报 censor-aware 指标。学习曲线 validation tau-b 在 500/1000/2000/4000 训练池为 0.605171/0.610124/0.637282/0.632051；用于论证饱和趋势，不得写成单调提升。
+
+% [作者手写区] 要点: benchmark 设计参数来自最终 run manifest；工作负载默认 mixed=150 ID+150 OOD、OOD=200，selection seed=42，OOD labeling 仍覆盖完整 800；策略/repeat/负载必须按实际执行结果填写，不得复制旧计划数字。Bib keys: vllm2023.
