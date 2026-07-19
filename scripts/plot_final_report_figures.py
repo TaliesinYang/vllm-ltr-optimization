@@ -10,7 +10,9 @@ Reproducible measured inputs:
 * Fig.3: the measured midterm ``baseline-2026-06-22/RESULTS-summary.txt``.
 * Fig.5: ``tier2-matrix-summary.json`` plus the optional
   ``tier1-matrix-summary.json``. Tier-2 uses test tau; Tier-1 is shown in a
-  separate validation-tau panel so the two metrics are never mixed.
+  separate validation-tau panel so the two metrics are never mixed. The
+  learning-curve subplot reads ``tier2-learning-curve.json`` (seed 42,
+  full-context, validation tau-b).
 
 Fig.4/6/7/8 have explicit adapters that print ``PENDING`` and create no file
 until their declared measured inputs exist. No placeholder observations are
@@ -1004,12 +1006,14 @@ def _learning_curve_panel(ax, curve: LearningCurve) -> None:
     for pool_size, effective, tau in zip(
         curve.pool_sizes, curve.effective_examples, curve.validation_tau
     ):
+        first_point = pool_size == min(curve.pool_sizes)
         ax.annotate(
             f"{tau:.3f}\n(n={effective})",
             xy=(pool_size, tau),
-            xytext=(0, 9 if pool_size != max(curve.pool_sizes) else -28),
+            xytext=(10 if first_point else 0,
+                    2 if first_point else (9 if pool_size != max(curve.pool_sizes) else -28)),
             textcoords="offset points",
-            ha="center",
+            ha="left" if first_point else "center",
             va="bottom",
             fontsize=10,
         )

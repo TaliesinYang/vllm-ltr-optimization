@@ -14,14 +14,14 @@
     Component & Tier-2 labeling & Serving benchmark \\
     \midrule
     Evidence & T7 \texttt{extracted/environment.json} & Recorded in run manifest on run day \\
-    GPU & NVIDIA GeForce RTX 3090 & Rented GPU, 48 GB VRAM; exact SKU recorded in run manifest \\
-    Host/image & Not recorded in labeling manifest & Hengyuan Cloud image; exact OS recorded in run manifest \\
+    GPU & NVIDIA GeForce RTX 3090 & Rented GPU, 48 GB VRAM; exact SKU to be recorded in the final run manifest \\
+    Host/image & Not recorded in labeling manifest & Hengyuan Cloud image; exact OS to be recorded in the final run manifest \\
     Python & 3.11.10 & Recorded in run manifest on run day \\
-    vLLM & 0.19.1 & 0.24.0; source rev. \texttt{ee0da84ab9e0}; run-manifest verified \\
-    PyTorch/CUDA & 2.10.0+cu128; CUDA 12.8 & Exact resolved build recorded in run manifest \\
-    Transformers & 5.14.1 & Exact resolved version recorded in run manifest \\
-    Serving model & Qwen/Qwen3.5-9B; rev. \texttt{c20223623576} & Same pinned revision; path and hash recorded in run manifest \\
-    Gateway & Not applicable & VeloxMesh pin \path{888fba9984a34b23340f08e6faf81ace032f3a01} \\
+    vLLM & 0.19.1 & 0.24.0; source rev. \texttt{ee0da84ab9e0}; target/pinned; to be verified in the final run manifest \\
+    PyTorch/CUDA & 2.10.0+cu128; CUDA 12.8 & Exact resolved build to be recorded in the final run manifest \\
+    Transformers & 5.14.1 & Exact resolved version to be recorded in the final run manifest \\
+    Serving model & Qwen/Qwen3.5-9B; rev. \texttt{c20223623576} & Same pinned revision; path and hash to be recorded in the final run manifest \\
+    Gateway & Not applicable & VeloxMesh pin \path{888fba9984a} \\
     \bottomrule
   \end{tabularx}
 \end{table}
