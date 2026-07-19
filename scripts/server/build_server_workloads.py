@@ -192,9 +192,12 @@ def select_workload_inputs(
     # OOD sampling must draw only from rows that HAVE a successful length in
     # combined-lengths; the rest were dropped as unlabelable (context length).
     if labelable_lengths is not None:
-        labelable = {
-            str(row["sample_id"]) for row in _label_rows(labelable_lengths)
-        }
+        # combined-lengths.jsonl has only sample_id/output_length/source, not
+        # the full LabelInput shape — read raw, don't parse as LabelInput.
+        labelable = set()
+        for line in labelable_lengths.read_text(encoding="utf-8").split("\n"):
+            if line.strip():
+                labelable.add(str(json.loads(line)["sample_id"]))
         ood_pool = [
             row for row in ood_pool_all if str(row["sample_id"]) in labelable
         ]
