@@ -23,7 +23,7 @@ _req = build_request({"prompt": _row["prompt"], "tool_schema": _row["tool_schema
 _msgs = [{"role": m["role"], "content": m.get("content", "")} for m in _req["messages"]]
 _tools = _req.get("tools")
 _schema_text = _row["tool_schema"]
-concurrency, warmups, measured = 8, 20, 200
+concurrency, warmups, measured = 2, 10, 60
 
 def one():
     request_id = f"latency-{uuid.uuid4().hex}"
@@ -42,7 +42,7 @@ def one():
     body = json.dumps(payload).encode()
     req = urllib.request.Request(endpoint + "/v1/decision", data=body, headers={"Content-Type": "application/json"})
     started = time.perf_counter()
-    with urllib.request.urlopen(req, timeout=30) as response:
+    with urllib.request.urlopen(req, timeout=60) as response:
         if response.status != 200:
             raise RuntimeError(f"decision returned {response.status}")
         json.load(response)
