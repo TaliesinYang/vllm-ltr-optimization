@@ -156,7 +156,7 @@ def test_missing_ensemble_and_legacy_checkpoints_write_blocked_reports(tmp_path)
     assert all(item["status"] == "blocked" for item in payload["families"])
 
 
-def test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds(
+def test_checkpoint_probe_reports_missing_seeds_deterministically(
     tmp_path,
 ) -> None:
     inputs = tmp_path / "inputs.jsonl"
@@ -177,6 +177,10 @@ def test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds(
         str(report),
         "--diagnostic",
         str(tmp_path / "diagnostic.json"),
+        "--checkpoint",
+        f"42={tmp_path / 'no-such-seed42'}",
+        "--checkpoint",
+        f"73={tmp_path / 'no-such-seed73'}",
     )
 
     assert result.returncode == 2
@@ -189,3 +193,5 @@ def test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds(
     )
     assert payload["checkpoints"]["42"]["status"] == "missing"
     assert payload["checkpoints"]["73"]["status"] == "missing"
+    # deterministic regardless of whether real seed42/73 checkpoints are
+    # restored locally: the overrides above force the missing branch
