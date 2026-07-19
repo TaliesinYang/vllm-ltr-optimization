@@ -236,7 +236,12 @@ def select_workload_inputs(
         "schema_version": "server-workload-selection-v1",
         "sampling_seed": seed,
         "id_split": id_split,
-        "pool_sizes": {"id_test": len(id_pool), "ood": len(ood_pool)},
+        "pool_sizes": {
+            "id_test": len(id_pool),
+            "ood": len(ood_pool),
+            "ood_full": len(ood_pool_all),
+            "ood_labelable": len(ood_pool),
+        },
         "selected_counts": {
             "mixed_id": len(mixed_ids),
             "mixed_ood": len(mixed_oods),
@@ -320,8 +325,14 @@ def _selection_payload(
         raise ValueError("selection ID pool no longer matches its declared split")
     if pools.get("id_test") != len(id_split_ids):
         raise ValueError("selection ID pool size does not match its inputs")
-    if pools.get("ood") != len(_label_rows(input_paths["ood"])):
-        raise ValueError("selection OOD pool size does not match its input")
+    ood_full_expected = pools.get("ood_full", pools.get("ood"))
+    if ood_full_expected != len(_label_rows(input_paths["ood"])):
+        raise ValueError("selection OOD full pool size does not match its input")
+    # the labelable pool is a subset the sampling actually drew from; it need
+    # only be <= the full pool and >= the selected OOD counts
+    ood_labelable = pools.get("ood_labelable", pools.get("ood"))
+    if not isinstance(ood_labelable, int) or ood_labelable > ood_full_expected:
+        raise ValueError("selection OOD labelable pool is invalid")
 
     selected_rows: dict[str, list[dict[str, object]]] = {}
     for name in ("mixed_id", "mixed_ood", "ood"):

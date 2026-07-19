@@ -303,7 +303,12 @@ def test_workload_input_subsampling_is_deterministic_and_records_pool_sizes(
     assert mixed_ood_ids < ood_ids
     manifest = json.loads(first["manifest"].read_text())
     assert manifest["sampling_seed"] == 42
-    assert manifest["pool_sizes"] == {"id_test": 10, "ood": 8}
+    assert manifest["pool_sizes"] == {
+        "id_test": 10,
+        "ood": 8,
+        "ood_full": 8,
+        "ood_labelable": 8,
+    }
     assert manifest["selected_counts"] == {
         "mixed_id": 3,
         "mixed_ood": 2,
@@ -446,7 +451,12 @@ def test_verify_workloads_checks_manifest_raw_sha_and_profile_rows(
     assert annotated.returncode == 0, annotated.stderr
     mixed_provenance = json.loads(mixed_manifest.read_text())["workload_subsampling"]
     assert mixed_provenance["sampling_seed"] == 42
-    assert mixed_provenance["pool_sizes"] == {"id_test": 1, "ood": 1}
+    assert mixed_provenance["pool_sizes"] == {
+        "id_test": 1,
+        "ood": 1,
+        "ood_full": 1,
+        "ood_labelable": 1,
+    }
     assert mixed_provenance["selected_counts"] == {"id": 1, "ood": 1}
 
     result = _run(
