@@ -1,16 +1,37 @@
 import asyncio
 
 from scheduler_benchmark.decision_service import DecisionApplication
+from scheduler_benchmark.contracts import RELIABLE
 from scheduler_benchmark.mock_stack import MockGatewayStack
 from scheduler_benchmark.predictor import ConstantPredictor
+from scheduler_benchmark.rank_quantiles import (
+    APPROXIMATION_NOTICE,
+    MAPPING_VERSION,
+    RankQuantileMapper,
+)
 from scheduler_benchmark.runner import WorkloadRequest, stream_completion
 
 
 def test_cpu_stack_runs_client_gateway_decision_engine_chain() -> None:
+    mapper = RankQuantileMapper(
+        {
+            "mapping_version": MAPPING_VERSION,
+            "model_version": "test-model",
+            "approximation_notice": APPROXIMATION_NOTICE,
+            "sample_count": 6000,
+            "percentiles": {
+                str(percentile): float(10 + 5 * percentile)
+                for percentile in range(10, 100)
+            },
+            "global_quantiles": {"50": 260.0, "70": 360.0, "90": 460.0},
+        }
+    )
     application = DecisionApplication(
         predictor=ConstantPredictor(score=0.25, confidence=0.95, ood=False),
         predictor_revision="stub-v1",
         feature_variant="prompt",
+        quantile_mapper=mapper,
+        quantile_manifest_sha256="c" * 64,
     )
     request = WorkloadRequest(
         request_id="request-1",
@@ -43,8 +64,8 @@ def test_cpu_stack_runs_client_gateway_decision_engine_chain() -> None:
     assert forwarded["vllm_xargs"] == {
         "ltr_kind": "tool",
         "ltr_category": "single_turn",
-        "workflow_estimated_tokens": 512,
-        "prediction_reliable": True,
+        "workflow_estimated_tokens": 135,
+        "prediction_reliable": RELIABLE,
         "workflow_id": "request-1",
         "step_id": "0",
         "decision_id": "decision-request-1",

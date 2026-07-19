@@ -2,7 +2,10 @@
 """Run the CPU `/v1/decision` development service for VeloxMesh."""
 
 import argparse
+import hashlib
+import json
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -13,6 +16,7 @@ from scheduler_benchmark.decision_service import (
     create_decision_server,
 )
 from scheduler_benchmark.predictor import BertPredictor, ConstantPredictor, Predictor
+from scheduler_benchmark.rank_quantiles import RankQuantileMapper
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +40,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=None,
     )
     parser.add_argument("--predictor-revision")
+    parser.add_argument("--quantile-manifest", type=Path, required=True)
     parser.add_argument("--max-body-bytes", type=int, default=2 * 1024 * 1024)
     parser.add_argument("--max-concurrency", type=int, default=8)
     return parser.parse_args(argv)
@@ -63,13 +68,42 @@ def effective_predictor_revision(args: argparse.Namespace) -> str:
     return DEFAULT_STUB_REVISION
 
 
+def load_quantile_manifest(path: Path) -> tuple[RankQuantileMapper, str]:
+    try:
+        raw_manifest = path.read_bytes()
+    except OSError as exc:
+        raise ValueError(f"quantile manifest could not be read: {exc}") from exc
+    manifest_sha256 = hashlib.sha256(raw_manifest).hexdigest()
+    try:
+        decoded = raw_manifest.decode("utf-8")
+        manifest = json.loads(decoded)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"quantile manifest is malformed JSON: {exc}") from exc
+    if not isinstance(manifest, Mapping):
+        raise ValueError("quantile manifest must be a JSON object")
+    try:
+        mapper = RankQuantileMapper(manifest)
+    except (KeyError, OverflowError, TypeError, ValueError) as exc:
+        raise ValueError(f"invalid quantile manifest: {exc}") from exc
+    return mapper, manifest_sha256
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    try:
+        quantile_mapper, quantile_manifest_sha256 = load_quantile_manifest(
+            args.quantile_manifest
+        )
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     application = DecisionApplication(
         predictor=build_predictor(args),
         predictor_revision=effective_predictor_revision(args),
         feature_variant=effective_feature_variant(args),
         max_concurrency=args.max_concurrency,
+        quantile_mapper=quantile_mapper,
+        quantile_manifest_sha256=quantile_manifest_sha256,
     )
     server = create_decision_server(
         application,

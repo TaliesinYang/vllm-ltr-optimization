@@ -2,6 +2,7 @@ import threading
 
 import pytest
 
+from scheduler_benchmark.contracts import RELIABLE, UNRELIABLE
 from scheduler_benchmark.gateway_transport import (
     DecisionRPCResult,
     apply_decision_to_payload,
@@ -12,6 +13,30 @@ from scheduler_benchmark.decision_service import (
     create_decision_server,
 )
 from scheduler_benchmark.predictor import ConstantPredictor
+from scheduler_benchmark.rank_quantiles import (
+    APPROXIMATION_NOTICE,
+    MAPPING_VERSION,
+    RankQuantileMapper,
+)
+
+
+QUANTILE_MANIFEST_SHA256 = "b" * 64
+
+
+def quantile_mapper() -> RankQuantileMapper:
+    return RankQuantileMapper(
+        {
+            "mapping_version": MAPPING_VERSION,
+            "model_version": "test-model",
+            "approximation_notice": APPROXIMATION_NOTICE,
+            "sample_count": 6000,
+            "percentiles": {
+                str(percentile): float(10 + 5 * percentile)
+                for percentile in range(10, 100)
+            },
+            "global_quantiles": {"50": 260.0, "70": 360.0, "90": 460.0},
+        }
+    )
 
 
 def base_payload() -> dict[str, object]:
@@ -33,6 +58,9 @@ def reliable_bundle() -> dict[str, object]:
         "predictor_revision": "stub-v1",
         "feature_variant": "prompt",
         "reason_code": "prediction_reliable",
+        "mapping_version": MAPPING_VERSION,
+        "approximation_notice": APPROXIMATION_NOTICE,
+        "quantile_manifest_sha256": QUANTILE_MANIFEST_SHA256,
     }
 
 
@@ -62,7 +90,7 @@ def test_reliable_decision_injects_namespaced_vllm_xargs() -> None:
         "ltr_kind": "tool",
         "ltr_category": "multi_turn",
         "workflow_estimated_tokens": 321,
-        "prediction_reliable": True,
+        "prediction_reliable": RELIABLE,
         "workflow_id": "workflow-1",
         "step_id": "step-1",
         "decision_id": "decision-1",
@@ -83,7 +111,7 @@ def test_unreliable_decision_uses_native_fallback_without_estimate() -> None:
     assert payload["vllm_xargs"] == {
         "ltr_kind": "tool",
         "ltr_category": "multi_turn",
-        "prediction_reliable": False,
+        "prediction_reliable": UNRELIABLE,
         "workflow_id": "workflow-1",
         "step_id": "step-1",
         "decision_id": "decision-1",
@@ -133,6 +161,20 @@ def test_transport_does_not_mutate_caller_payload() -> None:
     assert original == base_payload()
 
 
+def test_transport_xargs_contains_no_boolean_values() -> None:
+    payload, _ = apply_decision_to_payload(
+        base_payload(),
+        DecisionRPCResult(bundle=reliable_bundle()),
+        expected_decision_id="decision-1",
+        workflow_id="workflow-1",
+        step_id="step-1",
+    )
+
+    assert not any(
+        isinstance(value, bool) for value in payload["vllm_xargs"].values()
+    )
+
+
 def test_mismatched_decision_id_falls_back_as_malformed_response() -> None:
     payload, audit = apply_decision_to_payload(
         base_payload(),
@@ -152,6 +194,8 @@ def test_decision_rpc_calls_real_service_without_retry_layer() -> None:
         predictor=ConstantPredictor(score=0.25, confidence=0.95, ood=False),
         predictor_revision="stub-v1",
         feature_variant="prompt",
+        quantile_mapper=quantile_mapper(),
+        quantile_manifest_sha256=QUANTILE_MANIFEST_SHA256,
     )
     server = create_decision_server(application, host="127.0.0.1", port=0)
     worker = threading.Thread(target=server.serve_forever, daemon=True)
@@ -168,7 +212,7 @@ def test_decision_rpc_calls_real_service_without_retry_layer() -> None:
             "temperature": 0.0,
             "top_p": 1.0,
             "seed": 42,
-            "max_tokens": 2048,
+            "max_tokens": 4096,
         },
     }
     try:
@@ -182,4 +226,4 @@ def test_decision_rpc_calls_real_service_without_retry_layer() -> None:
 
     assert result.error_code is None
     assert result.bundle["decision_id"] == "decision-1"
-    assert result.bundle["estimated_tokens"] == 512
+    assert result.bundle["estimated_tokens"] == 135

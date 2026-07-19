@@ -11,7 +11,13 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Mapping
 
+from scheduler_benchmark.contracts import (
+    MAX_ESTIMATED_TOKENS,
+    RELIABLE,
+    UNRELIABLE,
+)
 from scheduler_benchmark.decision_service import FEATURE_VARIANTS, SCHEMA_VERSION
+from scheduler_benchmark.rank_quantiles import APPROXIMATION_NOTICE, MAPPING_VERSION
 
 OPTIMIZER_XARGS = {
     "workflow_estimated_tokens",
@@ -127,7 +133,7 @@ def apply_decision_to_payload(
     transported = dict(xargs)
     transported.update(
         {
-            "prediction_reliable": is_reliable,
+            "prediction_reliable": RELIABLE if is_reliable else UNRELIABLE,
             "decision_id": expected_decision_id,
         }
     )
@@ -159,6 +165,9 @@ def _validate_bundle(
         "predictor_revision",
         "feature_variant",
         "reason_code",
+        "mapping_version",
+        "approximation_notice",
+        "quantile_manifest_sha256",
     }
     if required - set(bundle):
         raise ValueError("decision response omitted required fields")
@@ -180,12 +189,26 @@ def _validate_bundle(
     reason_code = bundle["reason_code"]
     if reason_code not in REASON_CODES:
         raise ValueError("unknown reason_code")
+    if bundle["mapping_version"] != MAPPING_VERSION:
+        raise ValueError("unknown mapping_version")
+    if bundle["approximation_notice"] != APPROXIMATION_NOTICE:
+        raise ValueError("invalid approximation_notice")
+    manifest_sha256 = bundle["quantile_manifest_sha256"]
+    if not (
+        isinstance(manifest_sha256, str)
+        and len(manifest_sha256) == 64
+        and all(
+            character in "0123456789abcdefABCDEF"
+            for character in manifest_sha256
+        )
+    ):
+        raise ValueError("invalid quantile_manifest_sha256")
     if is_reliable:
         estimated_tokens = bundle.get("estimated_tokens")
         if (
             isinstance(estimated_tokens, bool)
             or not isinstance(estimated_tokens, int)
-            or not 1 <= estimated_tokens <= 2048
+            or not 1 <= estimated_tokens <= MAX_ESTIMATED_TOKENS
             or reason_code != "prediction_reliable"
         ):
             raise ValueError("reliable response has invalid estimate or reason")

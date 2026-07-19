@@ -10,6 +10,28 @@ from scheduler_benchmark.decision_service import (
     create_decision_server,
 )
 from scheduler_benchmark.predictor import ConstantPredictor, Prediction
+from scheduler_benchmark.rank_quantiles import (
+    APPROXIMATION_NOTICE,
+    MAPPING_VERSION,
+    RankQuantileMapper,
+)
+
+
+QUANTILE_MANIFEST_SHA256 = "a" * 64
+
+
+def minimal_quantile_manifest() -> dict[str, object]:
+    return {
+        "mapping_version": MAPPING_VERSION,
+        "model_version": "test-model",
+        "approximation_notice": APPROXIMATION_NOTICE,
+        "sample_count": 6000,
+        "percentiles": {
+            str(percentile): float(10 + 5 * percentile)
+            for percentile in range(10, 100)
+        },
+        "global_quantiles": {"50": 260.0, "70": 360.0, "90": 460.0},
+    }
 
 
 def valid_request(*, with_optional: bool = True) -> dict[str, object]:
@@ -24,7 +46,7 @@ def valid_request(*, with_optional: bool = True) -> dict[str, object]:
             "temperature": 0.0,
             "top_p": 1.0,
             "seed": 42,
-            "max_tokens": 2048,
+            "max_tokens": 4096,
         },
     }
     if with_optional:
@@ -52,12 +74,16 @@ def make_app(
     ood: bool = False,
     ready: bool = True,
     feature_variant: str = "prompt_schema_history_workflow",
+    quantile_mapper: RankQuantileMapper | None = None,
+    quantile_manifest_sha256: str | None = None,
 ) -> DecisionApplication:
     return DecisionApplication(
         predictor=ConstantPredictor(score, confidence, ood),
         predictor_revision="stub-constant-v1",
         feature_variant=feature_variant,
         ready=ready,
+        quantile_mapper=quantile_mapper,
+        quantile_manifest_sha256=quantile_manifest_sha256,
     )
 
 
@@ -67,7 +93,7 @@ def test_reliable_prediction_echoes_decision_id_and_estimate() -> None:
     assert response == {
         "schema_version": "1.0",
         "decision_id": "decision-1",
-        "estimated_tokens": 512,
+        "estimated_tokens": 1024,
         "reliability_probability": 0.9,
         "ood_score": 0.0,
         "prediction_reliable": True,
@@ -139,6 +165,67 @@ def test_decision_application_transports_exact_prompt_schema_training_text() -> 
         predictor.predictor_input.metadata["tool_schema_text"]
         == "raw ToolACE system\nwith spacing\n"
     )
+
+
+def test_explicit_tool_schema_text_takes_precedence_over_system_message() -> None:
+    class CapturingPredictor:
+        def __init__(self) -> None:
+            self.predictor_input = None
+
+        def predict(self, predictor_input):
+            self.predictor_input = predictor_input
+            return Prediction(0.25, 0.9, False, 1.0)
+
+    predictor = CapturingPredictor()
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="capture",
+        feature_variant="prompt_schema",
+    )
+    request = valid_request()
+    request["messages"] = [
+        {"role": "system", "content": "system-message schema"},
+        {"role": "user", "content": "current prompt"},
+    ]
+    request["tool_schema_text"] = "explicit schema\nwith exact spacing\n"
+
+    app.decide(request)
+
+    assert predictor.predictor_input.metadata["tool_schema_text"] == (
+        "explicit schema\nwith exact spacing\n"
+    )
+
+
+def test_mapper_estimate_includes_quantile_provenance() -> None:
+    response = make_app(
+        quantile_mapper=RankQuantileMapper(minimal_quantile_manifest()),
+        quantile_manifest_sha256=QUANTILE_MANIFEST_SHA256,
+    ).decide(valid_request())
+
+    assert response["estimated_tokens"] == 135
+    assert response["mapping_version"] == MAPPING_VERSION
+    assert response["approximation_notice"] == APPROXIMATION_NOTICE
+    assert response["quantile_manifest_sha256"] == QUANTILE_MANIFEST_SHA256
+
+
+def test_unreliable_mapper_response_retains_provenance_without_estimate() -> None:
+    response = make_app(
+        confidence=0.1,
+        quantile_mapper=RankQuantileMapper(minimal_quantile_manifest()),
+        quantile_manifest_sha256=QUANTILE_MANIFEST_SHA256,
+    ).decide(valid_request())
+
+    assert response["prediction_reliable"] is False
+    assert "estimated_tokens" not in response
+    assert response["mapping_version"] == MAPPING_VERSION
+    assert response["approximation_notice"] == APPROXIMATION_NOTICE
+    assert response["quantile_manifest_sha256"] == QUANTILE_MANIFEST_SHA256
+
+
+def test_generation_controls_accept_max_tokens_4096() -> None:
+    response = make_app().decide(valid_request())
+
+    assert response["reason_code"] == "prediction_reliable"
 
 
 @pytest.mark.parametrize(

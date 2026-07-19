@@ -8,11 +8,13 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Mapping
 
+from scheduler_benchmark.contracts import MAX_ESTIMATED_TOKENS
 from scheduler_benchmark.predictor import Predictor, PredictorInput
+from scheduler_benchmark.rank_quantiles import RankQuantileMapper
 
 SCHEMA_VERSION = "1.0"
 DEFAULT_RELIABILITY_THRESHOLD = 0.8
-MAX_ESTIMATED_TOKENS = 2048
+MAX_TOOL_SCHEMA_TEXT_BYTES = 262_144
 FEATURE_VARIANTS = {
     "prompt": (),
     "prompt_schema": ("tools",),
@@ -79,6 +81,8 @@ class DecisionApplication:
         reliability_threshold: float = DEFAULT_RELIABILITY_THRESHOLD,
         ready: bool = True,
         max_concurrency: int = 8,
+        quantile_mapper: RankQuantileMapper | None = None,
+        quantile_manifest_sha256: str | None = None,
     ) -> None:
         if feature_variant not in FEATURE_VARIANTS:
             raise ValueError(f"unknown feature variant: {feature_variant}")
@@ -86,12 +90,20 @@ class DecisionApplication:
             raise ValueError("reliability_threshold must be between 0 and 1")
         if max_concurrency < 1:
             raise ValueError("max_concurrency must be positive")
+        if quantile_mapper is None and quantile_manifest_sha256 is not None:
+            raise ValueError("quantile manifest SHA requires a quantile mapper")
+        if quantile_mapper is not None and not _is_sha256(
+            quantile_manifest_sha256
+        ):
+            raise ValueError("quantile mapper requires a valid manifest SHA-256")
         self._predictor = predictor
         self._predictor_revision = predictor_revision
         self._feature_variant = feature_variant
         self._reliability_threshold = reliability_threshold
         self._ready = ready
         self._capacity = threading.BoundedSemaphore(max_concurrency)
+        self._quantile_mapper = quantile_mapper
+        self._quantile_manifest_sha256 = quantile_manifest_sha256
 
     @property
     def is_ready(self) -> bool:
@@ -132,10 +144,30 @@ class DecisionApplication:
             "feature_variant": self._feature_variant,
             "reason_code": reason,
         }
-        if is_reliable:
-            response["estimated_tokens"] = _score_to_estimated_tokens(
-                prediction.score
+        if self._quantile_mapper is not None:
+            response.update(
+                {
+                    "mapping_version": self._quantile_mapper.mapping_version,
+                    "approximation_notice": (
+                        self._quantile_mapper.approximation_notice
+                    ),
+                    "quantile_manifest_sha256": self._quantile_manifest_sha256,
+                }
             )
+        if is_reliable:
+            if self._quantile_mapper is None:
+                response["estimated_tokens"] = _score_to_estimated_tokens(
+                    prediction.score
+                )
+            else:
+                mapped = self._quantile_mapper.map_score(prediction.score)
+                response["estimated_tokens"] = max(
+                    1,
+                    min(
+                        MAX_ESTIMATED_TOKENS,
+                        round(mapped.quantiles[50]),
+                    ),
+                )
         return response
 
 
@@ -162,6 +194,16 @@ def _validate_request(request: Mapping[str, object]) -> dict[str, object]:
     tools = request.get("tools")
     if tools is not None and not isinstance(tools, list):
         raise DecisionError(422, "invalid_request")
+    if "tool_schema_text" in request:
+        tool_schema_text = request["tool_schema_text"]
+        if not isinstance(tool_schema_text, str):
+            raise DecisionError(422, "invalid_request")
+        try:
+            tool_schema_bytes = tool_schema_text.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise DecisionError(422, "invalid_request") from exc
+        if not 1 <= len(tool_schema_bytes) <= MAX_TOOL_SCHEMA_TEXT_BYTES:
+            raise DecisionError(422, "invalid_request")
     gap = request.get("previous_tool_gap_ms")
     if gap is not None and (
         isinstance(gap, bool) or not isinstance(gap, int) or gap < 0
@@ -192,9 +234,15 @@ def _validate_generation_controls(value: object) -> None:
         "temperature": 0.0,
         "top_p": 1.0,
         "seed": 42,
-        "max_tokens": 2048,
     }
     if any(value.get(key) != expected for key, expected in supported_profile.items()):
+        raise DecisionError(422, "unsupported_controls")
+    max_tokens = value.get("max_tokens")
+    if (
+        isinstance(max_tokens, bool)
+        or not isinstance(max_tokens, int)
+        or not 1 <= max_tokens <= MAX_ESTIMATED_TOKENS
+    ):
         raise DecisionError(422, "unsupported_controls")
 
 
@@ -220,15 +268,19 @@ def _predictor_input(request: Mapping[str, object]) -> PredictorInput:
     final_content = messages[-1].get("content")
     if isinstance(final_content, str) and final_content:
         metadata["prompt_text"] = final_content
-    system_contents = [
-        message.get("content")
-        for message in messages
-        if message.get("role") == "system"
-        and isinstance(message.get("content"), str)
-        and message.get("content")
-    ]
-    if len(system_contents) == 1:
-        metadata["tool_schema_text"] = system_contents[0]
+    explicit_tool_schema_text = request.get("tool_schema_text")
+    if isinstance(explicit_tool_schema_text, str):
+        metadata["tool_schema_text"] = explicit_tool_schema_text
+    else:
+        system_contents = [
+            message.get("content")
+            for message in messages
+            if message.get("role") == "system"
+            and isinstance(message.get("content"), str)
+            and message.get("content")
+        ]
+        if len(system_contents) == 1:
+            metadata["tool_schema_text"] = system_contents[0]
     return PredictorInput(
         request_id=str(request["request_id"]),
         prompt_token_ids=tuple(serialized.encode("utf-8")),
@@ -257,6 +309,14 @@ def _reason_code(
 
 def _score_to_estimated_tokens(score: float) -> int:
     return max(1, min(MAX_ESTIMATED_TOKENS, round(score * MAX_ESTIMATED_TOKENS)))
+
+
+def _is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdefABCDEF" for character in value)
+    )
 
 
 class DecisionHTTPServer(ThreadingHTTPServer):
