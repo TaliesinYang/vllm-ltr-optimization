@@ -1,4 +1,12 @@
-# 201 (x86 Linux, WSL2) pre-rental smoke results — 2026-07-19 (rev 2, post-review)
+# 201 (x86 Linux, WSL2) pre-rental smoke results — 2026-07-19 (rev 3)
+
+**rev 3 update — current-HEAD recapture (`artifacts2/`, repo_commit + commands +
+exit codes + per-file SHA-256 in `artifacts2/manifest.txt`):** after syncing the
+real ToolACE fixture (sha ba12c083 verified on 201), the seed17 checkpoint, and
+latex_source, the FULL suite at commit fd6ac99 is **211 passed, 0 failed,
+0 errors** (`artifacts2/full-pytest.log`); seam suite **2 passed**
+(`artifacts2/seam-pytest.log`). The rev-2 numbers below describe the earlier
+capture and its honest caveats; they are retained for provenance.
 
 Host: alex@192.168.8.201 (ssh -p 2222). Raw artifacts in `artifacts/`:
 `seam-pytest.log`, `full-pytest.log`, `pip-freeze.txt`, `versions.json`
@@ -7,8 +15,8 @@ Host: alex@192.168.8.201 (ssh -p 2222). Raw artifacts in `artifacts/`:
 ## Scope statement (what this smoke does and does not prove)
 
 201 proves: the pinned dependency set resolves and imports on x86 Linux, the
-pinned vLLM protocol layer behaves as the contract assumes, and the unit-test
-suite passes with vLLM importable. 201 does NOT prove GPU wheel/driver
+pinned vLLM protocol layer behaves as the contract assumes, and 191 of 198 collected tests passed with vLLM importable (the declared fixture
+blocks failed; rev 3 recapture is fully green). 201 does NOT prove GPU wheel/driver
 compatibility, model download/load, real engine serving, custom-scheduler
 instantiation, the gateway chain, OSS restore, or any rental-day preflight —
 those are enforced by rental-day gates in `scripts/server/` (see the risk
@@ -27,8 +35,9 @@ register below).
   `True → int 1` before our code sees it, so a bool fed directly to the engine
   WOULD be trusted downstream. The trust boundary is the gateway's int
   contract (Go-side: client flags whitelisted away; verdict written as int
-  0/1; tested in `internal/ltr/decision_test.go`). The test pins the coercion
-  so a future stack change is caught.
+  0/1; tested in `internal/ltr/decision_test.go`). The test pins the dangerous coercion outcome while accepting stricter
+  upstream behavior (outright rejection also passes); a silent semantic
+  change to coercion is what it guards against.
 
 ## 2. Dependency resolution (fresh venv, x86 Linux, CPU/WSL)
 

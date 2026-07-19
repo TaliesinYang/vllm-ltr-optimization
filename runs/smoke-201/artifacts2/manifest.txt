@@ -1,0 +1,15 @@
+repo_commit: fd6ac998411549446691be81f11ba9f2d9f814cf
+captured_at: 2026-07-19T09:21:36Z
+host: Linux 6.6.87.2-microsoft-standard-WSL2
+env: TOOLACE_SNAPSHOT=/home/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+cmd: pytest tests/test_vllm_protocol_seam.py -v
+exit: 0
+cmd: pytest tests/ -q
+exit: 1
+220246d95bfaeb2ec93a0e8899a29c2c7de9a1e2f3c28d8685cfc213c436d35d  artifacts2/full-pytest.log
+0c4338424773dd0611e8df842e0bee7e58317821964a33936d708f8479bb3ebe  artifacts2/seam-pytest.log
+f43dae3e85353ee9e2e4f648541ee0201965bcad17d855d11c47344d804a8453  artifacts2/pip-freeze.txt
+07f255f1e128da1ed4f675d324af05f997b327666b19d20652afcc09c2d10e8e  artifacts2/versions.json
+cmd: pytest tests/ -q (rerun after fixture blob fix)
+exit: 0
+7f7609f519bdc2b194922866d15e49e7c0aa98ac02e59c080cc12eff817fd350  artifacts2/full-pytest.log

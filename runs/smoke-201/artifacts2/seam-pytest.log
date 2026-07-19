@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/alex/ltr-seam/.venv-server/bin/python
+cachedir: .pytest_cache
+rootdir: /home/alex/ltr-seam
+plugins: anyio-4.14.2
+collecting ... collected 2 items
+
+tests/test_vllm_protocol_seam.py::test_int_reliable_flag_survives_protocol_and_reaches_predictor PASSED [ 50%]
+tests/test_vllm_protocol_seam.py::test_bool_flag_documented_coercion_boundary PASSED [100%]
+
+=============================== warnings summary ===============================
+.venv-server/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/alex/ltr-seam/.venv-server/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 2 passed, 14 warnings in 8.32s ========================
