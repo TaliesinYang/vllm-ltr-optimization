@@ -817,7 +817,7 @@ python3 scripts/build_rank_quantiles.py \
 3. **租卡日矩阵前门槛（≥2 条请求——`reorder_request_queue` 在 len<2 时 early-return，单请求进不了重排；Task 3 已让 early-return 前也写审计日志，但重排序证据仍需 ≥2）**：并发发 2 条真 Qwen 请求过全链 → `order.jsonl` 出现两个 request_id 且 `predictions` 里两条都 `ood == false`（**用 ood 判可靠，不用 `score != 1.0`——合法的 4096-token estimate 的 score 恰好是 1.0**），才准开矩阵。
 
 - [ ] Step 1: `fake_vllm_server.py`（capture + chat SSE；对 `prediction_reliable` 类型断言 int）。
-- [ ] Step 2: `scripts/smoke_chain_driver.py`（runner 内部函数直驱 20 请求）+ `smoke_local_chain.sh`（编排器持 EXIT trap）。
+- [ ] Step 2: `scripts/smoke_chain_driver.py`（runner 内部函数直驱 20 请求）+ `smoke_local_chain.sh`（编排器持 EXIT trap）。**冒烟用的 quantile manifest = 明确标注的 fixture**（`model_version="smoke-fixture"`，合成 percentile 值）——生产 manifest 必须等租卡日补 replay 3 行 error 后由 merge + builder 生成（已实测：本地 merge 正确 NO-GO，报出 3 个缺长度 sample），不伪造 sample_count。冒烟只验链路集成，不验映射数值。
 - [ ] Step 3: `test_vllm_protocol_seam.py` 写好并在 201 尝试执行；结果（跑通/装不动）如实记录进 README。
 - [ ] Step 4: 证据归档 `runs/smoke-local-chain/`；commit。
 
