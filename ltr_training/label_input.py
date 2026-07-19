@@ -78,10 +78,16 @@ class LabelInput:
 
     @property
     def input_hash(self) -> str:
+        schema_text = canonical_schema(self.tool_schema)
+        try:
+            schema_payload: object = json.loads(schema_text)
+        except json.JSONDecodeError:
+            # Raw non-JSON schema text (ToolACE) hashes as the string itself.
+            schema_payload = schema_text
         payload = {
             "history": self.history,
             "prompt": self.prompt,
-            "tool_schema": json.loads(canonical_schema(self.tool_schema)),
+            "tool_schema": schema_payload,
         }
         return hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
 
