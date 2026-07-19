@@ -1,0 +1,11 @@
+% Page budget: exactly 1 page; no bullets; include the next six months.
+\clearpage
+\section{Discussion}
+
+% [作者手写区] 要点: 解释证据支持的范围，不重述结果；只讨论单卡单引擎、CPU predictor、固定 Qwen3.5-9B 与单轮 first-invocation benchmark 的外推边界。
+
+% [作者手写区] 要点: 数据与模型限制。试点曾出现重复输出簇；改为分层随机后 censor 约 0.05%，5 例 replay 未复现。置信信号若仍是 ensemble disagreement/OOD proxy，就不得称正式校准；rank->token quantile mapping 明确是 uncalibrated approximation。
+
+% [作者手写区] 要点: 负面结果必须保留。候选包括工具域低负载阈值不稳定、低混合比区间 P99 未打平 FCFS、prompt-length 在聊天域弱于 random、旧 classifier tau=0.194；每项只有在对应 artifact 可定位时才写。
+
+% [作者手写区] 要点: 未来 6 个月方向必须具体且可验证：将 predictor 导出 ONNX 并深度并入 gateway；联合 KV/session state 与可靠性决策；验证 thinking mode 对 true-length 合同的影响；扩展到多个 serving model/GPU 环境。不要使用列表。Bib keys: vllm2023, infercept2024, agentix2026.

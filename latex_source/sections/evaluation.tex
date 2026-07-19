@@ -1,0 +1,29 @@
+% Page budget: exactly 3 pages; at least six figures; no bullets.
+\clearpage
+\section{Evaluation}
+
+\subsection{E1: Baseline Reproduction}
+% [作者手写区] 要点: Fig.3 固定写图中观察、解释、边界；展示全负载扫描和最高 2.86x 的分子/分母，低负载变慢与尾部退化也必须出现。标明这是旧环境的动机证据，不与 Fig.8 数值混算。Bib keys: fuLTR2024.
+\ReportFigure{fig3}{Baseline reproduction across offered load.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig3}}{fig:reproduction}
+
+\subsection{E2: Distribution Shift}
+% [作者手写区] 要点: Fig.4 区分旧聊天域 0.559->0.315 与新工具域 ID/OOD；只用同模型同标签口径做直接差值，BFCL proxy labels 不能冒充 backend generation lengths。Bib keys: bfcl, toolathlon2025, pars2025.
+\ReportFigure{fig4}{Predictor rank quality under distribution shift.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig4}}{fig:ood-shift}
+
+\subsection{E3: Predictor and Data-Scale Comparison}
+% [作者手写区] 要点: Fig.5 主模型 prompt+schema seed17 test tau-b=0.642329；LightGBM validation tau-b=0.446937、test tau-b=0.426799，严禁把 validation 0.447 当 test；特征消融 prompt-only=0.592、full-context=0.637 按各自一致口径复核后再画。
+% [作者手写区] 要点: 同图学习曲线 500/1000/2000/4000 的 validation tau-b=0.605171/0.610124/0.637282/0.632051；强调 4000 未继续上升，而不是挑单点。Bib keys: bert, lightgbm, pars2025.
+\ReportFigure{fig5}{Predictor comparison and Tier-2 learning curve.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig5}}{fig:predictors}
+
+\subsection{E4: Reliability Operating Point}
+% [作者手写区] 要点: Fig.6 展示 confidence/OOD score 与 empirical error 的关系；阈值必须由预先声明规则选取并与 Fig.7--Fig.8 完全一致。当前 confidence=0.9 是占位值时不得称 calibrated probability。Bib keys: tie2026, beyondPrediction2026.
+\ReportFigure{fig6}{Reliability coverage and empirical error.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig6}}{fig:reliability}
+
+\subsection{E5: Scheduler Regime Map}
+% [作者手写区] 要点: Fig.7 报策略×负载×可靠性区域和中断成本敏感性；主结果用非抢占式，零成本 preemption 只作 sensitivity。备用可核验模拟器数字: mean delta +0.182 [0.149,0.223]、P99 delta -0.612 [-0.850,-0.515]，仅在对应 artifact 校验后使用。Bib keys: fastServe2026, jitServe2026, agentix2026.
+\ReportFigure{fig7}{Scheduler utility across reliability and load regimes.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig7}}{fig:simulator}
+
+\subsection{E6: End-to-End Serving}
+% [作者手写区] 要点: Fig.8 只放完整 gateway->decision->vLLM 链路数据；TTLT median/P95/P99、slowdown、throughput、goodput、max wait 按 run manifest 汇总，prediction 与 gateway 开销计入。stock FCFS vs shim parity gate 必须先通过。
+% [作者手写区] 要点: 六策略/七档 parity 的最终数量、repeats、capacity fraction 以真实 matrix manifest 为准；未执行的档位不得保留空柱。Pareto 副图横纵轴必须有单位。Bib keys: vllm2023, fuLTR2024, beyondPrediction2026.
+\ReportFigure{fig8}{End-to-end latency, goodput, and Pareto frontier.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig8}}{fig:live-serving}
