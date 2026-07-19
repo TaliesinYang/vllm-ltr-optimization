@@ -182,23 +182,51 @@ latest = {}
 for line in open(f"{release}/tier2-toolace-6000-ledger.jsonl"):
     row = json.loads(line)
     latest[str(row.get("sample_id", ""))] = row
+# Ledger only stores the terse HTTPError line; re-probe each failing row
+# against the LIVE engine and read the 400 body. Only a verified
+# context-length violation qualifies as structural.
+import urllib.request, urllib.error
+sys.path.insert(0, "/hy-tmp/ltr/repo")
+from ltr_training.tier2 import build_request
+
+samples = {}
+for line in open(f"{release}/tier2-toolace-sample-6000.jsonl"):
+    row = json.loads(line)
+    samples[str(row["sample_id"])] = row
+
 exclusions = []
 for sample_id, row in latest.items():
     if row.get("status") == "ok":
         continue
-    error = str(row.get("error", ""))
-    if "maximum context length" not in error:
-        raise SystemExit(
-            f"NO-GO: non-structural failure for {sample_id}: {error[:160]}"
+    request_body = json.dumps(
+        build_request(samples[sample_id], model="qwen3.5-9b")
+    ).encode()
+    try:
+        urllib.request.urlopen(
+            urllib.request.Request(
+                "http://127.0.0.1:8000/v1/chat/completions",
+                data=request_body,
+                headers={"Content-Type": "application/json"},
+            ),
+            timeout=120,
         )
-    exclusions.append(
-        {
-            "sample_id": sample_id,
-            "reason": "prompt tokens + frozen max_tokens 4096 exceed frozen max-model-len 8192",
-            "http_status": 400,
-            "error_snippet": error[:200],
-        }
-    )
+        raise SystemExit(
+            f"NO-GO: {sample_id} succeeded on re-probe; it is labelable, not structural"
+        )
+    except urllib.error.HTTPError as probe:
+        body = probe.read().decode(errors="replace")
+        if probe.code != 400 or "maximum context length" not in body:
+            raise SystemExit(
+                f"NO-GO: non-structural failure for {sample_id}: HTTP {probe.code} {body[:160]}"
+            )
+        exclusions.append(
+            {
+                "sample_id": sample_id,
+                "reason": "prompt tokens + frozen max_tokens 4096 exceed frozen max-model-len 8192",
+                "http_status": 400,
+                "error_snippet": body[:200],
+            }
+        )
 if len(exclusions) > 5:
     raise SystemExit(f"NO-GO: too many structural exclusions: {len(exclusions)}")
 with open(f"{release}/structural-exclusions.json", "w") as handle:
