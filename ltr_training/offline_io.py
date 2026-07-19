@@ -18,7 +18,10 @@ def read_json_records(path: Path) -> list[dict[str, object]]:
             raise ValueError(f"expected JSON array in {path}")
         return [dict(row) for row in payload]
     rows: list[dict[str, object]] = []
-    for line_number, line in enumerate(text.splitlines(), start=1):
+    # Split on newline ONLY — str.splitlines() also breaks on U+2028/U+2029 and
+    # other unicode separators, which appear inside JSON string values (e.g.
+    # scraped tool-call dialogue) and would split a record mid-string.
+    for line_number, line in enumerate(text.split("\n"), start=1):
         if not line.strip():
             continue
         payload = json.loads(line)

@@ -73,3 +73,15 @@ def test_lightgbm_selects_on_validation_and_reports_test_once() -> None:
     assert report["best_config"]["max_depth"] == 5
     assert report["test_evaluations"] == 1
     assert report["test_tau_b"] == 1.0
+
+
+def test_read_json_records_tolerates_unicode_line_separators(tmp_path):
+    from ltr_training.offline_io import read_json_records
+
+    # U+2028 inside a JSON string value must NOT split the record
+    path = tmp_path / "u2028.jsonl"
+    path.write_text('{"text": "a b", "n": 1}\n{"text": "c", "n": 2}\n', encoding="utf-8")
+    rows = read_json_records(path)
+    assert len(rows) == 2
+    assert rows[0]["text"] == "a b"
+    assert rows[1]["n"] == 2
