@@ -1,0 +1,4 @@
+vllm==0.24.0
+aiohttp
+requests
+transformers
