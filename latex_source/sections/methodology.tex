@@ -6,21 +6,22 @@
 
 \begin{table}[!t]
   \centering
-  \caption{Pinned experimental platform.}
+  \caption{Environment provenance by experimental stage.}
   \label{tab:platform}
   \footnotesize
-  \begin{tabularx}{\columnwidth}{@{}lX@{}}
+  \begin{tabularx}{\columnwidth}{@{}p{0.19\columnwidth}XX@{}}
     \toprule
-    Component & Pinned value \\
+    Component & Tier-2 labeling & Serving benchmark \\
     \midrule
-    Labeling GPU & NVIDIA GeForce RTX 3090 \\
-    Benchmark GPU & Single rented GPU, 48 GB VRAM; exact SKU from run manifest \\
-    Host & Ubuntu image on Hengyuan Cloud \\
-    vLLM & 0.24.0; source rev. \texttt{ee0da84ab9e0} \\
-    PyTorch & 2.11.0+cu130 \\
-    Transformers & 5.14.1 \\
-    Serving model & Qwen/Qwen3.5-9B; rev. \texttt{c20223623576} \\
-    Gateway & VeloxMesh base \texttt{4b4b5ad}; branch \texttt{feat/ltr-decision-adapter}; pin \texttt{d49d79d} \\
+    Evidence & T7 \texttt{extracted/environment.json} & Recorded in run manifest on run day \\
+    GPU & NVIDIA GeForce RTX 3090 & Rented GPU, 48 GB VRAM; exact SKU recorded in run manifest \\
+    Host/image & Not recorded in labeling manifest & Hengyuan Cloud image; exact OS recorded in run manifest \\
+    Python & 3.11.10 & Recorded in run manifest on run day \\
+    vLLM & 0.19.1 & 0.24.0; source rev. \texttt{ee0da84ab9e0}; run-manifest verified \\
+    PyTorch/CUDA & 2.10.0+cu128; CUDA 12.8 & Exact resolved build recorded in run manifest \\
+    Transformers & 5.14.1 & Exact resolved version recorded in run manifest \\
+    Serving model & Qwen/Qwen3.5-9B; rev. \texttt{c20223623576} & Same pinned revision; path and hash recorded in run manifest \\
+    Gateway & Not applicable & VeloxMesh pin \path{888fba9984a34b23340f08e6faf81ace032f3a01} \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -38,7 +39,7 @@
     Primary input & Current prompt + tool schema \\
     Objective & Pairwise margin ranking; margin 1.0; relative-length filter 0.2 \\
     Input/training & 512 tokens; batch 16; 1 epoch; learning rate $2\times10^{-5}$ \\
-    Replications & Seeds 17, 42, and 73 \\
+    Replications & BERT: 17/42/73; LightGBM: 42 \\
     Label tiers & Tier 1 recorded/source-derived; Tier 2 Qwen3.5-9B replay \\
     Tier-2 sample & 6,000 examples; seed 42; session-preserving 4-length-bucket stratification \\
     Split & 4,000 train / 1,000 validation / 1,000 test \\

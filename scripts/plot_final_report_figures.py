@@ -45,6 +45,7 @@ DEFAULT_BASELINE_SUMMARY = (
 )
 DEFAULT_TIER1_SUMMARY = T7_RESULTS / "tier1-matrix-summary.json"
 DEFAULT_TIER2_SUMMARY = T7_RESULTS / "tier2-matrix-summary.json"
+DEFAULT_TIER2_LEARNING_CURVE = T7_RESULTS / "tier2-learning-curve.json"
 DEFAULT_TIER2_MANIFEST = T7_RESULTS / "tier2-sample-manifest.json"
 DEFAULT_TRAINING_SOURCES = REPO_ROOT / "configs" / "training_sources.json"
 DEFAULT_RANK_MANIFEST = (
@@ -74,9 +75,9 @@ PUBLICATION_STYLE = {
 
 FIGURE_SIZES = {
     1: (7.15, 3.9),
-    2: (7.15, 6.2),
+    2: (7.15, 6.8),
     3: (3.5, 5.35),
-    5: (3.5, 5.8),
+    5: (3.5, 8.25),
 }
 PREDICTOR_BAR_ORIENTATION = "horizontal"
 FIG1_CONTROL_LANES = {
@@ -125,6 +126,43 @@ class PredictorAggregate:
         return max(self.values)
 
 
+@dataclass(frozen=True)
+class LearningCurve:
+    seed: int
+    variant: str
+    pool_sizes: tuple[int, ...]
+    effective_examples: tuple[int, ...]
+    validation_tau: tuple[float, ...]
+
+
+FIG2_COMPONENTS = (
+    "artifact_store",
+    "label_pipeline",
+    "training_service",
+    "checkpoint_registry",
+    "decision_service",
+    "rank_quantile_mapper",
+    "gateway",
+    "vllm_engine",
+    "benchmark_runner",
+)
+
+# Static deployment/data relationships. Labels intentionally avoid step ordering.
+FIG2_EDGES = (
+    ("artifact_store", "label_pipeline", "pinned datasets + replay ledgers"),
+    ("label_pipeline", "training_service", "Tier-1 / Tier-2 labels"),
+    ("training_service", "checkpoint_registry", "weights + run metrics"),
+    ("training_service", "rank_quantile_mapper", "held-out scores + labels"),
+    ("checkpoint_registry", "decision_service", "BERT checkpoint"),
+    ("rank_quantile_mapper", "decision_service", "rank lookup + provenance"),
+    ("benchmark_runner", "gateway", "chat requests + workload metadata"),
+    ("gateway", "decision_service", "HTTP /v1/decision + verdict"),
+    ("gateway", "vllm_engine", "chat + vllm_xargs"),
+    ("vllm_engine", "benchmark_runner", "SSE tokens + usage"),
+)
+FIG2_EDGE_LABEL_LANES = {"upper_gap": 0.645, "lower_gap": 0.315}
+
+
 FIGURES = {
     1: FigureSpec(
         1,
@@ -139,7 +177,7 @@ FIGURES = {
     ),
     2: FigureSpec(
         2,
-        "Pinned artifact lineage",
+        "Training and serving system architecture",
         (
             "configs/training_sources.json",
             "tier2-sample-manifest.json",
@@ -168,8 +206,12 @@ FIGURES = {
     ),
     5: FigureSpec(
         5,
-        "Predictor comparison",
-        (str(DEFAULT_TIER2_SUMMARY), str(DEFAULT_TIER1_SUMMARY)),
+        "Predictor comparison and Tier-2 learning curve",
+        (
+            str(DEFAULT_TIER2_SUMMARY),
+            str(DEFAULT_TIER1_SUMMARY),
+            str(DEFAULT_TIER2_LEARNING_CURVE),
+        ),
         "Predictor / feature input",
         "Kendall tau-b",
     ),
@@ -473,7 +515,7 @@ def draw_fig2(
     sample_manifest: Path = DEFAULT_TIER2_MANIFEST,
     rank_manifest: Path = DEFAULT_RANK_MANIFEST,
 ) -> bool:
-    """Draw the pinned ID/OOD artifact lineage with real SHA prefixes."""
+    """Draw a static component/deployment architecture with pinned provenance."""
 
     required = (training_sources, sample_manifest, rank_manifest)
     missing = tuple(path for path in required if not path.exists())
@@ -499,161 +541,152 @@ def draw_fig2(
 
     plt, patch_type = _matplotlib()
     fig, ax = plt.subplots(figsize=FIGURE_SIZES[2], constrained_layout=True)
-    top_x = (0.02, 0.27, 0.52, 0.77)
-    top_width = 0.20
-    top_nodes = (
-        (
-            "ToolACE\nsource",
-            (f"rev {source_rev}", f"raw SHA {raw_sha}", "11,300 rows"),
+    nodes = {
+        "artifact_store": (
+            0.02,
+            0.72,
+            0.24,
+            0.22,
+            "Artifact Store\n(OSS / T7)",
+            (
+                f"ToolACE {source_rev}",
+                "BFCL 61fc0608",
+                "Toolathlon 61940341",
+            ),
             LIGHT_BLUE,
         ),
-        (
-            "Tier-1\nlabels",
-            ("n = 13,819", f"SHA {tier1_sha}", "invocation rows"),
+        "label_pipeline": (
+            0.31,
+            0.72,
+            0.24,
+            0.22,
+            "Tier-1 / Tier-2\nLabel Pipeline",
+            (
+                "Tier-1 n = 13,819",
+                f"Tier-2 n = {sample_count:,}",
+                "ledger SHA 077eec42",
+            ),
+            LIGHT_AMBER,
+        ),
+        "checkpoint_registry": (
+            0.02,
+            0.37,
+            0.24,
+            0.22,
+            "Checkpoint Registry",
+            ("prompt + schema", "selected seed 17", f"SHA {checkpoint_sha}"),
+            LIGHT_PURPLE,
+        ),
+        "training_service": (
+            0.31,
+            0.37,
+            0.24,
+            0.22,
+            "Training Service",
+            ("BERT: 3 x 3", "LightGBM: seed 42", "SHA 6c5abde2"),
+            LIGHT_PURPLE,
+        ),
+        "rank_quantile_mapper": (
+            0.31,
+            0.07,
+            0.24,
+            0.20,
+            "Rank-Quantile Mapper",
+            ("rank lookup v1", "manifest quantiles", "SHA provenance"),
+            LIGHT_PURPLE,
+        ),
+        "benchmark_runner": (
+            0.62,
+            0.72,
+            0.16,
+            0.22,
+            "Benchmark\nRunner",
+            ("workload v2", "metrics", "run manifest"),
             LIGHT_BLUE,
         ),
-        (
-            "Stratified\nsample",
-            (f"n = {sample_count:,}", f"SHA {sample_sha}", "4 length buckets"),
+        "gateway": (
+            0.82,
+            0.72,
+            0.16,
+            0.22,
+            "VeloxMesh\nGateway",
+            ("whitelist", "fail-open", "injects verdict"),
             LIGHT_AMBER,
         ),
-        (
-            "Tier-2\nreplay",
-            ("n = 6,000", "SHA 077eec42", "5,997 ok + 3 error"),
-            LIGHT_AMBER,
-        ),
-    )
-    for x, (title, details, color) in zip(top_x, top_nodes):
-        _box(
-            ax,
-            patch_type,
-            x=x,
-            y=0.70,
-            width=top_width,
-            height=0.22,
-            title=title,
-            details=details,
-            color=color,
-        )
-    for left, right in zip(top_x, top_x[1:]):
-        _arrow(ax, (left + top_width, 0.81), (right, 0.81))
-
-    middle_x = (0.15, 0.40, 0.65)
-    middle_nodes = (
-        (
-            "BERT training",
-            ("9 BERT + 1 LightGBM", "10 / 10 runs", "SHA 6c5abde2"),
-            LIGHT_PURPLE,
-        ),
-        (
-            "Selected\ncheckpoint",
-            ("prompt + schema", "seed 17", f"SHA {checkpoint_sha}"),
-            LIGHT_PURPLE,
-        ),
-        (
-            "Serving chain",
-            ("decision service", "VeloxMesh", "vLLM scheduler"),
+        "decision_service": (
+            0.62,
+            0.37,
+            0.16,
+            0.22,
+            "Decision\nService",
+            ("BERT + OOD", "estimate", "provenance"),
             LIGHT_GREEN,
         ),
-    )
-    for x, (title, details, color) in zip(middle_x, middle_nodes):
+        "vllm_engine": (
+            0.82,
+            0.37,
+            0.16,
+            0.22,
+            "vLLM Engine\n:8000",
+            ("Qwen3.5-9B", "custom scheduler", "extra_args"),
+            LIGHT_GREEN,
+        ),
+    }
+    for values in nodes.values():
+        x, y, width, height, title, details, color = values
         _box(
             ax,
             patch_type,
             x=x,
-            y=0.41,
-            width=0.22,
-            height=0.22,
+            y=y,
+            width=width,
+            height=height,
             title=title,
             details=details,
             color=color,
         )
-    _arrow(
-        ax,
-        (0.87, 0.70),
-        (0.26, 0.63),
-        connectionstyle="angle,angleA=-90,angleB=0,rad=0",
-    )
-    _arrow(ax, (0.37, 0.52), (0.40, 0.52))
-    _arrow(ax, (0.62, 0.52), (0.65, 0.52))
 
-    _box(
-        ax,
-        patch_type,
-        x=0.02,
-        y=0.07,
-        width=0.25,
-        height=0.22,
-        title="OOD sources",
-        details=("BFCL rev 61fc0608", "Toolathlon rev 61940341", "held out"),
-        color=LIGHT_BLUE,
-    )
-    _box(
-        ax,
-        patch_type,
-        x=0.375,
-        y=0.07,
-        width=0.25,
-        height=0.22,
-        title="First-invocation\nconversion",
-        details=("target: 400 + 400", "sampling seed 17", "schema preserved"),
-        color=LIGHT_AMBER,
-    )
-    _box(
-        ax,
-        patch_type,
-        x=0.73,
-        y=0.07,
-        width=0.25,
-        height=0.22,
-        title="OOD replay labels",
-        details=("target n = 800", "direct vLLM :8000", "output SHA pending"),
-        color="#F2F2F2",
-    )
+    _arrow(ax, (0.26, 0.83), (0.31, 0.83), label="data", label_offset=(0, 0.035))
+    _arrow(ax, (0.43, 0.72), (0.43, 0.59), label="labels", label_offset=(0.045, 0))
+    _arrow(ax, (0.31, 0.48), (0.26, 0.48), label="weights", label_offset=(0, 0.035))
+    _arrow(ax, (0.43, 0.37), (0.43, 0.27), label="scores", label_offset=(0.045, 0))
     _arrow(
         ax,
-        (0.27, 0.18),
-        (0.375, 0.18),
-        label="tool schema",
-        label_offset=(0.0, 0.055),
+        (0.26, 0.55),
+        (0.62, 0.55),
+        label="checkpoint",
+        color=PURPLE,
+        label_offset=(0, 0.075),
+        connectionstyle="arc3,rad=-0.45",
     )
+    _arrow(ax, (0.55, 0.15), (0.68, 0.37), label="quantiles", color=PURPLE, label_offset=(0.025, 0))
+    _arrow(ax, (0.78, 0.83), (0.82, 0.83), label="chat", label_offset=(0, 0.035))
+    _arrow(ax, (0.87, 0.72), (0.73, 0.59), label="decision", color=PURPLE, label_offset=(0.01, 0.01))
+    _arrow(ax, (0.90, 0.72), (0.90, 0.59), label="xargs", label_offset=(0.045, 0))
     _arrow(
         ax,
-        (0.625, 0.18),
-        (0.73, 0.18),
-        label="label inputs",
-        label_offset=(0.0, 0.055),
-    )
-    _arrow(
-        ax,
-        (0.86, 0.29),
-        (0.78, 0.41),
-        label="OOD evaluation assets",
+        (0.98, 0.48),
+        (0.70, 0.72),
+        label="SSE",
         color=GREY,
         dashed=True,
-        label_offset=(0.03, 0.0),
+        label_offset=(0.055, 0.015),
+        connectionstyle="arc3,rad=0.45",
     )
 
+    ax.axvline(0.59, color="#BBBBBB", linestyle="--", linewidth=1.0)
+    ax.text(0.02, 0.965, "Offline data and model plane", fontsize=10, fontweight="bold", color=BLUE, ha="left")
+    ax.text(0.62, 0.965, "Online serving plane", fontsize=10, fontweight="bold", color=GREEN, ha="left")
     ax.text(
         0.02,
-        0.965,
-        "ID artifact lineage (content-addressed)",
+        0.015,
+        f"Recorded provenance: raw / source / sample SHA {raw_sha} / {tier1_sha} / {sample_sha}",
         fontsize=10,
-        fontweight="bold",
-        color=BLUE,
-        ha="left",
-    )
-    ax.text(
-        0.02,
-        0.34,
-        "OOD evaluation lineage (pinned inputs; replay output pending)",
-        fontsize=10,
-        fontweight="bold",
         color=GREY,
         ha="left",
     )
     ax.set_xlim(0, 1)
-    ax.set_ylim(0.02, 1.0)
+    ax.set_ylim(0, 1.0)
     ax.axis("off")
     _save(fig, output)
     plt.close(fig)
@@ -847,6 +880,52 @@ def aggregate_predictor_groups(
     return result
 
 
+def load_learning_curve(path: Path) -> LearningCurve:
+    """Load measured Tier-2 learning-curve points without interpolation."""
+
+    payload = _json(path)
+    seed = payload.get("seed")
+    variant = payload.get("variant")
+    raw_points = payload.get("points")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError(f"learning curve seed must be an int: {path}")
+    if not isinstance(variant, str) or not variant:
+        raise ValueError(f"learning curve variant must be a string: {path}")
+    if not isinstance(raw_points, list) or not raw_points:
+        raise ValueError(f"learning curve must contain points: {path}")
+
+    points: list[tuple[int, int, float]] = []
+    for row in raw_points:
+        if not isinstance(row, dict):
+            raise ValueError(f"learning curve point must be an object: {path}")
+        pool_size = row.get("train_pool_size")
+        effective = row.get("effective_train_examples")
+        tau = row.get("validation_tau")
+        if (
+            isinstance(pool_size, bool)
+            or not isinstance(pool_size, int)
+            or pool_size < 1
+            or isinstance(effective, bool)
+            or not isinstance(effective, int)
+            or effective < 1
+            or isinstance(tau, bool)
+            or not isinstance(tau, (int, float))
+            or not math.isfinite(float(tau))
+        ):
+            raise ValueError(f"invalid learning curve point: {row!r}")
+        points.append((pool_size, effective, float(tau)))
+    points.sort(key=lambda item: item[0])
+    if len({point[0] for point in points}) != len(points):
+        raise ValueError(f"duplicate learning-curve pool size: {path}")
+    return LearningCurve(
+        seed=seed,
+        variant=variant,
+        pool_sizes=tuple(point[0] for point in points),
+        effective_examples=tuple(point[1] for point in points),
+        validation_tau=tuple(point[2] for point in points),
+    )
+
+
 def with_seed_count(
     group: PredictorAggregate, *, expected: int
 ) -> PredictorAggregate:
@@ -913,27 +992,63 @@ def _predictor_panel(ax, groups: Sequence[PredictorAggregate], title: str) -> No
     ax.set_axisbelow(True)
 
 
+def _learning_curve_panel(ax, curve: LearningCurve) -> None:
+    ax.plot(
+        curve.pool_sizes,
+        curve.validation_tau,
+        color=PURPLE,
+        marker="o",
+        linewidth=2.0,
+        markersize=5.5,
+    )
+    for pool_size, effective, tau in zip(
+        curve.pool_sizes, curve.effective_examples, curve.validation_tau
+    ):
+        ax.annotate(
+            f"{tau:.3f}\n(n={effective})",
+            xy=(pool_size, tau),
+            xytext=(0, 9 if pool_size != max(curve.pool_sizes) else -28),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=10,
+        )
+    ax.set_xscale("log", base=2)
+    ax.set_xticks(curve.pool_sizes)
+    ax.set_xticklabels([f"{size:,}" for size in curve.pool_sizes])
+    ax.set_xlabel("Training-pool target (examples)")
+    ax.set_ylabel("Validation Kendall tau-b")
+    ax.set_ylim(min(curve.validation_tau) - 0.02, max(curve.validation_tau) + 0.025)
+    variant = curve.variant.replace("_", " ")
+    ax.set_title(f"Tier-2 data scale: {variant}, seed {curve.seed}")
+    ax.grid(axis="x", visible=False)
+
+
 def draw_fig5(
     output: Path,
     *,
     tier2_summary: Path = DEFAULT_TIER2_SUMMARY,
     tier1_summary: Path = DEFAULT_TIER1_SUMMARY,
+    learning_curve: Path = DEFAULT_TIER2_LEARNING_CURVE,
 ) -> bool:
-    """Plot Tier-2 test tau and optional Tier-1 validation tau separately."""
+    """Plot predictor comparisons and the measured Tier-2 learning curve."""
 
-    if not tier2_summary.exists():
-        return _pending(5, output, (tier2_summary,))
+    required = (tier2_summary, learning_curve)
+    missing = tuple(path for path in required if not path.exists())
+    if missing:
+        return _pending(5, output, missing)
     tier2 = aggregate_predictor_groups(tier2_summary, metric="test_tau")
+    curve = load_learning_curve(learning_curve)
     include_tier1 = tier1_summary.exists()
     plt, _ = _matplotlib()
-    panel_count = 2 if include_tier1 else 1
+    panel_count = 3 if include_tier1 else 2
     fig, axes_value = plt.subplots(
         panel_count,
         1,
-        figsize=FIGURE_SIZES[5] if include_tier1 else (3.5, 3.0),
+        figsize=FIGURE_SIZES[5] if include_tier1 else (3.5, 5.7),
         constrained_layout=True,
     )
-    axes = [axes_value] if panel_count == 1 else list(axes_value)
+    axes = list(axes_value)
     _predictor_panel(axes[0], tier2, "Tier-2 target labels: held-out test")
     if include_tier1:
         tier1 = tuple(
@@ -943,6 +1058,7 @@ def draw_fig5(
             )
         )
         _predictor_panel(axes[1], tier1, "Tier-1 source labels: validation")
+    _learning_curve_panel(axes[-1], curve)
     _save(fig, output)
     plt.close(fig)
     return True
@@ -1034,6 +1150,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--tier1-summary", type=Path, default=DEFAULT_TIER1_SUMMARY)
     parser.add_argument("--tier2-summary", type=Path, default=DEFAULT_TIER2_SUMMARY)
+    parser.add_argument(
+        "--tier2-learning-curve", type=Path, default=DEFAULT_TIER2_LEARNING_CURVE
+    )
     parser.add_argument("--tier2-manifest", type=Path, default=DEFAULT_TIER2_MANIFEST)
     parser.add_argument(
         "--training-sources", type=Path, default=DEFAULT_TRAINING_SOURCES
@@ -1064,6 +1183,7 @@ def _generate(number: int, args: argparse.Namespace) -> bool:
             output,
             tier2_summary=args.tier2_summary,
             tier1_summary=args.tier1_summary,
+            learning_curve=args.tier2_learning_curve,
         )
     if number == 6:
         return draw_fig6(output)

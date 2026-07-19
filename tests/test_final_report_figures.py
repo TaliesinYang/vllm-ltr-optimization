@@ -151,3 +151,103 @@ def test_seed_count_label_uses_singular_grammar() -> None:
     labeled = report_figures.with_seed_count(group, expected=3)
 
     assert labeled.label.endswith("(1 seed)")
+
+
+def test_fig2_is_component_architecture_not_sequential_lineage() -> None:
+    assert set(report_figures.FIG2_COMPONENTS) == {
+        "artifact_store",
+        "label_pipeline",
+        "training_service",
+        "checkpoint_registry",
+        "decision_service",
+        "rank_quantile_mapper",
+        "gateway",
+        "vllm_engine",
+        "benchmark_runner",
+    }
+    assert report_figures.FIGURES[2].title == "Training and serving system architecture"
+    forbidden = {"step", "then", "next"}
+    assert all(
+        not forbidden.intersection(label.lower().split())
+        for _, _, label in report_figures.FIG2_EDGES
+    )
+
+
+def test_fig2_reserves_dedicated_edge_label_lanes() -> None:
+    lanes = report_figures.FIG2_EDGE_LABEL_LANES
+
+    assert report_figures.FIGURE_SIZES[2][1] >= 6.6
+    assert 0.57 < lanes["upper_gap"] < 0.72
+    assert 0.25 < lanes["lower_gap"] < 0.38
+
+
+def test_learning_curve_reads_measured_pool_and_validation_tau(
+    tmp_path: Path,
+) -> None:
+    source = _write_json(
+        tmp_path / "tier2-learning-curve.json",
+        {
+            "seed": 42,
+            "variant": "full_context",
+            "points": [
+                {
+                    "train_pool_size": 500,
+                    "effective_train_examples": 499,
+                    "validation_tau": 0.605171,
+                },
+                {
+                    "train_pool_size": 4000,
+                    "effective_train_examples": 3997,
+                    "validation_tau": 0.632051,
+                },
+            ],
+        },
+    )
+
+    curve = report_figures.load_learning_curve(source)
+
+    assert curve.seed == 42
+    assert curve.variant == "full_context"
+    assert curve.pool_sizes == (500, 4000)
+    assert curve.effective_examples == (499, 3997)
+    assert curve.validation_tau == pytest.approx((0.605171, 0.632051))
+
+
+def test_latex_review_contracts_are_recorded() -> None:
+    root = Path(__file__).resolve().parents[1]
+    main = (root / "latex_source/main.tex").read_text(encoding="utf-8")
+    methodology = (root / "latex_source/sections/methodology.tex").read_text(
+        encoding="utf-8"
+    )
+    evaluation = (root / "latex_source/sections/evaluation.tex").read_text(
+        encoding="utf-8"
+    )
+    background = (root / "latex_source/sections/background.tex").read_text(
+        encoding="utf-8"
+    )
+
+    assert r"\usepackage[font=normalsize]{caption}" in main
+    assert "Tier-2 labeling" in methodology
+    assert "Serving benchmark" in methodology
+    assert "2.10.0+cu128" in methodology
+    assert "0.19.1" in methodology
+    assert "888fba9984a34b23340f08e6faf81ace032f3a01" in methodology
+    assert "BERT: 17/42/73; LightGBM: 42" in methodology
+    assert "0.587/0.630/0.626" in evaluation
+    assert "tier2-learning-curve.json" in evaluation
+    assert evaluation.count("[数据到位时间] 离线打分完成后") == 3
+    assert evaluation.count("[数据到位时间] 租卡日") == 1
+    assert "Static training and serving component architecture" in background
+    assert "d49d79d" not in background
+
+
+def test_verified_bibliography_entries_have_official_metadata() -> None:
+    root = Path(__file__).resolve().parents[1]
+    refs = (root / "latex_source/refs.bib").read_text(encoding="utf-8")
+
+    for surname in ("Kwon", "Devlin", "Ke", "Liu", "Yan", "Li"):
+        assert surname in refs
+    assert "Proceedings of the 29th Symposium on Operating Systems Principles" in refs
+    assert "North American Chapter of the Association for Computational Linguistics" in refs
+    assert "Advances in Neural Information Processing Systems 30" in refs
+    assert "% TODO(author verification needed)" in refs

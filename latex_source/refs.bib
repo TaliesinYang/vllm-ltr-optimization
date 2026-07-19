@@ -1,6 +1,8 @@
-% Bibliographic fields below are limited to the three reviewed CSV sources:
+% Entry selection is limited to the three reviewed CSV sources:
 % AGENTIC-SERVING-LITERATURE-MATRIX.csv, AGENTIC-DATASET-MATRIX.csv,
-% and EXPERIMENT-LITERATURE-MAPPING.csv. Missing fields remain explicit TODOs.
+% and EXPERIMENT-LITERATURE-MAPPING.csv. Metadata for established tools/datasets
+% is completed only from their official publication/project citation. Unverified
+% author fields remain explicit TODOs.
 
 @inproceedings{fuLTR2024,
   title     = {Efficient LLM Scheduling by Learning to Rank (Fu-LTR)},
@@ -24,7 +26,7 @@
   note  = {arXiv preprint},
   url   = {https://arxiv.org/abs/2510.03243}
 }
-% TODO(author): not present in source CSV row P03.
+% TODO(author verification needed)
 
 @misc{tie2026,
   title = {TIE: Uncertainty-Aware Output-Length Prediction},
@@ -32,7 +34,7 @@
   note  = {arXiv preprint},
   url   = {https://arxiv.org/abs/2604.00499}
 }
-% TODO(author): not present in source CSV row P04.
+% TODO(author verification needed)
 
 @inproceedings{egtp2026,
   title     = {Predicting LLM Output Length via Entropy-Guided Representations (EGTP)},
@@ -40,7 +42,7 @@
   year      = {2026},
   url       = {https://openreview.net/pdf?id=3loQDtveWI}
 }
-% TODO(author): not present in source CSV row P05.
+% TODO(author verification needed)
 
 @misc{elis2025,
   title = {ELIS: Efficient LLM Iterative Scheduling System with Response Length Predictor},
@@ -48,7 +50,7 @@
   note  = {arXiv preprint},
   url   = {https://arxiv.org/abs/2505.09142}
 }
-% TODO(author): not present in source CSV row P06.
+% TODO(author verification needed)
 
 @inproceedings{beyondPrediction2026,
   title     = {Beyond Prediction: Tail-Aware Scheduling for LLM Inference},
@@ -56,7 +58,7 @@
   year      = {2026},
   url       = {https://arxiv.org/abs/2606.18431}
 }
-% TODO(author): not present in source CSV row P07.
+% TODO(author verification needed)
 
 @inproceedings{fastServe2026,
   title     = {FastServe: Iteration-Level Preemptive Scheduling for Large Language Model Inference},
@@ -64,7 +66,7 @@
   year      = {2026},
   url       = {https://www.usenix.org/conference/nsdi26/presentation/wu-bingyang}
 }
-% TODO(author): not present in source CSV row P08.
+% TODO(author verification needed)
 
 @inproceedings{jitServe2026,
   title     = {JITServe: SLO-Aware LLM Serving with Imprecise Request Information},
@@ -72,7 +74,7 @@
   year      = {2026},
   url       = {https://www.usenix.org/conference/nsdi26/presentation/zhang-wei}
 }
-% TODO(author): not present in source CSV row P09.
+% TODO(author verification needed)
 
 @inproceedings{agentix2026,
   title     = {Agentix: An Efficient Serving Engine for LLM Agents as General Programs (Preprint Name: Autellix)},
@@ -80,7 +82,7 @@
   year      = {2026},
   url       = {https://www.usenix.org/conference/nsdi26/presentation/luo}
 }
-% TODO(author): not present in source CSV row P10.
+% TODO(author verification needed)
 
 @inproceedings{infercept2024,
   title     = {InferCept: Efficient Intercept Support for Augmented LLM Inference},
@@ -91,44 +93,56 @@
 % TODO(author): not present in source CSV row P11.
 
 @inproceedings{vllm2023,
+  author    = {Woosuk Kwon and Zhuohan Li and Siyuan Zhuang and Ying Sheng and Lianmin Zheng and Cody Hao Yu and Joseph E. Gonzalez and Hao Zhang and Ion Stoica},
   title     = {Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM)},
-  booktitle = {SOSP 2023},
+  booktitle = {Proceedings of the 29th Symposium on Operating Systems Principles},
   year      = {2023},
+  publisher = {ACM},
+  doi       = {10.1145/3600006.3613165},
   url       = {https://doi.org/10.1145/3600006.3613165}
 }
-% TODO(author): not present in source CSV row P28.
 
 @misc{toolace2024,
-  title = {Team-ACE/ToolACE},
-  year  = {2024},
-  note  = {Synthetic tool-use SFT conversations; dataset matrix row D02},
-  url   = {https://huggingface.co/datasets/Team-ACE/ToolACE}
+  author = {Weiwen Liu and Xu Huang and Xingshan Zeng and Xinlong Hao and Shuai Yu and Dexun Li and Shuai Wang and Weinan Gan and Zhengying Liu and Yuanqing Yu and Zezhong Wang and Yuxian Wang and Wu Ning and Yutai Hou and Bin Wang and Chuhan Wu and Xinzhi Wang and Yong Liu and Yasheng Wang and Duyu Tang and Dandan Tu and Lifeng Shang and Xin Jiang and Ruiming Tang and Defu Lian and Qun Liu and Enhong Chen},
+  title  = {ToolACE: Winning the Points of LLM Function Calling},
+  year   = {2024},
+  eprint = {2409.00920},
+  archivePrefix = {arXiv},
+  url    = {https://arxiv.org/abs/2409.00920}
 }
-% TODO(author, venue): not present in source CSV row D02.
 
 @misc{toolathlon2025,
-  title = {hkust-nlp/Toolathlon-Trajectories},
-  year  = {2025},
-  note  = {Long-horizon language-agent trajectories; dataset matrix row D06},
-  url   = {https://huggingface.co/datasets/hkust-nlp/Toolathlon-Trajectories}
+  author = {Junlong Li and Wenshuo Zhao and Jian Zhao and Weihao Zeng and Haoze Wu and Xiaochen Wang and Rui Ge and Yuxuan Cao and Yuzhen Huang and Wei Liu and Junteng Liu and Zhaochen Su and Yiyang Guo and Fan Zhou and Lueyang Zhang and Juan Michelini and Xingyao Wang and Xiang Yue and Shuyan Zhou and Graham Neubig and Junxian He},
+  title  = {The Tool Decathlon: Benchmarking Language Agents for Diverse, Realistic, and Long-Horizon Task Execution},
+  year   = {2025},
+  eprint = {2510.25726},
+  archivePrefix = {arXiv},
+  url    = {https://arxiv.org/abs/2510.25726}
 }
-% TODO(author, venue): not present in source CSV row D06.
 
 @misc{bfcl,
-  title = {BFCL-v3/v4},
-  note  = {Function-calling benchmark; dataset matrix row D13},
-  url   = {https://gorilla.cs.berkeley.edu/leaderboard.html}
+  author = {Fanjia Yan and Huanzhi Mao and Charlie Cheng-Jie Ji and Tianjun Zhang and Shishir G. Patil and Ion Stoica and Joseph E. Gonzalez},
+  title = {Berkeley Function-Calling Leaderboard},
+  year  = {2024},
+  howpublished = {UC Berkeley Sky Computing Lab project and benchmark},
+  url   = {https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html}
 }
-% TODO(author, year, venue): numeric year and author metadata are not present in source CSV row D13.
 
-@misc{bert,
-  title = {BERT},
-  note  = {Predictor backbone named in experiment mapping row E02}
+@inproceedings{bert,
+  author    = {Jacob Devlin and Ming-Wei Chang and Kenton Lee and Kristina Toutanova},
+  title     = {BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+  booktitle = {Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies},
+  year      = {2019},
+  pages     = {4171--4186},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/N19-1423},
+  url       = {https://aclanthology.org/N19-1423/}
 }
-% TODO(author, year, venue, url): not present in the three permitted CSV sources.
 
-@misc{lightgbm,
-  title = {LightGBM},
-  note  = {Structural-feature predictor baseline named in the final-report experiment plan}
+@inproceedings{lightgbm,
+  author    = {Guolin Ke and Qi Meng and Thomas Finley and Taifeng Wang and Wei Chen and Weidong Ma and Qiwei Ye and Tie-Yan Liu},
+  title     = {LightGBM: A Highly Efficient Gradient Boosting Decision Tree},
+  booktitle = {Advances in Neural Information Processing Systems 30},
+  year      = {2017},
+  url       = {https://proceedings.neurips.cc/paper/2017/hash/6449f44a102fde848669bdd9eb6b76fa-Abstract.html}
 }
-% TODO(author, year, venue, url): not present in the three permitted CSV sources.

@@ -21,3 +21,4 @@ vllm-ltr/
 
 # keep run manifests (text) — do NOT ignore runs/*.md
 checkpoints_best_predictor/
+checkpoints_best_predictor_seed4*
