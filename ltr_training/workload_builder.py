@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import random
 from typing import Iterable, Mapping, Sequence
 
@@ -51,10 +52,15 @@ def _choose_mixed(
     rng.shuffle(oods)
     if not ids or not oods:
         return ids + oods
+    def stable_floor(value: float) -> int:
+        return math.floor(value + 1e-12 * max(1.0, abs(value)))
+
     total = min(
         len(ids) + len(oods),
-        int(len(ids) / max(1.0 - ood_ratio, 1e-12)),
-        int(len(oods) / max(ood_ratio, 1e-12)) if ood_ratio else len(ids),
+        stable_floor(len(ids) / max(1.0 - ood_ratio, 1e-12)),
+        stable_floor(len(oods) / max(ood_ratio, 1e-12))
+        if ood_ratio
+        else len(ids),
     )
     if total < 1:
         total = 1

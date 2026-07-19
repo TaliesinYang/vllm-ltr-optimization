@@ -15,6 +15,8 @@ ENDPOINT="${ENDPOINT:-http://127.0.0.1:9100/v1/chat/completions}"
 DIRECT_ENDPOINT="${DIRECT_ENDPOINT:-http://127.0.0.1:8000/v1/chat/completions}"
 RESULTS_OSS_URI="${RESULTS_OSS_URI:-oss://backup/vllm-ltr-runs/$RUN_TAG.tar.gz}"
 MODEL="qwen3.5-9b"
+MIXED_REPEATS="${MIXED_REPEATS:-3}"
+OOD_REPEATS="${OOD_REPEATS:-3}"
 STOCK="vllm.v1.core.sched.scheduler.Scheduler"
 MIXED_CLASSES=(
   "$STOCK"
@@ -31,6 +33,16 @@ OOD_CLASSES=(
   scheduler_benchmark.vllm_scheduler.TailSafeScheduler
   scheduler_benchmark.vllm_scheduler.GatedHybridScheduler
 )
+[[ "$MIXED_REPEATS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "MIXED_REPEATS must be a positive integer" >&2
+  exit 1
+}
+[[ "$OOD_REPEATS" =~ ^[1-9][0-9]*$ ]] || {
+  echo "OOD_REPEATS must be a positive integer" >&2
+  exit 1
+}
+MIXED_POLICY_COUNT="${#MIXED_CLASSES[@]}"
+OOD_POLICY_COUNT="${#OOD_CLASSES[@]}"
 ACTIVE_ATTEMPT_TAG=""
 ACTIVE_ATTEMPT_MANIFEST=""
 ACTIVE_ATTEMPT_SCHEDULER=""
@@ -401,12 +413,15 @@ for path in "$MIXED_WORKLOAD" "$OOD_WORKLOAD" "$ARTIFACTS/rank_quantiles.json" "
 done
 BUDGET_MANIFEST="${BUDGET_MANIFEST:-$LTR_ROOT/rental-budget.json}"
 [[ -f "$BUDGET_MANIFEST" ]] || { echo "NO-GO: rental-budget.json missing; run compute_rental_budget.sh first" >&2; exit 1; }
-python3 - "$BUDGET_MANIFEST" "$CAPACITY_MANIFEST" "$MIXED_WORKLOAD" "$OOD_WORKLOAD" <<'BUDGET_PY'
+python3 - "$BUDGET_MANIFEST" "$CAPACITY_MANIFEST" "$MIXED_WORKLOAD" "$OOD_WORKLOAD" \
+  "$MIXED_REPEATS" "$OOD_REPEATS" "$MIXED_POLICY_COUNT" "$OOD_POLICY_COUNT" <<'BUDGET_PY'
 import json, sys
 budget = json.load(open(sys.argv[1]))
 capacity = json.load(open(sys.argv[2]))
 mixed_rows = sum(1 for _ in open(sys.argv[3]))
 ood_rows = sum(1 for _ in open(sys.argv[4]))
+mixed_repeats, ood_repeats = int(sys.argv[5]), int(sys.argv[6])
+mixed_policies, ood_policies = int(sys.argv[7]), int(sys.argv[8])
 if budget.get("passed") is not True:
     raise SystemExit("NO-GO: rental budget gate not passed")
 inputs = budget.get("inputs", {})
@@ -414,6 +429,10 @@ if inputs.get("capacity_rps") != capacity.get("capacity_rps"):
     raise SystemExit("NO-GO: budget computed against a different capacity_rps")
 if inputs.get("mixed_requests") != mixed_rows or inputs.get("ood_requests") != ood_rows:
     raise SystemExit("NO-GO: budget computed against different workload row counts")
+if inputs.get("mixed_repeats") != mixed_repeats or inputs.get("ood_repeats") != ood_repeats:
+    raise SystemExit("NO-GO: budget computed against different repeat counts")
+if inputs.get("mixed_policy_count") != mixed_policies or inputs.get("ood_policy_count") != ood_policies:
+    raise SystemExit("NO-GO: budget computed against different policy counts")
 BUDGET_PY
 curl -fsS http://127.0.0.1:9200/healthz >/dev/null
 curl -fsS http://127.0.0.1:9100/healthz >/dev/null
@@ -450,7 +469,7 @@ stop_vllm
 collect_vllm_evidence "$preflight_tag"
 
 for scheduler in "${MIXED_CLASSES[@]}"; do
-  run_policy "$scheduler" mixed "$MIXED_WORKLOAD" 3 "$RUN_ROOT/matrix"
+  run_policy "$scheduler" mixed "$MIXED_WORKLOAD" "$MIXED_REPEATS" "$RUN_ROOT/matrix"
 done
 "$VENV/bin/python" "$REPO_ROOT/scripts/check_fcfs_parity.py" \
   --stock "$RUN_ROOT/matrix/stock_fcfs.json" \
@@ -458,7 +477,7 @@ done
   --output "$RUN_ROOT/matrix/parity.json"
 
 for scheduler in "${OOD_CLASSES[@]}"; do
-  run_policy "$scheduler" ood "$OOD_WORKLOAD" 3 "$RUN_ROOT/matrix-ood"
+  run_policy "$scheduler" ood "$OOD_WORKLOAD" "$OOD_REPEATS" "$RUN_ROOT/matrix-ood"
 done
 
 stop_vllm

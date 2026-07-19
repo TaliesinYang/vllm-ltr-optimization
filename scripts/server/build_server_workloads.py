@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
+import random
 import sys
 from collections.abc import Mapping
 from pathlib import Path
@@ -19,8 +19,10 @@ from ltr_training.label_input import LabelInput  # noqa: E402
 from ltr_training.offline_io import (  # noqa: E402
     read_json_records,
     sha256_file,
+    write_json,
     write_jsonl,
 )
+from ltr_training.workload_builder import manifest_split_ids  # noqa: E402
 
 
 def _required_file(path: Path) -> None:
@@ -142,6 +144,230 @@ def combine_label_inputs(
     }
 
 
+def _deterministic_sample(
+    rows: list[dict[str, object]], *, target: int, seed: int, pool_name: str
+) -> list[dict[str, object]]:
+    if target < 1:
+        raise ValueError(f"{pool_name} target must be positive")
+    if target > len(rows):
+        raise ValueError(
+            f"{pool_name} target exceeds pool: target={target}, pool={len(rows)}"
+        )
+    ordered = sorted(rows, key=lambda row: str(row["sample_id"]))
+    random.Random(seed).shuffle(ordered)
+    return ordered[:target]
+
+
+def select_workload_inputs(
+    *,
+    id_input: Path,
+    id_manifest: Path,
+    id_split: str,
+    ood_input: Path,
+    expected_id_pool_size: int | None,
+    expected_ood_pool_size: int | None,
+    mixed_id_target: int,
+    mixed_ood_target: int,
+    ood_target: int,
+    seed: int,
+    mixed_id_output: Path,
+    mixed_ood_output: Path,
+    ood_output: Path,
+    manifest_path: Path,
+) -> dict[str, object]:
+    _required_file(id_manifest)
+    manifest_payload = json.loads(id_manifest.read_text(encoding="utf-8"))
+    split_ids = manifest_split_ids(manifest_payload, split=id_split)
+    if not split_ids:
+        raise ValueError(f"ID manifest split {id_split!r} contains no sample IDs")
+    id_rows_by_id = {str(row["sample_id"]): row for row in _label_rows(id_input)}
+    missing_ids = sorted(split_ids - set(id_rows_by_id))
+    if missing_ids:
+        raise ValueError(
+            f"ID input is missing {len(missing_ids)} rows declared by split {id_split!r}"
+        )
+    id_pool = [id_rows_by_id[sample_id] for sample_id in split_ids]
+    ood_pool = _label_rows(ood_input)
+    for name, actual, expected in (
+        ("ID test", len(id_pool), expected_id_pool_size),
+        ("OOD", len(ood_pool), expected_ood_pool_size),
+    ):
+        if expected is not None and actual != expected:
+            raise ValueError(
+                f"{name} pool size mismatch: got {actual}, expected {expected}"
+            )
+    mixed_ids = _deterministic_sample(
+        id_pool, target=mixed_id_target, seed=seed, pool_name="mixed ID"
+    )
+    shuffled_ood = _deterministic_sample(
+        ood_pool, target=len(ood_pool), seed=seed, pool_name="OOD"
+    )
+    if mixed_ood_target > len(shuffled_ood) or ood_target > len(shuffled_ood):
+        raise ValueError(
+            "OOD workload target exceeds pool: "
+            f"mixed={mixed_ood_target}, ood={ood_target}, pool={len(shuffled_ood)}"
+        )
+    if mixed_ood_target < 1 or ood_target < 1:
+        raise ValueError("OOD workload targets must be positive")
+    mixed_oods = shuffled_ood[:mixed_ood_target]
+    oods = shuffled_ood[:ood_target]
+    for path, rows in (
+        (mixed_id_output, mixed_ids),
+        (mixed_ood_output, mixed_oods),
+        (ood_output, oods),
+    ):
+        write_jsonl(path, rows)
+    manifest = {
+        "schema_version": "server-workload-selection-v1",
+        "sampling_seed": seed,
+        "id_split": id_split,
+        "pool_sizes": {"id_test": len(id_pool), "ood": len(ood_pool)},
+        "selected_counts": {
+            "mixed_id": len(mixed_ids),
+            "mixed_ood": len(mixed_oods),
+            "ood": len(oods),
+        },
+        "inputs": {
+            "id": {"path": str(id_input), "sha256": sha256_file(id_input)},
+            "id_manifest": {
+                "path": str(id_manifest),
+                "sha256": sha256_file(id_manifest),
+            },
+            "ood": {"path": str(ood_input), "sha256": sha256_file(ood_input)},
+        },
+        "outputs": {
+            "mixed_id": {
+                "path": str(mixed_id_output),
+                "sha256": sha256_file(mixed_id_output),
+            },
+            "mixed_ood": {
+                "path": str(mixed_ood_output),
+                "sha256": sha256_file(mixed_ood_output),
+            },
+            "ood": {"path": str(ood_output), "sha256": sha256_file(ood_output)},
+        },
+    }
+    write_json(manifest_path, manifest)
+    return manifest
+
+
+def _selection_payload(
+    path: Path,
+) -> tuple[
+    dict[str, object],
+    list[dict[str, object]],
+    list[dict[str, object]],
+    list[dict[str, object]],
+]:
+    _required_file(path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("workload selection manifest must be an object")
+    if payload.get("schema_version") != "server-workload-selection-v1":
+        raise ValueError("workload selection manifest schema_version mismatch")
+    seed = payload.get("sampling_seed")
+    pools = payload.get("pool_sizes")
+    counts = payload.get("selected_counts")
+    inputs = payload.get("inputs")
+    outputs = payload.get("outputs")
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise ValueError("workload selection seed must be an integer")
+    if not isinstance(pools, dict) or not isinstance(counts, dict):
+        raise ValueError("workload selection manifest lacks pool/count mappings")
+    if not isinstance(outputs, dict):
+        raise ValueError("workload selection manifest lacks outputs")
+    if not isinstance(inputs, dict):
+        raise ValueError("workload selection manifest lacks inputs")
+    for name in ("id_test", "ood"):
+        value = pools.get(name)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise ValueError(f"invalid workload pool size: {name}")
+
+    input_paths: dict[str, Path] = {}
+    for name in ("id", "id_manifest", "ood"):
+        source = inputs.get(name)
+        if not isinstance(source, dict):
+            raise ValueError(f"selection manifest input missing: {name}")
+        source_path = Path(str(source.get("path", "")))
+        _required_file(source_path)
+        if source.get("sha256") != sha256_file(source_path):
+            raise ValueError(f"selection input SHA-256 mismatch: {name}")
+        input_paths[name] = source_path
+    id_manifest_payload = json.loads(
+        input_paths["id_manifest"].read_text(encoding="utf-8")
+    )
+    id_split = str(payload.get("id_split", ""))
+    id_split_ids = manifest_split_ids(id_manifest_payload, split=id_split)
+    id_input_ids = {
+        str(row["sample_id"]) for row in _label_rows(input_paths["id"])
+    }
+    if not id_split_ids or not id_split_ids.issubset(id_input_ids):
+        raise ValueError("selection ID pool no longer matches its declared split")
+    if pools.get("id_test") != len(id_split_ids):
+        raise ValueError("selection ID pool size does not match its inputs")
+    if pools.get("ood") != len(_label_rows(input_paths["ood"])):
+        raise ValueError("selection OOD pool size does not match its input")
+
+    selected_rows: dict[str, list[dict[str, object]]] = {}
+    for name in ("mixed_id", "mixed_ood", "ood"):
+        output = outputs.get(name)
+        if not isinstance(output, dict):
+            raise ValueError(f"selection manifest output missing: {name}")
+        output_path = Path(str(output.get("path", "")))
+        rows = _label_rows(output_path)
+        if output.get("sha256") != sha256_file(output_path):
+            raise ValueError(f"selection output SHA-256 mismatch: {name}")
+        if counts.get(name) != len(rows):
+            raise ValueError(f"selection output row count mismatch: {name}")
+        selected_rows[name] = rows
+    return (
+        payload,
+        selected_rows["mixed_id"],
+        selected_rows["mixed_ood"],
+        selected_rows["ood"],
+    )
+
+
+def _subsampling_provenance(
+    selection: dict[str, object], *, profile: str, selection_manifest: Path
+) -> dict[str, object]:
+    counts = selection["selected_counts"]
+    if not isinstance(counts, dict):
+        raise ValueError("selection counts must be an object")
+    selected_counts = (
+        {"id": counts["mixed_id"], "ood": counts["mixed_ood"]}
+        if profile == "mixed"
+        else {"ood": counts["ood"]}
+    )
+    return {
+        "sampling_seed": selection["sampling_seed"],
+        "pool_sizes": selection["pool_sizes"],
+        "selected_counts": selected_counts,
+        "selection_manifest_path": str(selection_manifest),
+        "selection_manifest_sha256": sha256_file(selection_manifest),
+    }
+
+
+def annotate_workload_manifests(
+    *, selection_manifest: Path, mixed_manifest: Path, ood_manifest: Path
+) -> dict[str, object]:
+    selection, _, _, _ = _selection_payload(selection_manifest)
+    for profile, path in (("mixed", mixed_manifest), ("ood", ood_manifest)):
+        _required_file(path)
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict) or manifest.get("profile") != profile:
+            raise ValueError(f"cannot annotate invalid {profile} workload manifest")
+        manifest["workload_subsampling"] = _subsampling_provenance(
+            selection, profile=profile, selection_manifest=selection_manifest
+        )
+        write_json(path, manifest)
+    return {
+        "mixed_manifest_sha256": sha256_file(mixed_manifest),
+        "ood_manifest_sha256": sha256_file(ood_manifest),
+        "selection_manifest_sha256": sha256_file(selection_manifest),
+    }
+
+
 def _latest_ledger(path: Path) -> dict[str, dict[str, object]]:
     _required_file(path)
     latest: dict[str, dict[str, object]] = {}
@@ -243,12 +469,28 @@ def verify_workloads(
     mixed_manifest: Path,
     ood: Path,
     ood_manifest: Path,
-    ood_input: Path,
+    selection_manifest: Path,
     lengths: Path,
 ) -> dict[str, object]:
-    mixed_rows, _ = _verify_profile(mixed, mixed_manifest, "mixed")
-    ood_rows, _ = _verify_profile(ood, ood_manifest, "ood")
-    ood_ids = {str(row["sample_id"]) for row in _label_rows(ood_input)}
+    mixed_rows, mixed_payload = _verify_profile(mixed, mixed_manifest, "mixed")
+    ood_rows, ood_payload = _verify_profile(ood, ood_manifest, "ood")
+    selection, mixed_id_rows, mixed_ood_rows, selected_ood_rows = (
+        _selection_payload(selection_manifest)
+    )
+    expected_mixed_provenance = _subsampling_provenance(
+        selection, profile="mixed", selection_manifest=selection_manifest
+    )
+    expected_ood_provenance = _subsampling_provenance(
+        selection, profile="ood", selection_manifest=selection_manifest
+    )
+    if mixed_payload.get("workload_subsampling") != expected_mixed_provenance:
+        raise ValueError("mixed workload subsampling provenance mismatch")
+    if ood_payload.get("workload_subsampling") != expected_ood_provenance:
+        raise ValueError("OOD workload subsampling provenance mismatch")
+    expected_mixed_ids = {
+        str(row["sample_id"]) for row in mixed_id_rows + mixed_ood_rows
+    }
+    expected_ood_ids = {str(row["sample_id"]) for row in selected_ood_rows}
     length_ids = {
         str(row.get("sample_id"))
         for row in read_json_records(lengths)
@@ -256,10 +498,10 @@ def verify_workloads(
     }
     mixed_ids = {str(row["request_id"]) for row in mixed_rows}
     workload_ood_ids = {str(row["request_id"]) for row in ood_rows}
-    if workload_ood_ids != ood_ids:
-        raise ValueError("OOD workload IDs do not exactly match OOD label inputs")
-    if not ood_ids.issubset(mixed_ids):
-        raise ValueError("mixed workload does not contain every OOD label input")
+    if workload_ood_ids != expected_ood_ids:
+        raise ValueError("OOD workload IDs do not exactly match its selected inputs")
+    if mixed_ids != expected_mixed_ids:
+        raise ValueError("mixed workload IDs do not exactly match its selected inputs")
     if not mixed_ids.issubset(length_ids) or not workload_ood_ids.issubset(length_ids):
         raise ValueError("workload contains request IDs missing from combined lengths")
     mixed_categories = {str(row["category"]).split(":", 1)[0] for row in mixed_rows}
@@ -275,7 +517,7 @@ def verify_workloads(
         "mixed_manifest_sha256": sha256_file(mixed_manifest),
         "ood_sha256": sha256_file(ood),
         "ood_manifest_sha256": sha256_file(ood_manifest),
-        "ood_input_sha256": sha256_file(ood_input),
+        "selection_manifest_sha256": sha256_file(selection_manifest),
         "lengths_sha256": sha256_file(lengths),
     }
 
@@ -297,6 +539,27 @@ def _parser() -> argparse.ArgumentParser:
     combine.add_argument("--expected-per-source", required=True, type=int)
     combine.add_argument("--output", required=True, type=Path)
 
+    select = subparsers.add_parser("select-workload-inputs")
+    select.add_argument("--id-input", required=True, type=Path)
+    select.add_argument("--id-manifest", required=True, type=Path)
+    select.add_argument("--id-split", default="test")
+    select.add_argument("--ood-input", required=True, type=Path)
+    select.add_argument("--expected-id-pool-size", type=int)
+    select.add_argument("--expected-ood-pool-size", type=int)
+    select.add_argument("--mixed-id-target", required=True, type=int)
+    select.add_argument("--mixed-ood-target", required=True, type=int)
+    select.add_argument("--ood-target", required=True, type=int)
+    select.add_argument("--seed", required=True, type=int)
+    select.add_argument("--mixed-id-output", required=True, type=Path)
+    select.add_argument("--mixed-ood-output", required=True, type=Path)
+    select.add_argument("--ood-output", required=True, type=Path)
+    select.add_argument("--manifest", required=True, type=Path)
+
+    annotate = subparsers.add_parser("annotate-workload-manifests")
+    annotate.add_argument("--selection-manifest", required=True, type=Path)
+    annotate.add_argument("--mixed-manifest", required=True, type=Path)
+    annotate.add_argument("--ood-manifest", required=True, type=Path)
+
     merge = subparsers.add_parser("merge-lengths")
     merge.add_argument("--id-input", required=True, type=Path)
     merge.add_argument("--id-ledger", required=True, type=Path)
@@ -309,7 +572,7 @@ def _parser() -> argparse.ArgumentParser:
     verify.add_argument("--mixed-manifest", required=True, type=Path)
     verify.add_argument("--ood", required=True, type=Path)
     verify.add_argument("--ood-manifest", required=True, type=Path)
-    verify.add_argument("--ood-input", required=True, type=Path)
+    verify.add_argument("--selection-manifest", required=True, type=Path)
     verify.add_argument("--lengths", required=True, type=Path)
     return parser
 
@@ -328,6 +591,29 @@ def main() -> int:
                 expected_per_source=args.expected_per_source,
                 output=args.output,
             )
+        elif args.command == "select-workload-inputs":
+            report = select_workload_inputs(
+                id_input=args.id_input,
+                id_manifest=args.id_manifest,
+                id_split=args.id_split,
+                ood_input=args.ood_input,
+                expected_id_pool_size=args.expected_id_pool_size,
+                expected_ood_pool_size=args.expected_ood_pool_size,
+                mixed_id_target=args.mixed_id_target,
+                mixed_ood_target=args.mixed_ood_target,
+                ood_target=args.ood_target,
+                seed=args.seed,
+                mixed_id_output=args.mixed_id_output,
+                mixed_ood_output=args.mixed_ood_output,
+                ood_output=args.ood_output,
+                manifest_path=args.manifest,
+            )
+        elif args.command == "annotate-workload-manifests":
+            report = annotate_workload_manifests(
+                selection_manifest=args.selection_manifest,
+                mixed_manifest=args.mixed_manifest,
+                ood_manifest=args.ood_manifest,
+            )
         elif args.command == "merge-lengths":
             report = merge_lengths(
                 id_input=args.id_input,
@@ -342,7 +628,7 @@ def main() -> int:
                 mixed_manifest=args.mixed_manifest,
                 ood=args.ood,
                 ood_manifest=args.ood_manifest,
-                ood_input=args.ood_input,
+                selection_manifest=args.selection_manifest,
                 lengths=args.lengths,
             )
     except (KeyError, OSError, TypeError, ValueError, json.JSONDecodeError) as exc:

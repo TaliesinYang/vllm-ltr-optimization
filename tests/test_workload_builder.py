@@ -42,6 +42,23 @@ def test_workload_uses_output_length_proxy_and_explicit_4096_limit() -> None:
     assert manifest["runner_compatibility"] == "unverified_scheduler_benchmark_frozen"
 
 
+def test_mixed_ratio_keeps_exact_preselected_pool_despite_float_roundoff() -> None:
+    inputs = [_item("id-1", "toolace")]
+    oods = [_item("ood-1", "bfcl"), _item("ood-2", "toolathlon")]
+
+    rows, _ = build_workload(
+        id_inputs=inputs,
+        ood_inputs=oods,
+        lengths={"id-1": 1, "ood-1": 1, "ood-2": 1},
+        profile="mixed",
+        per_token_ms=2.5,
+        ood_ratio=2 / 3,
+        seed=42,
+    )
+
+    assert {row["request_id"] for row in rows} == {"id-1", "ood-1", "ood-2"}
+
+
 def test_tier2_manifest_selects_only_declared_test_sample_ids() -> None:
     payload = {
         "samples": [

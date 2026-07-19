@@ -11,13 +11,15 @@ VLLM_ENDPOINT="${VLLM_ENDPOINT:-http://127.0.0.1:8000/v1/chat/completions}"
 VLLM_HEALTH_ENDPOINT="${VLLM_HEALTH_ENDPOINT:-http://127.0.0.1:8000/health}"
 MODEL="${MODEL:-qwen3.5-9b}"
 OOD_REPLAY_CONCURRENCY="${OOD_REPLAY_CONCURRENCY:-8}"
+MIXED_ID_TARGET="${MIXED_ID_TARGET:-150}"
+MIXED_OOD_TARGET="${MIXED_OOD_TARGET:-150}"
+OOD_WORKLOAD_TARGET="${OOD_WORKLOAD_TARGET:-200}"
 
 # Frozen R1 values: data-offline-spec ARTIFACT 1 requires about 400 rows per
 # OOD stratum with a fixed seed; the committed R1 conversion evidence uses 17.
 OOD_SAMPLE_SIZE=400
 OOD_SAMPLE_SEED=17
-WORKLOAD_SEED=42
-OOD_RATIO=0.5
+WORKLOAD_SEED="${WORKLOAD_SEED:-42}"
 
 DECLARATIONS="$REPO_ROOT/configs/source-declarations.json"
 HELPER="$REPO_ROOT/scripts/server/build_server_workloads.py"
@@ -38,6 +40,10 @@ OOD_INPUT="$ARTIFACTS/ood-label-inputs.jsonl"
 OOD_LEDGER="$ARTIFACTS/ood-label-ledger.jsonl"
 OOD_REPLAY_REPORT="$ARTIFACTS/ood-label-replay-report.json"
 LENGTHS="$ARTIFACTS/combined-lengths.jsonl"
+MIXED_ID_INPUT="$ARTIFACTS/workload-mixed-id.selected.jsonl"
+MIXED_OOD_INPUT="$ARTIFACTS/workload-mixed-ood.selected.jsonl"
+OOD_WORKLOAD_INPUT="$ARTIFACTS/workload-ood.selected.jsonl"
+WORKLOAD_SELECTION_MANIFEST="$ARTIFACTS/server-workload-selection.json"
 MIXED_WORKLOAD="$ARTIFACTS/mixed.v2.jsonl"
 MIXED_MANIFEST="$ARTIFACTS/mixed.v2.manifest.json"
 OOD_WORKLOAD="$ARTIFACTS/ood.v2.jsonl"
@@ -214,27 +220,52 @@ require_file "$OOD_REPLAY_REPORT"
   --ood-input "$OOD_INPUT" --ood-ledger "$OOD_LEDGER" \
   --output "$LENGTHS"
 
+# Labeling and combined-length assets remain complete (6000 ID + 800 OOD).
+# Only the benchmark workloads are right-sized from those full pools.
+"$VENV/bin/python" "$HELPER" select-workload-inputs \
+  --id-input "$ID_INPUT" --id-manifest "$ID_MANIFEST" --id-split test \
+  --ood-input "$OOD_INPUT" --expected-id-pool-size 1000 \
+  --expected-ood-pool-size 800 --mixed-id-target "$MIXED_ID_TARGET" \
+  --mixed-ood-target "$MIXED_OOD_TARGET" --ood-target "$OOD_WORKLOAD_TARGET" \
+  --seed "$WORKLOAD_SEED" --mixed-id-output "$MIXED_ID_INPUT" \
+  --mixed-ood-output "$MIXED_OOD_INPUT" --ood-output "$OOD_WORKLOAD_INPUT" \
+  --manifest "$WORKLOAD_SELECTION_MANIFEST"
+
+mixed_ood_ratio="$("$VENV/bin/python" - "$MIXED_ID_TARGET" "$MIXED_OOD_TARGET" <<'PY'
+import sys
+id_count, ood_count = map(int, sys.argv[1:])
+if id_count < 1 or ood_count < 1:
+    raise SystemExit("workload targets must be positive")
+print(ood_count / (id_count + ood_count))
+PY
+)"
+
 build_workload() {
   local profile="$1"
   local output="$2"
   local manifest="$3"
+  local ood_input="$4"
   PYTHONPATH="$REPO_ROOT" "$VENV/bin/python" \
     "$REPO_ROOT/scripts/build_offline_workload.py" \
     --profile "$profile" \
-    --id-input "$ID_INPUT" --id-manifest "$ID_MANIFEST" --id-split test \
-    --ood-input "$OOD_INPUT" --lengths "$LENGTHS" --per-token-ms 2.5 \
-    --ood-ratio "$OOD_RATIO" --seed "$WORKLOAD_SEED" \
+    --id-input "$MIXED_ID_INPUT" --id-manifest "$ID_MANIFEST" --id-split test \
+    --ood-input "$ood_input" --lengths "$LENGTHS" --per-token-ms 2.5 \
+    --ood-ratio "$mixed_ood_ratio" --seed "$WORKLOAD_SEED" \
     --output "$output" --manifest "$manifest"
 }
 
-build_workload mixed "$MIXED_WORKLOAD" "$MIXED_MANIFEST"
-build_workload ood "$OOD_WORKLOAD" "$OOD_WORKLOAD_MANIFEST"
+build_workload mixed "$MIXED_WORKLOAD" "$MIXED_MANIFEST" "$MIXED_OOD_INPUT"
+build_workload ood "$OOD_WORKLOAD" "$OOD_WORKLOAD_MANIFEST" "$OOD_WORKLOAD_INPUT"
+
+"$VENV/bin/python" "$HELPER" annotate-workload-manifests \
+  --selection-manifest "$WORKLOAD_SELECTION_MANIFEST" \
+  --mixed-manifest "$MIXED_MANIFEST" --ood-manifest "$OOD_WORKLOAD_MANIFEST"
 
 verification_tmp="$WORK_DIR/server-workloads.verification.json.partial"
 "$VENV/bin/python" "$HELPER" verify-workloads \
   --mixed "$MIXED_WORKLOAD" --mixed-manifest "$MIXED_MANIFEST" \
   --ood "$OOD_WORKLOAD" --ood-manifest "$OOD_WORKLOAD_MANIFEST" \
-  --ood-input "$OOD_INPUT" --lengths "$LENGTHS" \
+  --selection-manifest "$WORKLOAD_SELECTION_MANIFEST" --lengths "$LENGTHS" \
   >"$verification_tmp"
 mv "$verification_tmp" "$VERIFICATION_REPORT"
 echo "server workloads ready: $MIXED_WORKLOAD $OOD_WORKLOAD"
