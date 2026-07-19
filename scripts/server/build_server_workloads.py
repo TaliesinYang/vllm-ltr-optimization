@@ -386,8 +386,10 @@ def merge_lengths(
     ood_input: Path,
     ood_ledger: Path,
     output: Path,
+    structural_exclusions: frozenset[str] = frozenset(),
 ) -> dict[str, object]:
     sources: list[tuple[dict[str, object], dict[str, object]]] = []
+    excluded: list[str] = []
     for input_path, ledger_path in (
         (id_input, id_ledger),
         (ood_input, ood_ledger),
@@ -397,12 +399,20 @@ def merge_lengths(
             sample_id = str(source_row["sample_id"])
             ledger_row = latest.get(sample_id)
             if ledger_row is None or ledger_row.get("status") != "ok":
+                if sample_id in structural_exclusions:
+                    excluded.append(sample_id)
+                    continue
                 raise ValueError(f"missing latest successful label for {sample_id}")
             length = ledger_row.get("output_length")
             if isinstance(length, bool) or not isinstance(length, int) or length < 1:
                 raise ValueError(f"invalid output_length for {sample_id}: {length!r}")
             sources.append((source_row, ledger_row))
 
+    if set(excluded) != set(structural_exclusions):
+        missing = sorted(set(structural_exclusions) - set(excluded))
+        raise ValueError(
+            f"declared structural exclusions not all absent from labels: {missing[:10]}"
+        )
     ids = [str(source["sample_id"]) for source, _ in sources]
     if len(ids) != len(set(ids)):
         raise ValueError("ID and OOD inputs overlap on sample_id")
@@ -566,6 +576,7 @@ def _parser() -> argparse.ArgumentParser:
     merge.add_argument("--ood-input", required=True, type=Path)
     merge.add_argument("--ood-ledger", required=True, type=Path)
     merge.add_argument("--output", required=True, type=Path)
+    merge.add_argument("--structural-exclusions", type=Path)
 
     verify = subparsers.add_parser("verify-workloads")
     verify.add_argument("--mixed", required=True, type=Path)
@@ -615,12 +626,19 @@ def main() -> int:
                 ood_manifest=args.ood_manifest,
             )
         elif args.command == "merge-lengths":
+            exclusions: frozenset[str] = frozenset()
+            if args.structural_exclusions is not None:
+                entries = json.loads(
+                    args.structural_exclusions.read_text(encoding="utf-8")
+                )
+                exclusions = frozenset(str(e["sample_id"]) for e in entries)
             report = merge_lengths(
                 id_input=args.id_input,
                 id_ledger=args.id_ledger,
                 ood_input=args.ood_input,
                 ood_ledger=args.ood_ledger,
                 output=args.output,
+                structural_exclusions=exclusions,
             )
         else:
             report = verify_workloads(

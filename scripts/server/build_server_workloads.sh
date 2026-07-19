@@ -185,8 +185,10 @@ if [[ -f "$REPLAY_PIDFILE" || -f "$REPLAY_STARTFILE" ]]; then
 fi
 
 if [[ ! -f "$OOD_REPLAY_REPORT" ]] || ! "$VENV/bin/python" "$HELPER" merge-lengths \
+      --structural-exclusions "$ARTIFACTS/structural-exclusions.json" \
   --id-input "$ID_INPUT" --id-ledger "$ID_LEDGER" \
   --ood-input "$OOD_INPUT" --ood-ledger "$OOD_LEDGER" \
+  --structural-exclusions "$ARTIFACTS/structural-exclusions.json" \
   --output "$LENGTHS" >/dev/null 2>&1; then
   echo "starting/resuming OOD labeling against direct vLLM"
   PYTHONPATH="$REPO_ROOT" nohup "$VENV/bin/python" \
@@ -218,6 +220,7 @@ require_file "$OOD_REPLAY_REPORT"
 "$VENV/bin/python" "$HELPER" merge-lengths \
   --id-input "$ID_INPUT" --id-ledger "$ID_LEDGER" \
   --ood-input "$OOD_INPUT" --ood-ledger "$OOD_LEDGER" \
+  --structural-exclusions "$ARTIFACTS/structural-exclusions.json" \
   --output "$LENGTHS"
 
 # Labeling and combined-length assets remain complete (6000 ID + 800 OOD).
