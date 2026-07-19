@@ -1,0 +1,16 @@
+% Page budget: exactly 1 page; this is the only section allowed to use bullets.
+\clearpage
+\section{Introduction}
+
+% [作者手写区] 要点: 建立“可预测属性 -> 调度 -> 完成延迟”的动机；引用 Fu-LTR 与 vLLM。可用数据点: 旧环境全负载扫描中最高 2.86x，但低负载与尾部代价必须同时交代。Bib keys: fuLTR2024, vllm2023.
+
+% [作者手写区] 要点: 说明长度预测跨域失效风险；区分聊天域旧证据与 Qwen3.5-9B 工具域新证据，禁止跨环境直接比大小。可用数据点: 旧聊天 predictor tau 0.559 -> 0.315；新 prompt+schema BERT test tau-b=0.642329。Bib keys: pars2025, tie2026, egtp2026.
+
+% [作者手写区] 要点: 说明 gateway 是可靠性判决与 fail-open 注入的系统接缝；真实链路 client -> gateway -> decision service -> vLLM，prediction_reliable 合同为 int 0/1。Bib keys: beyondPrediction2026, agentix2026, vllm2023.
+
+% [作者手写区] 要点: 引言结尾贡献列表；每条贡献必须对应 Fig.4--Fig.8 或 Tab.1--Tab.2，不能把待验证假设写成结论。此处是全文唯一允许的 bullet list。
+% \begin{itemize}
+%   \item [作者手写贡献 1: predictor/data evidence; point to Fig.4--Fig.6.]
+%   \item [作者手写贡献 2: reliability-gated scheduling; point to Fig.7.]
+%   \item [作者手写贡献 3: end-to-end serving evaluation; point to Fig.8.]
+% \end{itemize}
