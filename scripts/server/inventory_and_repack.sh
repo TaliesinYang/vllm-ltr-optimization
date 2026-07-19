@@ -5,20 +5,25 @@ REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 T7_ROOT="${T7_ROOT:-/Volumes/T7 Shield/vllm-ltr-results}"
 OSS_PREFIX="${OSS_PREFIX:-oss://backup/vllm-ltr-rental-readiness}"
 MANIFEST="${MANIFEST:-$REPO_ROOT/scripts/server/manifest/oss-objects.json}"
-MIXED_WORKLOAD="${MIXED_WORKLOAD:-$REPO_ROOT/runs/workloads/mixed.v2.jsonl}"
-OOD_WORKLOAD="${OOD_WORKLOAD:-$REPO_ROOT/runs/workloads/ood.v2.jsonl}"
-WORKLOAD_MANIFEST_DIR="${WORKLOAD_MANIFEST_DIR:-$REPO_ROOT/runs/workloads/manifests}"
+ID_WORKLOAD="${ID_WORKLOAD:-$REPO_ROOT/runs/workloads-v2/workload-id.v2.jsonl}"
+ID_WORKLOAD_MANIFEST="${ID_WORKLOAD_MANIFEST:-$REPO_ROOT/runs/workloads-v2/workload-id-manifest.json}"
+REBUILD_DIR="${REBUILD_DIR:-$T7_ROOT/rebuild}"
+SAMPLE_6000="$REBUILD_DIR/tier2-toolace-sample-6000.jsonl"
+TIER1_SOURCE="$REBUILD_DIR/toolace-6bda777-qwen35.jsonl"
 NORMALIZED_CHECKPOINT_DIR="${NORMALIZED_CHECKPOINT_DIR:-$T7_ROOT/extracted}"
 CHECKPOINT_TAR="$T7_ROOT/tier2-checkpoints.tar"
 RESULTS_TAR="$T7_ROOT/tier2-results.tar.gz"
 BUNDLE="$T7_ROOT/benchmark-bundle.tar.gz"
 STAGING="${STAGING:-$(mktemp -d "$T7_ROOT/repack-staging.XXXXXX")}"
 
-for path in "$CHECKPOINT_TAR" "$RESULTS_TAR" "$MIXED_WORKLOAD" "$OOD_WORKLOAD"; do
+for path in "$CHECKPOINT_TAR" "$RESULTS_TAR" "$ID_WORKLOAD" "$ID_WORKLOAD_MANIFEST" "$SAMPLE_6000" "$TIER1_SOURCE"; do
   [[ -f "$path" ]] || { echo "missing required input: $path" >&2; exit 1; }
 done
-[[ -d "$WORKLOAD_MANIFEST_DIR" ]] || { echo "missing workload manifests: $WORKLOAD_MANIFEST_DIR" >&2; exit 1; }
-command -v oss >/dev/null || { echo "oss CLI is required" >&2; exit 1; }
+# mixed/ood workloads are built ON THE SERVER after the OOD labeling pass;
+# recorded explicitly so the bundle never pretends to carry them.
+if [[ "${OSS_SKIP:-0}" != "1" ]]; then
+  command -v oss >/dev/null || { echo "oss CLI is required (or set OSS_SKIP=1)" >&2; exit 1; }
+fi
 
 [[ "$STAGING" == "$T7_ROOT"/repack-staging.* ]] || { echo "STAGING must be a dedicated directory under $T7_ROOT" >&2; exit 1; }
 [[ "$NORMALIZED_CHECKPOINT_DIR" == "$T7_ROOT"/* ]] || { echo "NORMALIZED_CHECKPOINT_DIR must be under $T7_ROOT" >&2; exit 1; }
@@ -41,15 +46,27 @@ for seed in 17 42 73; do
   mv "$partial_target" "$target_dir"
 done
 
-tar -xzf "$RESULTS_TAR" -C "$STAGING/results-raw"
+# results tar contains self-pointing hardlink duplicate entries: the named
+# members extract correctly but tar exits nonzero on the duplicates. Tolerate
+# the exit code and verify the extracted ledger by content hash instead.
+tar -xzf "$RESULTS_TAR" -C "$STAGING/results-raw" \
+  tier2-toolace-6000-ledger.jsonl tier2-sample-manifest.json || true
+for member in tier2-toolace-6000-ledger.jsonl tier2-sample-manifest.json; do
+  [[ -s "$STAGING/results-raw/$member" ]] || { echo "member failed to extract: $member" >&2; exit 1; }
+done
+echo "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac  $STAGING/results-raw/tier2-toolace-6000-ledger.jsonl" | shasum -a 256 -c - >/dev/null || { echo "extracted ledger sha mismatch" >&2; exit 1; }
 ledger="$(find "$STAGING/results-raw" -type f -name 'tier2-toolace-6000-ledger.jsonl' -print -quit)"
 sample_manifest="$(find "$STAGING/results-raw" -type f -name 'tier2-sample-manifest.json' -print -quit)"
 [[ -n "$ledger" && -n "$sample_manifest" ]] || { echo "ledger/sample manifest missing from results tar" >&2; exit 1; }
 cp "$ledger" "$STAGING/bundle/tier2-toolace-6000-ledger.jsonl"
 cp "$sample_manifest" "$STAGING/bundle/tier2-sample-manifest.json"
-cp "$MIXED_WORKLOAD" "$STAGING/bundle/mixed.v2.jsonl"
-cp "$OOD_WORKLOAD" "$STAGING/bundle/ood.v2.jsonl"
-cp -R "$WORKLOAD_MANIFEST_DIR"/. "$STAGING/bundle/workload-manifests/"
+cp "$ID_WORKLOAD" "$STAGING/bundle/workload-id.v2.jsonl"
+cp "$ID_WORKLOAD_MANIFEST" "$STAGING/bundle/workload-manifests/workload-id-manifest.json"
+cp "$SAMPLE_6000" "$STAGING/bundle/tier2-toolace-sample-6000.jsonl"
+cp "$TIER1_SOURCE" "$STAGING/bundle/toolace-6bda777-qwen35.jsonl"
+cat > "$STAGING/bundle/WORKLOADS-NOTE.json" <<'NOTE'
+{"mixed_and_ood_workloads": "built_on_server_after_ood_labeling_pass", "id_workload": "workload-id.v2.jsonl (1000 test-split rows, verified locally)"}
+NOTE
 
 python3 - "$STAGING/bundle/tier2-toolace-6000-ledger.jsonl" "$STAGING/ledger-inventory.json" <<'PY'
 import json, sys
@@ -84,6 +101,9 @@ for seed in (17, 42, 73):
 result_members = []
 for filename in ("tier2-toolace-6000-ledger.jsonl", "tier2-sample-manifest.json"):
     matches = [line for line in result_lines if line.rstrip("/").endswith("/" + filename) or line.rstrip("/") == filename]
+    # the archive stores each member twice (regular entry + self hardlink);
+    # dedupe before asserting uniqueness
+    matches = sorted(set(matches))
     if len(matches) != 1:
         raise SystemExit(f"expected one concrete {filename} member, got {matches}")
     result_members.append(matches[0])
@@ -123,8 +143,16 @@ for obj in json.load(open(sys.argv[1]))["objects"]:
         raise SystemExit(f"manifest object is incomplete: {obj['name']}")
     print(f"{obj['source_path']}\t{obj['oss_uri']}")
 PY
-  oss cp "$source" "$uri"
-  oss ls "$uri" >/dev/null
+  if [[ "${OSS_SKIP:-0}" == "1" ]]; then
+    echo "OSS_SKIP=1: upload deferred for $source -> $uri"
+  else
+    oss cp "$source" "$uri"
+    oss ls "$uri" >/dev/null
+  fi
 done
 
-echo "inventory, repack, manifest fill, and OSS readback completed"
+if [[ "${OSS_SKIP:-0}" == "1" ]]; then
+  echo "inventory, repack, and manifest fill completed (upload deferred: OSS_SKIP=1)"
+else
+  echo "inventory, repack, manifest fill, and OSS readback completed"
+fi

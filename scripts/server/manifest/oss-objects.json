@@ -1,33 +1,53 @@
 {
   "schema_version": "rental-readiness-oss-v1",
-  "generated_at_utc": null,
+  "generated_at_utc": "2026-07-19T04:52:28.666471+00:00",
   "objects": [
     {
       "name": "tier2-checkpoints.tar",
       "source_path": "/Volumes/T7 Shield/vllm-ltr-results/tier2-checkpoints.tar",
       "oss_uri": "oss://tier2-checkpoints.tar",
-      "size_bytes": null,
-      "sha256": null,
+      "size_bytes": 6142248960,
+      "sha256": "4ff2604957afd7c4b967fa60973fbc0cfad7bec6ad7e5eb66eacd5bd0af34073",
       "archive_format": "tar",
-      "unpacks_to": null
+      "unpacks_to": [
+        "tier2-matrix/bert-prompt_schema-tier2-seed17/final/",
+        "tier2-matrix/bert-prompt_schema-tier2-seed42/final/",
+        "tier2-matrix/bert-prompt_schema-tier2-seed73/final/"
+      ],
+      "upload_note": "already on OSS (uploaded 2026-07-18); restore verifies sha256 against this manifest"
     },
     {
       "name": "tier2-results.tar.gz",
       "source_path": "/Volumes/T7 Shield/vllm-ltr-results/tier2-results.tar.gz",
       "oss_uri": "oss://tier2-results.tar.gz",
-      "size_bytes": null,
-      "sha256": null,
+      "size_bytes": 5324579597,
+      "sha256": "84a0fddee108c11952d9eaf5f851c3a70c349b8202eed26eb9ffc2ef339d0633",
       "archive_format": "tar.gz",
-      "unpacks_to": null
+      "unpacks_to": [
+        "tier2-toolace-6000-ledger.jsonl",
+        "tier2-sample-manifest.json"
+      ],
+      "upload_note": "already on OSS (uploaded 2026-07-18); restore verifies sha256 against this manifest"
     },
     {
       "name": "benchmark-bundle.tar.gz",
       "source_path": "/Volumes/T7 Shield/vllm-ltr-results/benchmark-bundle.tar.gz",
-      "oss_uri": "oss://benchmark-bundle.tar.gz",
-      "size_bytes": null,
-      "sha256": null,
+      "oss_uri": "oss://backup/vllm-ltr-rental-readiness/benchmark-bundle.tar.gz",
+      "size_bytes": 9694228,
+      "sha256": "d018e39007456723476a2730b0248d650b0d19107e35ea013794a402775bf7e1",
       "archive_format": "tar.gz",
-      "unpacks_to": null
+      "unpacks_to": [
+        "./tier2-toolace-6000-ledger.jsonl",
+        "./workload-manifests/",
+        "./workload-id.v2.jsonl",
+        "./toolace-6bda777-qwen35.jsonl",
+        "./tier2-toolace-sample-6000.jsonl",
+        "./tier2-sample-manifest.json",
+        "./ledger-inventory.json",
+        "./WORKLOADS-NOTE.json",
+        "./workload-manifests/workload-id-manifest.json"
+      ],
+      "upload_note": "pending upload after oss login"
     }
   ]
 }
