@@ -1010,8 +1010,8 @@ def _learning_curve_panel(ax, curve: LearningCurve) -> None:
         ax.annotate(
             f"{tau:.3f}\n(n={effective})",
             xy=(pool_size, tau),
-            xytext=(10 if first_point else 0,
-                    2 if first_point else (9 if pool_size != max(curve.pool_sizes) else -28)),
+            xytext=(14 if first_point else 0,
+                    -30 if first_point else (9 if pool_size != max(curve.pool_sizes) else -28)),
             textcoords="offset points",
             ha="left" if first_point else "center",
             va="bottom",
