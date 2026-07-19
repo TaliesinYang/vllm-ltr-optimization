@@ -166,6 +166,7 @@ def select_workload_inputs(
     ood_input: Path,
     expected_id_pool_size: int | None,
     expected_ood_pool_size: int | None,
+    labelable_lengths: Path | None,
     mixed_id_target: int,
     mixed_ood_target: int,
     ood_target: int,
@@ -187,10 +188,21 @@ def select_workload_inputs(
             f"ID input is missing {len(missing_ids)} rows declared by split {id_split!r}"
         )
     id_pool = [id_rows_by_id[sample_id] for sample_id in split_ids]
-    ood_pool = _label_rows(ood_input)
+    ood_pool_all = _label_rows(ood_input)
+    # OOD sampling must draw only from rows that HAVE a successful length in
+    # combined-lengths; the rest were dropped as unlabelable (context length).
+    if labelable_lengths is not None:
+        labelable = {
+            str(row["sample_id"]) for row in _label_rows(labelable_lengths)
+        }
+        ood_pool = [
+            row for row in ood_pool_all if str(row["sample_id"]) in labelable
+        ]
+    else:
+        ood_pool = ood_pool_all
     for name, actual, expected in (
         ("ID test", len(id_pool), expected_id_pool_size),
-        ("OOD", len(ood_pool), expected_ood_pool_size),
+        ("OOD full", len(ood_pool_all), expected_ood_pool_size),
     ):
         if expected is not None and actual != expected:
             raise ValueError(
@@ -576,6 +588,7 @@ def _parser() -> argparse.ArgumentParser:
     select.add_argument("--ood-input", required=True, type=Path)
     select.add_argument("--expected-id-pool-size", type=int)
     select.add_argument("--expected-ood-pool-size", type=int)
+    select.add_argument("--labelable-lengths", type=Path)
     select.add_argument("--mixed-id-target", required=True, type=int)
     select.add_argument("--mixed-ood-target", required=True, type=int)
     select.add_argument("--ood-target", required=True, type=int)
@@ -631,6 +644,7 @@ def main() -> int:
                 ood_input=args.ood_input,
                 expected_id_pool_size=args.expected_id_pool_size,
                 expected_ood_pool_size=args.expected_ood_pool_size,
+                labelable_lengths=args.labelable_lengths,
                 mixed_id_target=args.mixed_id_target,
                 mixed_ood_target=args.mixed_ood_target,
                 ood_target=args.ood_target,

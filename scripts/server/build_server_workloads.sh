@@ -229,7 +229,7 @@ require_file "$OOD_REPLAY_REPORT"
 # Only the benchmark workloads are right-sized from those full pools.
 "$VENV/bin/python" "$HELPER" select-workload-inputs \
   --id-input "$ID_INPUT" --id-manifest "$ID_MANIFEST" --id-split test \
-  --ood-input "$OOD_INPUT" --expected-id-pool-size 1000 \
+  --ood-input "$OOD_INPUT" --labelable-lengths "$LENGTHS" --expected-id-pool-size 1000 \
   --expected-ood-pool-size 800 --mixed-id-target "$MIXED_ID_TARGET" \
   --mixed-ood-target "$MIXED_OOD_TARGET" --ood-target "$OOD_WORKLOAD_TARGET" \
   --seed "$WORKLOAD_SEED" --mixed-id-output "$MIXED_ID_INPUT" \
