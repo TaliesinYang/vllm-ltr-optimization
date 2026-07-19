@@ -1,0 +1,19 @@
+% Page budget: one independent page; GitHub latex_source/ screenshot placeholder.
+\clearpage
+\appendices
+\section{Repository Evidence}
+
+% [作者手写区] 要点: 最终截图必须来自提交后的 GitHub 仓库页面，完整显示 latex_source/ 目录；在截图附近给出 commit SHA 和可访问 URL。不要使用本地 Finder 截图替代。
+
+\begin{figure}[!h]
+  \centering
+  \IfFileExists{figures/appendix-a-github-latex-source.pdf}{%
+    \includegraphics[width=\columnwidth]{figures/appendix-a-github-latex-source.pdf}%
+  }{%
+    \fbox{\parbox[c][3.2in][c]{0.92\columnwidth}{%
+      \centering\textbf{Appendix A screenshot placeholder}\\[1ex]
+      \footnotesize GitHub repository view of \texttt{latex\_source/}}}
+  }
+  \caption{GitHub repository evidence for the report source.}
+  \label{fig:github-source}
+\end{figure}
