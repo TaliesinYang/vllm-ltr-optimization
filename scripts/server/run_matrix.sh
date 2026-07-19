@@ -443,10 +443,30 @@ preflight_tag="$RUN_TAG-preflight-e2e"
 prepare_vllm_evidence "$preflight_tag"
 "$REPO_ROOT/scripts/server/launch_vllm.sh" scheduler_benchmark.vllm_scheduler.PureLTRScheduler "$preflight_tag"
 order_log="$LTR_ROOT/runs/$preflight_tag/order.jsonl"
-request_body='{"model":"qwen3.5-9b","messages":[{"role":"user","content":"Return a short greeting."}],"temperature":0,"max_tokens":4096,"chat_template_kwargs":{"enable_thinking":false},"vllm_xargs":{"ltr_kind":"chat","ltr_category":"id:preflight","ltr_tool_schema":"[]"}}'
-curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d "$request_body" "$ENDPOINT" >"$RUN_ROOT/preflight-response-1.json" &
+# Use TWO REAL workload rows (with tool schema) so the decision service returns
+# reliable predictions — a synthetic no-tool greeting is correctly judged
+# unreliable and cannot prove the reliable-prediction path.
+PYTHONPATH="$REPO_ROOT" "$VENV/bin/python" - "$MIXED_WORKLOAD" "$RUN_ROOT" <<'PY'
+import json, sys
+from scheduler_benchmark.runner import WorkloadRequest, make_chat_payload
+mixed, run_root = sys.argv[1], sys.argv[2]
+rows = [json.loads(l) for l in open(mixed) if l.strip()][:2]
+for i, row in enumerate(rows, 1):
+    req = WorkloadRequest(
+        request_id=str(row["request_id"]), prompt=str(row["prompt"]),
+        baseline_service_ms=float(row["baseline_service_ms"]),
+        max_tokens=int(row.get("max_tokens", 4096)), kind=str(row.get("kind", "tool")),
+        category=str(row.get("category", "")), tool_schema=str(row.get("tool_schema", "")),
+        history=[list(h) for h in row.get("history", [])],
+    )
+    payload = make_chat_payload(req, model="qwen3.5-9b")
+    payload["stream"] = False
+    payload.pop("stream_options", None)
+    open(f"{run_root}/preflight-body-{i}.json", "w").write(json.dumps(payload))
+PY
+curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d @"$RUN_ROOT/preflight-body-1.json" "$ENDPOINT" >"$RUN_ROOT/preflight-response-1.json" &
 p1=$!
-curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d "$request_body" "$ENDPOINT" >"$RUN_ROOT/preflight-response-2.json" &
+curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d @"$RUN_ROOT/preflight-body-2.json" "$ENDPOINT" >"$RUN_ROOT/preflight-response-2.json" &
 p2=$!
 wait "$p1"; wait "$p2"
 python3 - "$order_log" <<'PY'
