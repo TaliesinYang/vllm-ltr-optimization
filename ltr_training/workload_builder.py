@@ -10,8 +10,11 @@ def manifest_split_ids(payload: object, *, split: str = "test") -> set[str]:
     candidates: object = payload
     if isinstance(payload, Mapping):
         splits = payload.get("splits")
+        sample_ids = payload.get("sample_ids")
         if isinstance(splits, Mapping) and split in splits:
             candidates = splits[split]
+        elif isinstance(sample_ids, Mapping) and split in sample_ids:
+            candidates = sample_ids[split]
         elif split in payload:
             candidates = payload[split]
         else:

@@ -1,0 +1,27 @@
+{
+  "baseline_service_ms": {
+    "claim": "proxy; not isolated service timing",
+    "formula": "output_length * per_token_ms",
+    "kind": "output_length_per_token_proxy",
+    "per_token_ms": 2.5
+  },
+  "id_selection": {
+    "manifest_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-sample-manifest.json",
+    "manifest_sha256": "464782c5f5b91b6af02ac434f546bbab653a28bd2f52da6e6c4abe43f014d451",
+    "selected_count": 1000,
+    "split": "test"
+  },
+  "input_sha256": {
+    "id": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "lengths_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/ledger-ok.jsonl",
+  "lengths_sha256": "35aad037de83720c98529ac81c50d186acfd56365770b283c164f7382cc6d0b6",
+  "max_tokens": 4096,
+  "output_path": "runs/workloads-v2/workload-id.v2.jsonl",
+  "output_sha256": "ad7ab496d73697eeb272b6dc017d0fc00b6758f3368ede48ac1d18626347b114",
+  "profile": "id",
+  "request_count": 1000,
+  "runner_compatibility": "unverified_scheduler_benchmark_frozen",
+  "sampling_seed": 42,
+  "schema_version": "offline-workload-v2"
+}

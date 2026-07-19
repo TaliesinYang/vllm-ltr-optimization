@@ -80,3 +80,19 @@ def test_workload_categories_are_selectable_by_runner_in_both_directions() -> No
     assert [row.request_id for row in select_workload_profile(workload, "ood")] == [
         "ood-1"
     ]
+
+
+def test_manifest_split_ids_reads_real_sample_ids_shape() -> None:
+    # 真实 tier2-sample-manifest.json 的形状:sample_ids: {split: [ids]}
+    payload = {
+        "sample_count": 3,
+        "sample_ids": {
+            "test": ["toolace-000001:0000", "toolace-000002:0000"],
+            "train": ["toolace-000003:0000"],
+        },
+    }
+    assert manifest_split_ids(payload, split="test") == {
+        "toolace-000001:0000",
+        "toolace-000002:0000",
+    }
+    assert manifest_split_ids(payload, split="train") == {"toolace-000003:0000"}

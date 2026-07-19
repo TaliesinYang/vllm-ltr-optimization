@@ -62,6 +62,11 @@ def main() -> int:
         selected_ids = manifest_split_ids(manifest_payload, split=args.id_split)
         id_inputs = [item for item in id_inputs if item.sample_id in selected_ids]
         selected_id_count = len(id_inputs)
+        if not id_inputs:
+            raise ValueError(
+                f"id split {args.id_split!r} selected zero rows; "
+                "manifest shape or split name is wrong"
+            )
     rows, manifest = build_workload(
         id_inputs=id_inputs,
         ood_inputs=_inputs(args.ood_input),
