@@ -84,20 +84,39 @@ def test_int_reliable_flag_survives_protocol_and_reaches_predictor() -> None:
     assert prediction.score == pytest.approx(512 / MAX_ESTIMATED_TOKENS)
 
 
-def test_bool_flag_is_coerced_or_rejected_never_trusted() -> None:
-    # If a bool sneaks into vllm_xargs the protocol either coerces or rejects
-    # it; whatever survives must NOT be treated as reliable by the predictor.
+def test_bool_flag_documented_coercion_boundary() -> None:
+    """Documented behavior, not a defense: pinned Pydantic coerces a bool
+    True in vllm_xargs to int 1 BEFORE the predictor can see it, so the
+    predictor cannot distinguish a coerced bool from a legitimate 1. The
+    trust boundary is therefore the GATEWAY's int contract (enforced and
+    tested Go-side: whitelist drops client flags; verdict is written as
+    int 0/1). This test pins the coercion so a future vLLM/Pydantic change
+    is caught, and records that a bool passed straight to the engine WOULD
+    be trusted downstream."""
     try:
         request = _chat_request(
             {"prediction_reliable": True, "workflow_estimated_tokens": 512}
         )
     except Exception:
-        return  # protocol rejected the bool outright — acceptable
+        return  # protocol rejected bool outright — boundary even stricter; PASS
+        # (deliberately not a skip: run_matrix preflight hard-fails on skips)
     extra_args = _extra_args(request)
-    prediction = GatewayMetadataPredictor().predict(
-        PredictorInput(
-            request_id="seam-2", prompt_token_ids=(), metadata=dict(extra_args)
+    flag = extra_args.get("prediction_reliable")
+    if isinstance(flag, bool):
+        prediction = GatewayMetadataPredictor().predict(
+            PredictorInput(
+                request_id="seam-2", prompt_token_ids=(), metadata=dict(extra_args)
+            )
         )
-    )
-    if isinstance(extra_args.get("prediction_reliable"), bool):
-        assert prediction.ood is True, "bool flag must not pass the int contract"
+        assert prediction.ood is True, "un-coerced bool must not pass the int contract"
+    else:
+        # Pinned-stack reality: coercion to int happens upstream of us.
+        assert flag == 1
+        prediction = GatewayMetadataPredictor().predict(
+            PredictorInput(
+                request_id="seam-2", prompt_token_ids=(), metadata=dict(extra_args)
+            )
+        )
+        assert prediction.ood is False, (
+            "coerced 1 is indistinguishable downstream — gateway is the boundary"
+        )

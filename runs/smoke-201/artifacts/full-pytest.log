@@ -1,0 +1,130 @@
+........................................................................ [ 36%]
+.....F.................................................................. [ 72%]
+...................EEEEEE.............................                   [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of ToolAceProductionSnapshotTest.test_empty_recorded_completion_is_preserved_as_zero_tokens _
+
+cls = <class 'test_training_data.ToolAceProductionSnapshotTest'>
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.snapshot = Path(os.environ.get("TOOLACE_SNAPSHOT", DEFAULT_TOOLACE_SNAPSHOT))
+        if not cls.snapshot.exists():
+>           raise RuntimeError(f"real ToolACE snapshot missing: {cls.snapshot}")
+E           RuntimeError: real ToolACE snapshot missing: /Users/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+
+tests/test_training_data.py:32: RuntimeError
+_ ERROR at setup of ToolAceProductionSnapshotTest.test_label_writer_persists_training_fields_as_jsonl _
+
+cls = <class 'test_training_data.ToolAceProductionSnapshotTest'>
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.snapshot = Path(os.environ.get("TOOLACE_SNAPSHOT", DEFAULT_TOOLACE_SNAPSHOT))
+        if not cls.snapshot.exists():
+>           raise RuntimeError(f"real ToolACE snapshot missing: {cls.snapshot}")
+E           RuntimeError: real ToolACE snapshot missing: /Users/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+
+tests/test_training_data.py:32: RuntimeError
+_ ERROR at setup of ToolAceProductionSnapshotTest.test_loader_streams_every_recorded_assistant_invocation _
+
+cls = <class 'test_training_data.ToolAceProductionSnapshotTest'>
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.snapshot = Path(os.environ.get("TOOLACE_SNAPSHOT", DEFAULT_TOOLACE_SNAPSHOT))
+        if not cls.snapshot.exists():
+>           raise RuntimeError(f"real ToolACE snapshot missing: {cls.snapshot}")
+E           RuntimeError: real ToolACE snapshot missing: /Users/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+
+tests/test_training_data.py:32: RuntimeError
+_ ERROR at setup of ToolAceProductionSnapshotTest.test_loader_yields_invocation_level_records_from_real_snapshot _
+
+cls = <class 'test_training_data.ToolAceProductionSnapshotTest'>
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.snapshot = Path(os.environ.get("TOOLACE_SNAPSHOT", DEFAULT_TOOLACE_SNAPSHOT))
+        if not cls.snapshot.exists():
+>           raise RuntimeError(f"real ToolACE snapshot missing: {cls.snapshot}")
+E           RuntimeError: real ToolACE snapshot missing: /Users/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+
+tests/test_training_data.py:32: RuntimeError
+_ ERROR at setup of ToolAceProductionSnapshotTest.test_tier1_label_retokenizes_recorded_completion_and_keeps_generator _
+
+cls = <class 'test_training_data.ToolAceProductionSnapshotTest'>
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.snapshot = Path(os.environ.get("TOOLACE_SNAPSHOT", DEFAULT_TOOLACE_SNAPSHOT))
+        if not cls.snapshot.exists():
+>           raise RuntimeError(f"real ToolACE snapshot missing: {cls.snapshot}")
+E           RuntimeError: real ToolACE snapshot missing: /Users/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+
+tests/test_training_data.py:32: RuntimeError
+_ ERROR at setup of ToolAceProductionSnapshotTest.test_toolace_label_pipeline_honors_limit _
+
+cls = <class 'test_training_data.ToolAceProductionSnapshotTest'>
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.snapshot = Path(os.environ.get("TOOLACE_SNAPSHOT", DEFAULT_TOOLACE_SNAPSHOT))
+        if not cls.snapshot.exists():
+>           raise RuntimeError(f"real ToolACE snapshot missing: {cls.snapshot}")
+E           RuntimeError: real ToolACE snapshot missing: /Users/alex/.cache/vllm-ltr-optimization/datasets/toolace/6bda777c88d21e5a204703c1ee45597a8fa4f734/data.json
+
+tests/test_training_data.py:32: RuntimeError
+=================================== FAILURES ===================================
+__ test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds ___
+
+tmp_path = PosixPath('/tmp/pytest-of-alex/pytest-8/test_default_checkpoint_probe_0')
+
+    def test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds(
+        tmp_path,
+    ) -> None:
+        inputs = tmp_path / "inputs.jsonl"
+        inputs.write_text("")
+        lengths = tmp_path / "lengths.jsonl"
+        lengths.write_text("")
+        report = tmp_path / "report.json"
+    
+        result = _run(
+            "scripts/score_offline_ensemble.py",
+            "--input",
+            str(inputs),
+            "--lengths",
+            str(lengths),
+            "--scores-output",
+            str(tmp_path / "scores.jsonl"),
+            "--report",
+            str(report),
+            "--diagnostic",
+            str(tmp_path / "diagnostic.json"),
+        )
+    
+        assert result.returncode == 2
+        payload = json.loads(report.read_text())
+        assert payload["reason"] == "missing_required_checkpoints"
+>       assert payload["missing_seeds"] == [42, 73]
+E       assert [17, 42, 73] == [42, 73]
+E         
+E         At index 0 diff: 17 != 42
+E         Left contains one more item: 73
+E         Use -v to get more diff
+
+tests/test_offline_cli.py:185: AssertionError
+=============================== warnings summary ===============================
+.venv-server/lib/python3.12/site-packages/torch/jit/_script.py:365: 14 warnings
+  /home/alex/ltr-seam/.venv-server/lib/python3.12/site-packages/torch/jit/_script.py:365: DeprecationWarning: `torch.jit.script_method` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_offline_cli.py::test_default_checkpoint_probe_reports_real_seed17_and_missing_other_seeds
+ERROR tests/test_training_data.py::ToolAceProductionSnapshotTest::test_empty_recorded_completion_is_preserved_as_zero_tokens
+ERROR tests/test_training_data.py::ToolAceProductionSnapshotTest::test_label_writer_persists_training_fields_as_jsonl
+ERROR tests/test_training_data.py::ToolAceProductionSnapshotTest::test_loader_streams_every_recorded_assistant_invocation
+ERROR tests/test_training_data.py::ToolAceProductionSnapshotTest::test_loader_yields_invocation_level_records_from_real_snapshot
+ERROR tests/test_training_data.py::ToolAceProductionSnapshotTest::test_tier1_label_retokenizes_recorded_completion_and_keeps_generator
+ERROR tests/test_training_data.py::ToolAceProductionSnapshotTest::test_toolace_label_pipeline_honors_limit
+1 failed, 191 passed, 14 warnings, 6 errors in 33.40s

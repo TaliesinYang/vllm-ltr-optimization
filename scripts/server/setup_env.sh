@@ -31,4 +31,20 @@ HF_ENDPOINT="https://hf-mirror.com" HF_HOME="/hy-tmp/hf" \
   "$VENV/bin/hf" download Qwen/Qwen3.5-9B \
   --revision c202236235762e1c871ad0ccb60c8ee5ba337b9a \
   --local-dir "$MODEL_DIR"
+"$VENV/bin/python" - <<'GPU_PY'
+import json, sys
+import torch, pydantic, vllm
+info = {
+    "torch": torch.__version__,
+    "torch_cuda_build": torch.version.cuda,
+    "cuda_available": torch.cuda.is_available(),
+    "device": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+    "pydantic": pydantic.__version__,
+    "vllm": vllm.__version__,
+}
+print(json.dumps(info, indent=2))
+open("/hy-tmp/ltr/manifest.cuda.json", "w").write(json.dumps(info, indent=2) + "\n")
+if not info["cuda_available"]:
+    sys.exit("NO-GO: torch cannot see the GPU — wheel/driver CUDA mismatch")
+GPU_PY
 echo "server environment ready: $VENV"
