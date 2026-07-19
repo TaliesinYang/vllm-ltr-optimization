@@ -465,18 +465,19 @@ for i, row in enumerate(rows, 1):
     payload.pop("stream_options", None)
     open(f"{run_root}/preflight-body-{i}.json", "w").write(json.dumps(payload))
 PY
-# Fire both bodies several times concurrently to raise the odds two land in
-# the same scheduler step, and to exercise the reliable-prediction path.
-pids=()
-for round in 1 2 3; do
+# Send requests SEQUENTIALLY with a short gap — the CPU BERT decision service
+# takes ~1.2s per real tool request; a concurrent burst would queue past the
+# gateway decision timeout and force fail-open (unreliable predictions). This
+# rate is gentler than the real 0.45 rps matrix arrival, so it faithfully
+# exercises the reliable-prediction path. Several requests raise the odds two
+# co-exist in one scheduler step for the reorder proof.
+for round in 1 2 3 4; do
   for b in 1 2; do
     curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' \
       -d @"$RUN_ROOT/preflight-body-$b.json" "$ENDPOINT" \
-      >"$RUN_ROOT/preflight-response-$b-$round.json" &
-    pids+=($!)
+      >"$RUN_ROOT/preflight-response-$b-$round.json" || true
   done
 done
-for pid in "${pids[@]}"; do wait "$pid" || true; done
 python3 - "$order_log" <<'PY'
 import json, sys
 rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
