@@ -115,22 +115,30 @@ def test_merge_lengths_is_latest_wins_and_rejects_incomplete_ledgers(
         {"output_length": 13, "sample_id": "ood-1", "source": "bfcl"},
     ]
 
+    # OOD pool semantics: a failed OOD row is DROPPED (context-length under the
+    # frozen protocol), not a hard error — sampling draws from survivors.
     _write_jsonl(ood_ledger, [{"sample_id": "ood-1", "status": "error"}])
-    failed = _run(
+    dropped = _run(
         "merge-lengths",
-        "--id-input",
-        id_input,
-        "--id-ledger",
-        id_ledger,
-        "--ood-input",
-        ood_input,
-        "--ood-ledger",
-        ood_ledger,
-        "--output",
-        output,
+        "--id-input", id_input, "--id-ledger", id_ledger,
+        "--ood-input", ood_input, "--ood-ledger", ood_ledger,
+        "--output", output,
     )
-    assert failed.returncode == 1
-    assert "NO-GO" in failed.stderr
+    assert dropped.returncode == 0, dropped.stderr
+    rows = [json.loads(line) for line in output.read_text().splitlines()]
+    assert [r["sample_id"] for r in rows] == ["id-1", "id-2"]  # ood-1 dropped
+
+    # But dropping below the required sample floor is a hard NO-GO — this is
+    # what catches a systematic labeling failure masquerading as drops.
+    floored = _run(
+        "merge-lengths",
+        "--id-input", id_input, "--id-ledger", id_ledger,
+        "--ood-input", ood_input, "--ood-ledger", ood_ledger,
+        "--min-ood-labelable", "1",
+        "--output", output,
+    )
+    assert floored.returncode == 1
+    assert "NO-GO" in floored.stderr
 
 
 def test_combine_label_inputs_requires_exact_source_counts_and_hashes(

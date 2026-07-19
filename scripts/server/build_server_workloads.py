@@ -387,18 +387,27 @@ def merge_lengths(
     ood_ledger: Path,
     output: Path,
     structural_exclusions: frozenset[str] = frozenset(),
+    min_ood_labelable: int = 0,
 ) -> dict[str, object]:
     sources: list[tuple[dict[str, object], dict[str, object]]] = []
     excluded: list[str] = []
-    for input_path, ledger_path in (
-        (id_input, id_ledger),
-        (ood_input, ood_ledger),
+    ood_dropped: list[str] = []
+    # ID side: fixed 6000 contract minus the DECLARED structural exclusions.
+    # OOD side: a sampled pool — rows that fail labeling (context-length under
+    # the frozen protocol) are dropped and counted; downstream sampling draws
+    # from whatever remains, provided enough survive.
+    for input_path, ledger_path, is_ood in (
+        (id_input, id_ledger, False),
+        (ood_input, ood_ledger, True),
     ):
         latest = _latest_ledger(ledger_path)
         for source_row in _label_rows(input_path):
             sample_id = str(source_row["sample_id"])
             ledger_row = latest.get(sample_id)
             if ledger_row is None or ledger_row.get("status") != "ok":
+                if is_ood:
+                    ood_dropped.append(sample_id)
+                    continue
                 if sample_id in structural_exclusions:
                     excluded.append(sample_id)
                     continue
@@ -425,8 +434,19 @@ def merge_lengths(
         for source, ledger in sorted(sources, key=lambda item: str(item[0]["sample_id"]))
     ]
     write_jsonl(output, rows)
+    ood_total = sum(1 for _ in _label_rows(ood_input))
+    ood_labelable = ood_total - len(ood_dropped)
+    if ood_labelable < min_ood_labelable:
+        raise ValueError(
+            f"NO-GO: only {ood_labelable} OOD rows labelable, need >= "
+            f"{min_ood_labelable}; a systematic labeling failure may be masked"
+        )
     return {
         "row_count": len(rows),
+        "ood_pool_total": ood_total,
+        "ood_pool_labelable": ood_labelable,
+        "ood_dropped_unlabelable": len(ood_dropped),
+        "id_structural_exclusions": len(excluded),
         "output": str(output),
         "output_sha256": sha256_file(output),
     }
@@ -577,6 +597,7 @@ def _parser() -> argparse.ArgumentParser:
     merge.add_argument("--ood-ledger", required=True, type=Path)
     merge.add_argument("--output", required=True, type=Path)
     merge.add_argument("--structural-exclusions", type=Path)
+    merge.add_argument("--min-ood-labelable", type=int, default=0)
 
     verify = subparsers.add_parser("verify-workloads")
     verify.add_argument("--mixed", required=True, type=Path)
@@ -639,6 +660,7 @@ def main() -> int:
                 ood_ledger=args.ood_ledger,
                 output=args.output,
                 structural_exclusions=exclusions,
+                min_ood_labelable=args.min_ood_labelable,
             )
         else:
             report = verify_workloads(
