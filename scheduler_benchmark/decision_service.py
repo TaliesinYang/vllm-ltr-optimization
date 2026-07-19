@@ -329,6 +329,12 @@ class DecisionHTTPServer(ThreadingHTTPServer):
 
 
 class DecisionRequestHandler(BaseHTTPRequestHandler):
+    def handle_one_request(self):  # noqa: D401
+        try:
+            super().handle_one_request()
+        except (BrokenPipeError, ConnectionResetError):
+            self.close_connection = True
+
     server: DecisionHTTPServer
 
     def do_GET(self) -> None:
@@ -385,7 +391,10 @@ class DecisionRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(encoded)))
         self.end_headers()
-        self.wfile.write(encoded)
+        try:
+            self.wfile.write(encoded)
+        except (BrokenPipeError, ConnectionResetError):
+            self.close_connection = True
 
     def log_message(self, format: str, *args: object) -> None:
         del format, args
