@@ -28,7 +28,7 @@ if not actual.startswith("0.24."):
 PY
 
 HF_ENDPOINT="https://hf-mirror.com" HF_HOME="/hy-tmp/hf" \
-  "$VENV/bin/huggingface-cli" download Qwen/Qwen3.5-9B \
+  "$VENV/bin/hf" download Qwen/Qwen3.5-9B \
   --revision c202236235762e1c871ad0ccb60c8ee5ba337b9a \
   --local-dir "$MODEL_DIR"
 echo "server environment ready: $VENV"

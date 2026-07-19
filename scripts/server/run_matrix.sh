@@ -386,7 +386,7 @@ run_policy() {
     echo "runner returned success without an exact complete output: $run_id" >&2
     return 1
   }
-  if [[ "$scheduler" != "$STOCK" && ! -s "$RUN_ROOT/vllm-evidence/$attempt_tag/order.jsonl" ]]; then
+  if [[ "$scheduler" != "$STOCK" && "$scheduler" != "scheduler_benchmark.vllm_scheduler.StockFCFSShim" && ! -s "$RUN_ROOT/vllm-evidence/$attempt_tag/order.jsonl" ]]; then
     mark_attempt_status "$manifest" "$attempt_tag" failed
     ACTIVE_ATTEMPT_TAG=""; ACTIVE_ATTEMPT_MANIFEST=""; ACTIVE_ATTEMPT_SCHEDULER=""
     echo "custom scheduler attempt produced an empty order log: $attempt_tag" >&2
@@ -399,6 +399,22 @@ run_policy() {
 for path in "$MIXED_WORKLOAD" "$OOD_WORKLOAD" "$ARTIFACTS/rank_quantiles.json" "$CAPACITY_MANIFEST"; do
   [[ -f "$path" ]] || { echo "required matrix input missing: $path" >&2; exit 1; }
 done
+BUDGET_MANIFEST="$RUN_ROOT/rental-budget.json"
+[[ -f "$BUDGET_MANIFEST" ]] || { echo "NO-GO: rental-budget.json missing; run compute_rental_budget.sh first" >&2; exit 1; }
+python3 - "$BUDGET_MANIFEST" "$CAPACITY_MANIFEST" "$MIXED_WORKLOAD" "$OOD_WORKLOAD" <<'BUDGET_PY'
+import json, sys
+budget = json.load(open(sys.argv[1]))
+capacity = json.load(open(sys.argv[2]))
+mixed_rows = sum(1 for _ in open(sys.argv[3]))
+ood_rows = sum(1 for _ in open(sys.argv[4]))
+if budget.get("passed") is not True:
+    raise SystemExit("NO-GO: rental budget gate not passed")
+inputs = budget.get("inputs", {})
+if inputs.get("capacity_rps") != capacity.get("capacity_rps"):
+    raise SystemExit("NO-GO: budget computed against a different capacity_rps")
+if inputs.get("mixed_requests") != mixed_rows or inputs.get("ood_requests") != ood_rows:
+    raise SystemExit("NO-GO: budget computed against different workload row counts")
+BUDGET_PY
 curl -fsS http://127.0.0.1:9200/healthz >/dev/null
 curl -fsS http://127.0.0.1:9100/healthz >/dev/null
 
@@ -406,7 +422,7 @@ curl -fsS http://127.0.0.1:9100/healthz >/dev/null
 stop_vllm
 preflight_tag="$RUN_TAG-preflight-e2e"
 prepare_vllm_evidence "$preflight_tag"
-"$REPO_ROOT/scripts/server/launch_vllm.sh" scheduler_benchmark.vllm_scheduler.StockFCFSShim "$preflight_tag"
+"$REPO_ROOT/scripts/server/launch_vllm.sh" scheduler_benchmark.vllm_scheduler.PureLTRScheduler "$preflight_tag"
 order_log="$LTR_ROOT/runs/$preflight_tag/order.jsonl"
 request_body='{"model":"qwen3.5-9b","messages":[{"role":"user","content":"Return a short greeting."}],"temperature":0,"max_tokens":4096,"chat_template_kwargs":{"enable_thinking":false},"vllm_xargs":{"ltr_kind":"chat","ltr_category":"id:preflight","ltr_tool_schema":"[]"}}'
 curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d "$request_body" "$ENDPOINT" >"$RUN_ROOT/preflight-response-1.json" &
