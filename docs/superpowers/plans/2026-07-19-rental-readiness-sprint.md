@@ -800,7 +800,7 @@ python3 scripts/build_rank_quantiles.py \
   - 每 run 前写 run-manifest：两仓 `git rev-parse HEAD`、gateway-pin、mapping_version、`approximation_notice`、quantile manifest sha256、decision 超时实测值。
   - **preflight 硬门槛（矩阵前必过，不可 skip）**：`python -c "import vllm"` 成功 + `pytest tests/test_vllm_protocol_seam.py -q` 全 PASS（importorskip 在服务器上不可能触发 skip，preflight 先验证 import 保证这一点）。
   - 末尾 tar → `oss cp` → `oss ls` 读回校验 → DONE。
-- [ ] **Step 7b: `compute_rental_budget.sh`（6 小时预算 gate，租卡前用假设 capacity 区间跑一次、租卡日校准后用真值再跑一次）**：**逐阶段计时，缺一不可**——环境/模型下载、restore、补 replay 3 行、quantile 构建、decision latency 实测（200 次）、协议接缝 + 2 请求 E2E 门槛、saturation calibration（6 档网格 × 120 请求）、mixed 矩阵（7 档 × 3 repeats，mixed 行数）、OOD 子矩阵（4 档 × 3 repeats，ood 行数）、gateway overhead 成对重放、每档模型重启 ≈3min、上传 ≈10min。**steady@90 单 run 请求时间按 `N/(0.9×capacity_rps)` 估算**（`runner.py:245` 的到达率语义）；租卡前用网格下界 0.3 rps 当最坏情形。输出 `rental-budget.json`（逐阶段 + 总计）；**总计 > 5.25h → exit 1**，45 分钟只作为重试余量不摊入任何阶段。裁剪顺序写死：先砍 OOD repeats 3→2，再砍 mixed 非核心档（保 fcfs/pure_ltr/tail_safe/gated_hybrid）。
+- [ ] **Step 7b: `compute_rental_budget.sh`（8 小时预算 gate，租卡前用假设 capacity 区间跑一次、租卡日校准后用真值再跑一次）**：**逐阶段计时，缺一不可**——环境/模型下载、restore、补 replay 3 行、quantile 构建、decision latency 实测（200 次）、协议接缝 + 2 请求 E2E 门槛、saturation calibration（6 档网格 × 120 请求）、mixed 矩阵（7 档 × 3 repeats，mixed 行数）、OOD 子矩阵（4 档 × 3 repeats，ood 行数）、gateway overhead 成对重放、每档模型重启 ≈3min、上传 ≈10min。**steady@90 单 run 请求时间按 `N/(0.9×capacity_rps)` 估算**（`runner.py:245` 的到达率语义）；租卡前用有据容量下界 0.75 rps 当最坏情形（3090 实测 202 tok/s 对折；用户决策 2026-07-19 预算门槛 6h→8h 保统计规模）。输出 `rental-budget.json`（逐阶段 + 总计）；**总计 > 7.25h → exit 1**，45 分钟只作为重试余量不摊入任何阶段。裁剪顺序写死：先砍 OOD repeats 3→2，再砍 mixed 非核心档（保 fcfs/pure_ltr/tail_safe/gated_hybrid）。
 - [ ] **Step 8: `shellcheck scripts/server/*.sh` 零 error**；commit。
 
 ---
