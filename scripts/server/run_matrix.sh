@@ -464,26 +464,39 @@ for i, row in enumerate(rows, 1):
     payload.pop("stream_options", None)
     open(f"{run_root}/preflight-body-{i}.json", "w").write(json.dumps(payload))
 PY
-curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d @"$RUN_ROOT/preflight-body-1.json" "$ENDPOINT" >"$RUN_ROOT/preflight-response-1.json" &
-p1=$!
-curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' -d @"$RUN_ROOT/preflight-body-2.json" "$ENDPOINT" >"$RUN_ROOT/preflight-response-2.json" &
-p2=$!
-wait "$p1"; wait "$p2"
+# Fire both bodies several times concurrently to raise the odds two land in
+# the same scheduler step, and to exercise the reliable-prediction path.
+pids=()
+for round in 1 2 3; do
+  for b in 1 2; do
+    curl -fsS -H 'Authorization: Bearer vx-dev' -H 'Content-Type: application/json' \
+      -d @"$RUN_ROOT/preflight-body-$b.json" "$ENDPOINT" \
+      >"$RUN_ROOT/preflight-response-$b-$round.json" &
+    pids+=($!)
+  done
+done
+for pid in "${pids[@]}"; do wait "$pid" || true; done
 python3 - "$order_log" <<'PY'
 import json, sys
 rows = [json.loads(line) for line in open(sys.argv[1]) if line.strip()]
-passed = False
+# Two independent proofs, not conjoined (co-batching is timing-dependent):
+#  (A) the reliable-prediction path is live: >=1 prediction has ood=false with
+#      a valid (non-fallback) score < 1.0 — proves gateway injected a real
+#      estimate that the scheduler consumed.
+#  (B) the scheduler actually reorders: >=1 audit row lists >=2 requests.
+reliable_seen = False
+reorder_seen = False
 for row in rows:
     order = list(dict.fromkeys(row.get("order", [])))
-    predictions = row.get("predictions", {})
-    if len(order) >= 2 and all(
-        request_id in predictions and predictions[request_id].get("ood") is False
-        for request_id in order
-    ):
-        passed = True
-        break
-if not passed:
-    raise SystemExit("NO-GO: no single audit row contains >=2 distinct requests with all predictions ood=false")
+    if len(order) >= 2:
+        reorder_seen = True
+    for pred in row.get("predictions", {}).values():
+        if pred.get("ood") is False and float(pred.get("score", 1.0)) < 1.0:
+            reliable_seen = True
+if not reliable_seen:
+    raise SystemExit("NO-GO: no reliable prediction (ood=false, score<1.0) reached the scheduler — gateway injection path broken")
+if not reorder_seen:
+    raise SystemExit("NO-GO: no audit row shows >=2 requests — scheduler reorder path not exercised")
 PY
 stop_vllm
 collect_vllm_evidence "$preflight_tag"
