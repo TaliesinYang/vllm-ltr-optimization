@@ -107,8 +107,9 @@ cleanup() {
     ACTIVE_ATTEMPT_MANIFEST=""
     ACTIVE_ATTEMPT_SCHEDULER=""
   fi
-  safe_stop_pidfile "$LTR_ROOT/runs/services/decision.pid" "$REPO_ROOT/scripts/run_decision_service.py"
-  safe_stop_pidfile "$LTR_ROOT/runs/services/gateway.pid" "${GATEWAY_BIN:-$LTR_ROOT/bin/gateway}"
+  # Decision + gateway are PERSISTENT services owned by the run wrapper, not by
+  # a single matrix attempt — do NOT kill them here, or a preflight retry finds
+  # them dead and fail-opens (all predictions unreliable). Leave them running.
   CLEANUP_RUNNING=0
   set -e
   return 0
