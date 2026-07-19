@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 import logging
 import os
 import time
@@ -13,6 +14,7 @@ from typing import Mapping
 from .policies import RequestContext, order_waiting_requests
 from .predictor import (
     ConstantPredictor,
+    GatewayMetadataPredictor,
     OracleFromFilePredictor,
     Prediction,
     Predictor,
@@ -56,6 +58,8 @@ def build_predictor_from_env() -> Predictor:
         )
     if kind == "random":
         return RandomPredictor(seed=int(os.environ.get("LTR_RANDOM_SEED", "17")))
+    if kind == "gateway":
+        return GatewayMetadataPredictor()
     if kind == "oracle":
         try:
             path = Path(os.environ["LTR_ORACLE_FILE"])
@@ -101,6 +105,7 @@ def _request_context(request, prediction: Prediction) -> RequestContext:
 def reorder_request_queue(queue, policy, predictions, *, now_s):
     requests = list(queue)
     if len(requests) < 2:
+        _write_order_log(requests, policy, predictions)
         return
     contexts = [
         _request_context(request, predictions[request.request_id])
@@ -111,6 +116,27 @@ def reorder_request_queue(queue, policy, predictions, *, now_s):
     queue.remove_requests(requests)
     for context in ordered_contexts:
         queue.add_request(by_request_id[context.request_id])
+    _write_order_log(list(queue), policy, predictions)
+
+
+def _write_order_log(requests, policy, predictions) -> None:
+    path = os.environ.get("LTR_ORDER_LOG")
+    if not path:
+        return
+    entry = {
+        "policy": str(policy),
+        "order": [request.request_id for request in requests],
+        "predictions": {
+            request.request_id: {
+                "score": predictions[request.request_id].score,
+                "ood": predictions[request.request_id].ood,
+            }
+            for request in requests
+            if request.request_id in predictions
+        },
+    }
+    with Path(path).open("a", encoding="utf-8") as order_log:
+        order_log.write(json.dumps(entry) + "\n")
 
 
 def predict_or_fallback(

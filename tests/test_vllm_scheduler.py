@@ -1,6 +1,12 @@
+import json
 from dataclasses import dataclass
+from types import SimpleNamespace
 
-from scheduler_benchmark.predictor import Prediction
+import scheduler_benchmark.predictor as predictor_module
+from scheduler_benchmark.predictor import (
+    Prediction,
+    PredictorInput,
+)
 from scheduler_benchmark.vllm_scheduler import (
     FCFS_PARITY_TOLERANCES,
     LTRAgingScheduler,
@@ -8,12 +14,13 @@ from scheduler_benchmark.vllm_scheduler import (
     SCHEDULER_CLASSES,
     StockFCFSShim,
     TailSafeScheduler,
+    _request_metadata,
+    build_predictor_from_env,
     evaluate_fcfs_parity,
     evaluate_parity_report,
     predict_or_fallback,
     reorder_request_queue,
 )
-from scheduler_benchmark.predictor import PredictorInput
 
 
 @dataclass
@@ -59,6 +66,87 @@ def test_prompt_sjf_has_zero_predictor_inference_overhead() -> None:
     assert LTRAgingScheduler.uses_predictor is True
 
 
+def test_gateway_metadata_predictor_normalizes_reliable_estimate() -> None:
+    assert hasattr(predictor_module, "GatewayMetadataPredictor")
+    predictor = predictor_module.GatewayMetadataPredictor()
+    request = FakeRequest(
+        request_id="gateway-request",
+        arrival_time=1.0,
+        prompt_token_ids=[1, 2, 3],
+        trace_headers={},
+        sampling_params=SimpleNamespace(
+            extra_args={
+                "workflow_estimated_tokens": 1024,
+                "prediction_reliable": 1,
+                "ltr_kind": "tool",
+            }
+        ),
+    )
+
+    result = predictor.predict(
+        PredictorInput(
+            request_id=request.request_id,
+            prompt_token_ids=tuple(request.prompt_token_ids),
+            metadata=_request_metadata(request),
+        )
+    )
+
+    assert result.score == 1024 / 4096
+    assert result.confidence == 0.9
+    assert result.ood is False
+    assert result.latency_ms == 0.0
+
+
+def test_gateway_metadata_predictor_falls_back_without_estimate() -> None:
+    result = predictor_module.GatewayMetadataPredictor().predict(
+        PredictorInput(
+            request_id="gateway-request",
+            prompt_token_ids=(),
+            metadata={"prediction_reliable": 1},
+        )
+    )
+
+    assert result == Prediction(1.0, 0.0, True, 0.0)
+
+
+def test_gateway_metadata_predictor_falls_back_when_unreliable() -> None:
+    result = predictor_module.GatewayMetadataPredictor().predict(
+        PredictorInput(
+            request_id="gateway-request",
+            prompt_token_ids=(),
+            metadata={
+                "prediction_reliable": 0,
+                "workflow_estimated_tokens": 1024,
+            },
+        )
+    )
+
+    assert result == Prediction(1.0, 0.0, True, 0.0)
+
+
+def test_gateway_metadata_predictor_rejects_boolean_reliability_flag() -> None:
+    result = predictor_module.GatewayMetadataPredictor().predict(
+        PredictorInput(
+            request_id="gateway-request",
+            prompt_token_ids=(),
+            metadata={
+                "prediction_reliable": True,
+                "workflow_estimated_tokens": 1024,
+            },
+        )
+    )
+
+    assert result == Prediction(1.0, 0.0, True, 0.0)
+
+
+def test_build_predictor_from_env_supports_gateway(monkeypatch) -> None:
+    monkeypatch.setenv("LTR_PREDICTOR", "gateway")
+
+    assert isinstance(
+        build_predictor_from_env(), predictor_module.GatewayMetadataPredictor
+    )
+
+
 def test_request_context_passes_prompt_token_count_to_prompt_sjf() -> None:
     queue = FakeQueue(
         [
@@ -73,6 +161,47 @@ def test_request_context_passes_prompt_token_count_to_prompt_sjf() -> None:
     reorder_request_queue(queue, "prompt_sjf", predictions, now_s=3.0)
 
     assert [request.request_id for request in queue] == ["short", "long"]
+
+
+def test_order_log_appends_every_call_with_final_order(
+    monkeypatch, tmp_path
+) -> None:
+    order_log = tmp_path / "orders.jsonl"
+    monkeypatch.setenv("LTR_ORDER_LOG", str(order_log))
+    queue = FakeQueue(
+        [
+            FakeRequest("long", 1.0, [1, 2, 3], {}),
+            FakeRequest("short", 2.0, [1], {}),
+        ]
+    )
+    predictions = {
+        "long": Prediction(0.75, 0.9, False, 0.0),
+        "short": Prediction(0.25, 0.9, False, 0.0),
+    }
+
+    reorder_request_queue(queue, "prompt_sjf", predictions, now_s=3.0)
+    single_queue = FakeQueue([FakeRequest("only", 1.0, [1], {})])
+    single_predictions = {"only": Prediction(0.5, 0.9, False, 0.0)}
+    reorder_request_queue(
+        single_queue, "pure_ltr", single_predictions, now_s=3.0
+    )
+
+    entries = [json.loads(line) for line in order_log.read_text().splitlines()]
+    assert entries == [
+        {
+            "policy": "prompt_sjf",
+            "order": ["short", "long"],
+            "predictions": {
+                "short": {"score": 0.25, "ood": False},
+                "long": {"score": 0.75, "ood": False},
+            },
+        },
+        {
+            "policy": "pure_ltr",
+            "order": ["only"],
+            "predictions": {"only": {"score": 0.5, "ood": False}},
+        },
+    ]
 
 
 def test_predictor_error_returns_ood_fallback_instead_of_aborting() -> None:

@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping, Protocol
 
+from .contracts import MAX_ESTIMATED_TOKENS, RELIABLE
+
 
 @dataclass(frozen=True)
 class PredictorInput:
@@ -93,6 +95,33 @@ class BertPredictor:
         # No evaluated OOD detector is implemented yet.
         ood = False
         return Prediction(score, confidence, ood, latency_ms)
+
+
+class GatewayMetadataPredictor:
+    """Normalize the gateway's admission-time token estimate for scheduling."""
+
+    def predict(self, predictor_input: PredictorInput) -> Prediction:
+        reliable = predictor_input.metadata.get("prediction_reliable")
+        estimated_tokens = predictor_input.metadata.get(
+            "workflow_estimated_tokens"
+        )
+        is_reliable = (
+            isinstance(reliable, int)
+            and not isinstance(reliable, bool)
+            and reliable == RELIABLE
+        )
+        has_valid_estimate = (
+            isinstance(estimated_tokens, int)
+            and not isinstance(estimated_tokens, bool)
+            and estimated_tokens >= 1
+        )
+        if not is_reliable or not has_valid_estimate:
+            return Prediction(1.0, 0.0, True, 0.0)
+        score = (
+            min(estimated_tokens, MAX_ESTIMATED_TOKENS)
+            / MAX_ESTIMATED_TOKENS
+        )
+        return Prediction(score, 0.9, False, 0.0)
 
 
 def _required_metadata_text(predictor_input: PredictorInput, key: str) -> str:
