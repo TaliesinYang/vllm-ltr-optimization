@@ -14,12 +14,12 @@
         "tier2-matrix/bert-prompt_schema-tier2-seed42/final/",
         "tier2-matrix/bert-prompt_schema-tier2-seed73/final/"
       ],
-      "upload_note": "already on OSS (uploaded 2026-07-18); restore verifies sha256 against this manifest"
+      "upload_note": "on OSS (uploaded 2026-07-17); restore verifies sha256"
     },
     {
       "name": "tier2-results.tar.gz",
       "source_path": "/Volumes/T7 Shield/vllm-ltr-results/tier2-results.tar.gz",
-      "oss_uri": "oss://tier2-results.tar.gz",
+      "oss_uri": "oss://tier2-results-0718-0412.tar.gz",
       "size_bytes": 5324579597,
       "sha256": "84a0fddee108c11952d9eaf5f851c3a70c349b8202eed26eb9ffc2ef339d0633",
       "archive_format": "tar.gz",
@@ -27,7 +27,7 @@
         "tier2-toolace-6000-ledger.jsonl",
         "tier2-sample-manifest.json"
       ],
-      "upload_note": "already on OSS (uploaded 2026-07-18); restore verifies sha256 against this manifest"
+      "upload_note": "on OSS under dated name (uploaded 2026-07-17); size matches local; restore verifies sha256"
     },
     {
       "name": "benchmark-bundle.tar.gz",
@@ -47,7 +47,8 @@
         "./WORKLOADS-NOTE.json",
         "./workload-manifests/workload-id-manifest.json"
       ],
-      "upload_note": "pending upload after oss login"
+      "upload_note": "uploaded 2026-07-19T07:02Z, oss ls readback verified (9.25MB)"
     }
-  ]
+  ],
+  "tier1_source_backup": "oss://lmcache-labels.tar.gz (577.58MB, verified present 2026-07-19)"
 }
