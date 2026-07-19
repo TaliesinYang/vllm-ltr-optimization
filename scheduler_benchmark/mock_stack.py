@@ -33,7 +33,7 @@ class MockEngineHandler(BaseHTTPRequestHandler):
     server: MockEngineServer
 
     def do_POST(self) -> None:
-        if self.path != "/v1/completions":
+        if self.path != "/v1/chat/completions":
             self.send_error(404)
             return
         try:
@@ -44,7 +44,7 @@ class MockEngineHandler(BaseHTTPRequestHandler):
         self.server.last_payload = payload
         self.server.request_count += 1
         events = (
-            'data: {"choices":[{"text":"ok"}]}\n\n'
+            'data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'
             'data: {"choices":[],"usage":{"completion_tokens":3}}\n\n'
             "data: [DONE]\n\n"
         ).encode("utf-8")
@@ -77,7 +77,7 @@ class MockGatewayHandler(BaseHTTPRequestHandler):
     server: MockGatewayServer
 
     def do_POST(self) -> None:
-        if self.path != "/v1/completions":
+        if self.path != "/v1/chat/completions":
             self.send_error(404)
             return
         try:
@@ -99,6 +99,7 @@ class MockGatewayHandler(BaseHTTPRequestHandler):
                     self.headers.get("X-Previous-Tool-Gap-Ms", "0")
                 ),
             )
+            engine_payload = _strip_decision_only_xargs(payload)
         except (KeyError, TypeError, ValueError):
             self.send_error(422)
             return
@@ -110,7 +111,7 @@ class MockGatewayHandler(BaseHTTPRequestHandler):
             timeout_s=self.server.decision_timeout_s,
         )
         forwarded, audit = apply_decision_to_payload(
-            payload,
+            engine_payload,
             rpc_result,
             expected_decision_id=decision_id,
             workflow_id=workflow_id,
@@ -152,7 +153,7 @@ class MockGatewayStack:
         self._gateway_server = MockGatewayServer(
             (host, gateway_port),
             decision_endpoint=_endpoint(self._decision_server, "/v1/decision"),
-            engine_endpoint=_endpoint(self._engine_server, "/v1/completions"),
+            engine_endpoint=_endpoint(self._engine_server, "/v1/chat/completions"),
             decision_timeout_s=decision_timeout_s,
         )
         self._threads: list[threading.Thread] = []
@@ -183,11 +184,11 @@ class MockGatewayStack:
 
     @property
     def gateway_endpoint(self) -> str:
-        return _endpoint(self._gateway_server, "/v1/completions")
+        return _endpoint(self._gateway_server, "/v1/chat/completions")
 
     @property
     def engine_endpoint(self) -> str:
-        return _endpoint(self._engine_server, "/v1/completions")
+        return _endpoint(self._engine_server, "/v1/chat/completions")
 
     @property
     def decision_endpoint(self) -> str:
@@ -253,7 +254,27 @@ def _build_decision_request(
         request["tools"] = payload["tools"]
     if "tool_choice" in payload:
         request["tool_choice"] = payload["tool_choice"]
+    xargs = payload.get("vllm_xargs", {})
+    if not isinstance(xargs, Mapping):
+        raise ValueError("vllm_xargs must be an object")
+    if "ltr_tool_schema" in xargs:
+        tool_schema_text = xargs["ltr_tool_schema"]
+        if not isinstance(tool_schema_text, str):
+            raise ValueError("ltr_tool_schema must be a string")
+        request["tool_schema_text"] = tool_schema_text
     return request
+
+
+def _strip_decision_only_xargs(
+    payload: Mapping[str, object],
+) -> dict[str, object]:
+    stripped = dict(payload)
+    xargs = payload.get("vllm_xargs")
+    if isinstance(xargs, Mapping):
+        engine_xargs = dict(xargs)
+        engine_xargs.pop("ltr_tool_schema", None)
+        stripped["vllm_xargs"] = engine_xargs
+    return stripped
 
 
 def _forward_to_engine(

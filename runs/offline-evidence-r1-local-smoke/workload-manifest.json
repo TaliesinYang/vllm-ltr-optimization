@@ -18,10 +18,10 @@
   "lengths_sha256": "4b8ace7b1bf55d39ebf88b8fb410c6ff920eb4d2dda14ec51c87ea2519da80f8",
   "max_tokens": 4096,
   "output_path": "runs/offline-evidence-r1-local-smoke/ood-workload.jsonl",
-  "output_sha256": "f7a543ae5fa9913c62d6b2bc19edd590fecf6eaff486b42f6700df598a23ea1f",
+  "output_sha256": "43efd1f2247f877b09a213470b963a2b723e11da161ec729bc1728b1f9834c65",
   "profile": "ood",
   "request_count": 2,
   "runner_compatibility": "unverified_scheduler_benchmark_frozen",
   "sampling_seed": 42,
-  "schema_version": "offline-workload-v1"
+  "schema_version": "offline-workload-v2"
 }

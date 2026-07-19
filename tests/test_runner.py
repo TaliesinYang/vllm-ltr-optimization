@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import scheduler_benchmark.runner as runner_module
 from scheduler_benchmark.runner import (
     ResponseSample,
     WorkloadRequest,
@@ -18,7 +19,6 @@ from scheduler_benchmark.runner import (
     gateway_request_headers,
     load_completed_subruns,
     load_workload,
-    make_completion_payload,
     measurement_window,
     parse_args,
     policy_for_scheduler_cls,
@@ -225,23 +225,194 @@ def test_workload_loader_requires_isolated_baseline_service(tmp_path) -> None:
         load_workload(workload_path)
 
 
-def test_completion_payload_carries_scheduler_visible_metadata() -> None:
-    request = WorkloadRequest(
-        request_id="req-1",
-        prompt="hello",
-        baseline_service_ms=100.0,
-        max_tokens=32,
-        kind="tool",
-        category="multi_turn",
+def test_workload_loader_requires_v2_prompt_tool_schema_and_history(tmp_path) -> None:
+    valid_row = {
+        "request_id": "req-1",
+        "prompt": "final",
+        "tool_schema": "[]",
+        "history": [["human", "prior"]],
+        "baseline_service_ms": 100.0,
+        "max_tokens": 4096,
+        "kind": "tool",
+        "category": "id:toolace",
+    }
+    workload_path = tmp_path / "workload.jsonl"
+    workload_path.write_text(json.dumps(valid_row) + "\n")
+
+    assert load_workload(workload_path) == [
+        WorkloadRequest(
+            request_id="req-1",
+            prompt="final",
+            tool_schema="[]",
+            history=[["human", "prior"]],
+            baseline_service_ms=100.0,
+            max_tokens=4096,
+            kind="tool",
+            category="id:toolace",
+        )
+    ]
+
+    for required_field in ("prompt", "tool_schema", "history"):
+        invalid_path = tmp_path / f"missing-{required_field}.jsonl"
+        invalid_path.write_text(
+            json.dumps(
+                {key: value for key, value in valid_row.items() if key != required_field}
+            )
+            + "\n"
+        )
+        with pytest.raises(ValueError, match=required_field):
+            load_workload(invalid_path)
+
+
+def test_workload_loader_rejects_malformed_history_pairs(tmp_path) -> None:
+    workload_path = tmp_path / "workload.jsonl"
+    workload_path.write_text(
+        json.dumps(
+            {
+                "request_id": "req-1",
+                "prompt": "final",
+                "tool_schema": "[]",
+                "history": [["human"]],
+                "baseline_service_ms": 100.0,
+            }
+        )
+        + "\n"
     )
 
-    payload = make_completion_payload(request, model="model-path")
+    with pytest.raises(ValueError, match="history"):
+        load_workload(workload_path)
 
+
+def test_workload_loader_rejects_non_tier2_token_limit(tmp_path) -> None:
+    workload_path = tmp_path / "workload.jsonl"
+    workload_path.write_text(
+        json.dumps(
+            {
+                "request_id": "req-1",
+                "prompt": "final",
+                "tool_schema": "[]",
+                "history": [],
+                "baseline_service_ms": 100.0,
+                "max_tokens": 2048,
+            }
+        )
+        + "\n"
+    )
+
+    with pytest.raises(ValueError, match="max_tokens.*4096"):
+        load_workload(workload_path)
+
+
+def test_make_chat_payload_matches_tier2_shape() -> None:
+    request = WorkloadRequest(
+        request_id="req-1",
+        prompt="final",
+        tool_schema="[]",
+        history=[["human", "prior"]],
+        baseline_service_ms=100.0,
+        max_tokens=4096,
+        kind="tool",
+        category="id:toolace",
+    )
+
+    payload = runner_module.make_chat_payload(request, model="model-path")
+
+    assert payload["model"] == "model-path"
+    assert payload["messages"][0] == {"role": "user", "content": "prior"}
+    assert payload["messages"][-1] == {"role": "user", "content": "final"}
+    assert payload["temperature"] == 0
+    assert payload["max_tokens"] == 4096
+    assert payload["chat_template_kwargs"] == {"enable_thinking": False}
     assert payload["stream"] is True
+    assert payload["stream_options"] == {"include_usage": True}
     assert payload["vllm_xargs"] == {
         "ltr_kind": "tool",
-        "ltr_category": "multi_turn",
+        "ltr_category": "id:toolace",
+        "ltr_tool_schema": "[]",
     }
+
+
+class _FakeStreamContent:
+    def __init__(self, lines: list[bytes]) -> None:
+        self._lines = iter(lines)
+        self._done = False
+
+    def at_eof(self) -> bool:
+        return self._done
+
+    async def readline(self) -> bytes:
+        try:
+            return next(self._lines)
+        except StopIteration:
+            self._done = True
+            return b""
+
+
+class _FakeStreamResponse:
+    status = 200
+
+    def __init__(self, lines: list[bytes]) -> None:
+        self.content = _FakeStreamContent(lines)
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+        del exc_type, exc_value, traceback
+
+
+class _FakeStreamSession:
+    def __init__(self, lines: list[bytes]) -> None:
+        self._lines = lines
+        self.posted_url: str | None = None
+        self.posted_json: dict[str, object] | None = None
+
+    def post(self, url: str, *, json: dict[str, object], headers: dict[str, str]):
+        del headers
+        self.posted_url = url
+        self.posted_json = json
+        return _FakeStreamResponse(self._lines)
+
+
+@pytest.mark.parametrize(
+    "delta",
+    [
+        {"content": "ok"},
+        {"content": "", "tool_calls": [{"index": 0, "function": {"name": "f"}}]},
+    ],
+)
+def test_chat_sse_records_first_token_for_content_or_tool_calls(delta) -> None:
+    lines = [
+        f'data: {json.dumps({"choices": [{"delta": delta}]})}\n\n'.encode(),
+        b'data: {"choices":[],"usage":{"completion_tokens":3}}\n\n',
+        b"data: [DONE]\n\n",
+    ]
+    session = _FakeStreamSession(lines)
+    request = WorkloadRequest(
+        request_id="req-1",
+        prompt="final",
+        tool_schema="[]",
+        history=[],
+        baseline_service_ms=10.0,
+        max_tokens=4096,
+        kind="tool",
+        category="id:toolace",
+    )
+
+    sample = asyncio.run(
+        runner_module.stream_completion(
+            session,
+            "http://localhost/v1/chat/completions",
+            "model-path",
+            request,
+            api_key=None,
+        )
+    )
+
+    assert session.posted_url == "http://localhost/v1/chat/completions"
+    assert session.posted_json is not None
+    assert sample.output_tokens == 3
+    assert sample.first_token_at_unix_s is not None
 
 
 def test_runner_allocates_gateway_workflow_headers() -> None:
@@ -264,16 +435,16 @@ def test_runner_allocates_gateway_workflow_headers() -> None:
 
 
 def test_runner_manifest_declares_gateway_main_path() -> None:
-    assert gateway_manifest("http://gateway/v1/completions") == {
+    assert gateway_manifest("http://gateway/v1/chat/completions") == {
         "request_path": "client->gateway->decision->vllm",
-        "gateway_endpoint": "http://gateway/v1/completions",
+        "gateway_endpoint": "http://gateway/v1/chat/completions",
     }
 
 
 def runner_argv(output: Path) -> list[str]:
     return [
         "--endpoint",
-        "http://gateway/v1/completions",
+        "http://gateway/v1/chat/completions",
         "--model",
         "model-path",
         "--workload",
@@ -426,6 +597,8 @@ def test_live_orchestrator_writes_each_subrun_and_resume_skips_completed(
                 {
                     "request_id": f"req-{index}",
                     "prompt": "hello",
+                    "tool_schema": "[]",
+                    "history": [],
                     "baseline_service_ms": 10.0,
                     "category": "id:toolace",
                 }

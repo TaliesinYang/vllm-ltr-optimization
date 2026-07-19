@@ -92,13 +92,14 @@ def build_workload(
         output_length = int(lengths[item.sample_id])
         if output_length <= 0:
             raise ValueError(f"non-positive output length for {item.sample_id}")
-        rendered = f"[USER]\n{item.prompt}\n[TOOLS]\n{item.tool_schema}"
         domain = "id" if item.source == "toolace" else "ood"
         rows.append(
             {
                 "request_id": item.sample_id,
                 "sample_id": item.sample_id,
-                "prompt": rendered,
+                "prompt": item.prompt,
+                "tool_schema": item.tool_schema,
+                "history": [list(history_item) for history_item in item.history],
                 "baseline_service_ms": round(output_length * per_token_ms, 6),
                 "max_tokens": 4096,
                 "kind": "tool",
@@ -112,7 +113,7 @@ def build_workload(
             }
         )
     manifest = {
-        "schema_version": "offline-workload-v1",
+        "schema_version": "offline-workload-v2",
         "profile": profile,
         "sampling_seed": seed,
         "request_count": len(rows),

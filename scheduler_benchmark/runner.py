@@ -14,11 +14,15 @@ import statistics
 import time
 import uuid
 from dataclasses import dataclass
+from dataclasses import field
 from dataclasses import asdict
 from dataclasses import replace
 from importlib.metadata import PackageNotFoundError, version as distribution_version
 from pathlib import Path
 from typing import Awaitable, Callable
+
+from ltr_training.tier2 import build_request
+from scheduler_benchmark.contracts import MAX_ESTIMATED_TOKENS
 
 REPEAT_COUNT = 3
 SCHEMA_VERSION = 2
@@ -39,9 +43,11 @@ class WorkloadRequest:
     request_id: str
     prompt: str
     baseline_service_ms: float
-    max_tokens: int = 256
+    max_tokens: int = MAX_ESTIMATED_TOKENS
     kind: str = "chat"
     category: str = ""
+    tool_schema: str = ""
+    history: list[list[str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -393,8 +399,32 @@ def load_workload(path: Path) -> list[WorkloadRequest]:
         if not line.strip():
             continue
         row = json.loads(line)
+        if not isinstance(row, dict):
+            raise ValueError(f"line {line_number}: workload row must be an object")
         if "baseline_service_ms" not in row:
             raise ValueError(f"line {line_number}: baseline_service_ms is required")
+        for field_name in ("prompt", "tool_schema", "history"):
+            if field_name not in row:
+                raise ValueError(f"line {line_number}: {field_name} is required")
+        if not isinstance(row["prompt"], str):
+            raise ValueError(f"line {line_number}: prompt must be a string")
+        if not isinstance(row["tool_schema"], str):
+            raise ValueError(f"line {line_number}: tool_schema must be a string")
+        raw_history = row["history"]
+        if not isinstance(raw_history, list):
+            raise ValueError(f"line {line_number}: history must be a list")
+        history: list[list[str]] = []
+        for history_index, item in enumerate(raw_history):
+            if (
+                not isinstance(item, list)
+                or len(item) != 2
+                or not all(isinstance(value, str) for value in item)
+            ):
+                raise ValueError(
+                    f"line {line_number}: history item {history_index} "
+                    "must be a two-string role/text pair"
+                )
+            history.append([item[0], item[1]])
         baseline_service_ms = float(row["baseline_service_ms"])
         if baseline_service_ms <= 0.0:
             raise ValueError(
@@ -404,12 +434,20 @@ def load_workload(path: Path) -> list[WorkloadRequest]:
         if request_id in seen_ids:
             raise ValueError(f"line {line_number}: duplicate request_id {request_id}")
         seen_ids.add(request_id)
+        max_tokens = int(row.get("max_tokens", MAX_ESTIMATED_TOKENS))
+        if max_tokens != MAX_ESTIMATED_TOKENS:
+            raise ValueError(
+                f"line {line_number}: max_tokens must be "
+                f"{MAX_ESTIMATED_TOKENS}"
+            )
         requests.append(
             WorkloadRequest(
                 request_id=request_id,
-                prompt=str(row["prompt"]),
+                prompt=row["prompt"],
+                tool_schema=row["tool_schema"],
+                history=history,
                 baseline_service_ms=baseline_service_ms,
-                max_tokens=int(row.get("max_tokens", 256)),
+                max_tokens=max_tokens,
                 kind=str(row.get("kind", "chat")),
                 category=str(row.get("category", "")),
             )
@@ -419,19 +457,23 @@ def load_workload(path: Path) -> list[WorkloadRequest]:
     return requests
 
 
-def make_completion_payload(
-    request: WorkloadRequest, *, model: str
-) -> dict[str, object]:
+def make_chat_payload(request: WorkloadRequest, *, model: str) -> dict[str, object]:
+    payload = build_request(
+        {
+            "prompt": request.prompt,
+            "tool_schema": request.tool_schema,
+            "history": request.history,
+        },
+        model=model,
+    )
     return {
-        "model": model,
-        "prompt": request.prompt,
-        "max_tokens": request.max_tokens,
-        "temperature": 0.0,
+        **payload,
         "stream": True,
         "stream_options": {"include_usage": True},
         "vllm_xargs": {
             "ltr_kind": request.kind,
             "ltr_category": request.category,
+            "ltr_tool_schema": request.tool_schema,
         },
     }
 
@@ -473,7 +515,7 @@ async def stream_completion(
     output_tokens: int | None = None
     async with session.post(
         endpoint,
-        json=make_completion_payload(request, model=model),
+        json=make_chat_payload(request, model=model),
         headers=headers,
     ) as response:
         if response.status >= 400:
@@ -487,15 +529,17 @@ async def stream_completion(
             if not line.startswith("data:"):
                 continue
             data = line[5:].strip()
-            if not data or data == "[DONE]":
+            if not data:
                 continue
+            if data == "[DONE]":
+                break
             event = json.loads(data)
             usage = event.get("usage") or {}
             if "completion_tokens" in usage:
                 output_tokens = int(usage["completion_tokens"])
             choices = event.get("choices") or []
-            text = choices[0].get("text", "") if choices else ""
-            if text:
+            delta = (choices[0].get("delta") or {}) if choices else {}
+            if delta.get("content") or delta.get("tool_calls"):
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
                     first_token_at_unix_s = time.time()

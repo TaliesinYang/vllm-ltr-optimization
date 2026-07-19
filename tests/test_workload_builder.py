@@ -9,7 +9,7 @@ def _item(sample_id: str, source: str) -> LabelInput:
         request_id=sample_id,
         prompt=f"prompt {sample_id}",
         tool_schema="[]",
-        history=(),
+        history=(("human", "prior"),),
         session_id=sample_id,
         task_id=sample_id,
         source=source,
@@ -33,6 +33,10 @@ def test_workload_uses_output_length_proxy_and_explicit_4096_limit() -> None:
     assert {row["baseline_service_ms"] for row in rows} == {50.0, 25.0}
     assert all(row["max_tokens"] == 4096 for row in rows)
     assert {row["category"] for row in rows} == {"id:toolace", "ood:bfcl"}
+    assert all(row["prompt"] == f"prompt {row['request_id']}" for row in rows)
+    assert all(row["tool_schema"] == "[]" for row in rows)
+    assert all(row["history"] == [["human", "prior"]] for row in rows)
+    assert manifest["schema_version"] == "offline-workload-v2"
     assert manifest["baseline_service_ms"]["kind"] == "output_length_per_token_proxy"
     assert manifest["baseline_service_ms"]["per_token_ms"] == 2.5
     assert manifest["runner_compatibility"] == "unverified_scheduler_benchmark_frozen"
@@ -62,6 +66,8 @@ def test_workload_categories_are_selectable_by_runner_in_both_directions() -> No
         WorkloadRequest(
             request_id=str(row["request_id"]),
             prompt=str(row["prompt"]),
+            tool_schema=str(row["tool_schema"]),
+            history=[list(item) for item in row["history"]],
             baseline_service_ms=float(row["baseline_service_ms"]),
             category=str(row["category"]),
         )

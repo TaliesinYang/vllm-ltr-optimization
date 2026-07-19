@@ -1,5 +1,8 @@
 import asyncio
 
+import pytest
+
+import scheduler_benchmark.mock_stack as mock_stack_module
 from scheduler_benchmark.decision_service import DecisionApplication
 from scheduler_benchmark.contracts import RELIABLE
 from scheduler_benchmark.mock_stack import MockGatewayStack
@@ -10,6 +13,51 @@ from scheduler_benchmark.rank_quantiles import (
     RankQuantileMapper,
 )
 from scheduler_benchmark.runner import WorkloadRequest, stream_completion
+
+
+def test_decision_request_extracts_exact_tool_schema_from_vllm_xargs() -> None:
+    tool_schema = '[{"type":"function","function":{"name":"lookup"}}]'
+    payload = {
+        "model": "model-path",
+        "messages": [{"role": "user", "content": "hello"}],
+        "vllm_xargs": {
+            "ltr_kind": "tool",
+            "ltr_category": "id:toolace",
+            "ltr_tool_schema": tool_schema,
+        },
+    }
+
+    request = mock_stack_module._build_decision_request(
+        payload,
+        request_id="request-1",
+        decision_id="decision-request-1",
+        workflow_id="request-1",
+        step_id="0",
+        conversation_id="request-1",
+        previous_tool_gap_ms=0,
+    )
+
+    assert request["tool_schema_text"] == tool_schema
+
+
+def test_strip_decision_only_xargs_preserves_engine_metadata_and_input() -> None:
+    tool_schema = '[{"type":"function","function":{"name":"lookup"}}]'
+    payload = {
+        "model": "model-path",
+        "vllm_xargs": {
+            "ltr_kind": "tool",
+            "ltr_category": "id:toolace",
+            "ltr_tool_schema": tool_schema,
+        },
+    }
+
+    stripped = mock_stack_module._strip_decision_only_xargs(payload)
+
+    assert stripped["vllm_xargs"] == {
+        "ltr_kind": "tool",
+        "ltr_category": "id:toolace",
+    }
+    assert payload["vllm_xargs"]["ltr_tool_schema"] == tool_schema
 
 
 def test_cpu_stack_runs_client_gateway_decision_engine_chain() -> None:
@@ -35,14 +83,21 @@ def test_cpu_stack_runs_client_gateway_decision_engine_chain() -> None:
     )
     request = WorkloadRequest(
         request_id="request-1",
-        prompt="hello",
+        prompt="final",
+        tool_schema="[]",
+        history=[["human", "prior"]],
         baseline_service_ms=10.0,
-        max_tokens=2048,
+        max_tokens=4096,
         kind="tool",
         category="single_turn",
     )
 
-    with MockGatewayStack(application) as stack:
+    try:
+        stack = MockGatewayStack(application)
+    except PermissionError as exc:
+        pytest.skip(f"sandbox does not permit localhost socket bind: {exc}")
+
+    with stack:
         async def run_request():
             import aiohttp
 
@@ -60,7 +115,13 @@ def test_cpu_stack_runs_client_gateway_decision_engine_chain() -> None:
         audit = stack.last_gateway_audit
 
     assert sample.output_tokens == 3
+    assert sample.first_token_at_unix_s is not None
     assert sample.error is None
+    assert stack.gateway_endpoint.endswith("/v1/chat/completions")
+    assert stack.engine_endpoint.endswith("/v1/chat/completions")
+    assert forwarded["messages"][0] == {"role": "user", "content": "prior"}
+    assert forwarded["messages"][-1] == {"role": "user", "content": "final"}
+    assert forwarded["stream_options"] == {"include_usage": True}
     assert forwarded["vllm_xargs"] == {
         "ltr_kind": "tool",
         "ltr_category": "single_turn",
