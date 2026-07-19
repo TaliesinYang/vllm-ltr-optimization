@@ -761,7 +761,7 @@ def test_make_chat_payload_matches_tier2_shape() -> None:
 
 - [ ] **Step 1: `inventory_and_repack.sh`（Mac 跑一次）**：
   1. `tar tf tier2-checkpoints.tar` 记录成员路径（三个 seed 在 `tier2-matrix/.../bert-prompt_schema-tier2-seed{17,42,73}/final/`，已核实存在）；抽取重命名为 `checkpoints_best_predictor{,_seed42,_seed73}`；
-  2. **定位 `tier2-toolace-sample-6000.jsonl`**：依次找 T7 `extracted/`、`tier2-matrix/`、`tier2-results.tar.gz` 成员；找到后 `shasum -a 256` 必须等于训练 manifest 记录的 `ee5a5889...`；都找不到 → 从 pinned ToolACE source 用原采样脚本确定性重建并核对同一 SHA，仍不一致 → 脚本失败，不许静默继续；
+  2. **重建 `tier2-toolace-sample-6000.jsonl`（已实测：文件本体不在 T7 任何归档里，只有 manifest）**。重建配方（`tier2-sample-manifest.json` 全记录，已核实）：源 = tier1 文件 `toolace-6bda777-qwen35.jsonl`（SHA `6dc808aa8f76a5391d33c22ecb0ae2a2967d01c923c71ec85d84ec537e5f227b`，本地无 → 租卡日从 `oss://lmcache-labels.tar.gz` 恢复后定位；不在则从 pinned ToolACE 6bda777 重建 tier1）+ `sampling_seed=42` + 原采样脚本 → 输出 SHA 必须 = `ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709`（manifest 里还有全量 `sample_ids` 可逐 ID 核对）；不一致 → 脚本失败，不许静默继续。此步移到**租卡日 restore 之后、quantile 构建之前**执行；
   3. 校验 ledger：6000 个唯一 `sample_id`、ok=5997/error=3 如实写进 repack 清单（**不要求原始行唯一**——replay 是追加式，重放后同一 sample_id 会有多行，`tier2.py:183`）；
   4. 把 sample-6000、ledger、Task 5 workload v2 + manifests 打成 `benchmark-bundle.tar.gz`；
   5. `shasum -a 256` + `stat -f %z` 写 `manifest/oss-objects.json`（对象：`benchmark-bundle.tar.gz` + 既有 `tier2-checkpoints.tar`、`tier2-results.tar.gz`，含 `unpacks_to` 真实路径表）；**0/空串进 commit = 未完成**；
