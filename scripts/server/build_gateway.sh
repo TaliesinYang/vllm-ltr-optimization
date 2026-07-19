@@ -4,7 +4,7 @@ set -euo pipefail
 LTR_ROOT="${LTR_ROOT:-/hy-tmp/ltr}"
 REPO_ROOT="${REPO_ROOT:-$LTR_ROOT/repo}"
 GATEWAY_REPO="${GATEWAY_REPO:-$LTR_ROOT/VeloxMesh}"
-GATEWAY_FORK_URL="${GATEWAY_FORK_URL:-git@github.com:TaliesinYang/VeloxMesh.git}"
+GATEWAY_FORK_URL="${GATEWAY_FORK_URL:-https://github.com/TaliesinYang/VeloxMesh.git}"
 PIN_FILE="$REPO_ROOT/scripts/server/manifest/gateway-pin.txt"
 GO_VERSION="${GO_VERSION:-1.26.1}"
 
