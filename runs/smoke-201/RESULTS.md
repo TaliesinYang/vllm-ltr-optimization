@@ -1,5 +1,7 @@
 # 201 (x86 Linux, WSL2) pre-rental smoke results — 2026-07-19 (rev 3)
 
+> **Independent review verdict (fresh Codex, 3 rounds): SMOKE-SUFFICIENT-for-pre-rental.**
+
 **rev 3 update — current-HEAD recapture (`artifacts2/`, repo_commit + commands +
 exit codes + per-file SHA-256 in `artifacts2/manifest.txt`):** after syncing the
 real ToolACE fixture (sha ba12c083 verified on 201), the seed17 checkpoint, and
