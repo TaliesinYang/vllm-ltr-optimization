@@ -25,13 +25,28 @@
   \end{figure}%
 }
 
+\newcommand{\ReportWideFigure}[4]{%
+  \begin{figure*}[!t]
+    \centering
+    \IfFileExists{figures/#1.pdf}{%
+      \includegraphics[width=\textwidth]{figures/#1.pdf}%
+    }{%
+      \fbox{\parbox[c][1.5in][c]{0.94\textwidth}{%
+        \centering\textbf{#1.pdf placeholder}\\[0.5ex]
+        \footnotesize Matplotlib source: #3}}
+    }
+    \caption{#2}
+    \label{#4}
+  \end{figure*}%
+}
+
 \title{Group XX: [Human-Authored Final Report Title]}
 
 \author{%
-  \IEEEauthorblockN{[Human-Authored Author List]}
+  \IEEEauthorblockN{Author List (human-authored before submission)}
   \IEEEauthorblockA{CSCI 6806 Computer Science Graduate Capstone Project\\
   Fairleigh Dickinson University\\
-  [Human-Authored Contact Information]}
+  Contact information (human-authored before submission)}
 }
 
 \begin{document}
