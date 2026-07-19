@@ -863,3 +863,7 @@ def main(argv: list[str] | None = None) -> int:
     result = asyncio.run(run_benchmark(args))
     _atomic_write_text(args.output, json.dumps(result, indent=2) + "\n")
     return 0 if result["valid"] else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

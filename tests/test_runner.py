@@ -682,3 +682,17 @@ def test_runner_script_is_directly_executable() -> None:
 
     assert result.returncode == 0, result.stderr
     assert "VeloxMesh" in result.stdout
+
+
+def test_runner_module_has_main_guard():
+    """`python -m scheduler_benchmark.runner` must execute main(), not no-op.
+    Without the __main__ guard the module imports and exits 0 without writing
+    output — silently breaking calibration and the whole matrix."""
+    import pathlib
+
+    source = pathlib.Path(
+        __file__
+    ).resolve().parents[1] / "scheduler_benchmark" / "runner.py"
+    text = source.read_text(encoding="utf-8")
+    assert 'if __name__ == "__main__":' in text
+    assert "raise SystemExit(main())" in text
