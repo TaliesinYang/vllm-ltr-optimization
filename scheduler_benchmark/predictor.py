@@ -57,9 +57,17 @@ class BertPredictor:
     PLACEHOLDER_CONFIDENCE = 0.9
 
     def __init__(self, checkpoint: Path) -> None:
+        import os
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+        # CPU thread cap: with the default intra-op pool = all cores, N
+        # concurrent HTTP handlers each launch a full-core forward and
+        # oversubscribe the machine (e.g. 8 handlers x 96 threads on 192
+        # vCPUs), exploding tail latency. Bound intra-op threads so
+        # concurrent decision calls stay fast and predictable.
+        _threads = int(os.environ.get("LTR_DECISION_TORCH_THREADS", "2"))
+        torch.set_num_threads(max(1, _threads))
         self._torch = torch
         self._device = torch.device("cpu")
         self._tokenizer = AutoTokenizer.from_pretrained(
