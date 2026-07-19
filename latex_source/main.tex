@@ -1,0 +1,57 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage[section]{placeins}
+
+\graphicspath{{figures/}}
+
+% Visible only while a final PDF figure has not yet been generated.
+\newcommand{\ReportFigure}[4]{%
+  \begin{figure}[!t]
+    \centering
+    \IfFileExists{figures/#1.pdf}{%
+      \includegraphics[width=\columnwidth]{figures/#1.pdf}%
+    }{%
+      \fbox{\parbox[c][1.25in][c]{0.92\columnwidth}{%
+        \centering\textbf{#1.pdf placeholder}\\[0.5ex]
+        \footnotesize Matplotlib source: #3}}
+    }
+    \caption{#2}
+    \label{#4}
+  \end{figure}%
+}
+
+\title{Group XX: [Human-Authored Final Report Title]}
+
+\author{%
+  \IEEEauthorblockN{[Human-Authored Author List]}
+  \IEEEauthorblockA{CSCI 6806 Computer Science Graduate Capstone Project\\
+  Fairleigh Dickinson University\\
+  [Human-Authored Contact Information]}
+}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/abstract}
+\input{sections/introduction}
+\input{sections/background}
+\input{sections/related_work}
+\input{sections/methodology}
+\input{sections/evaluation}
+\input{sections/discussion}
+\input{sections/conclusion}
+\input{sections/appendix_a}
+
+\clearpage
+% Remove \nocite{*} after human-authored citation commands cover the final bibliography.
+\nocite{*}
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
