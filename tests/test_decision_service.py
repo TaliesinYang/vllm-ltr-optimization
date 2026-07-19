@@ -17,7 +17,7 @@ from scheduler_benchmark.rank_quantiles import (
 )
 
 
-QUANTILE_MANIFEST_SHA256 = "a" * 64
+QUANTILE_MANIFEST_SHA256 = "test-sha"
 
 
 def minimal_quantile_manifest() -> dict[str, object]:
@@ -226,6 +226,31 @@ def test_generation_controls_accept_max_tokens_4096() -> None:
     response = make_app().decide(valid_request())
 
     assert response["reason_code"] == "prediction_reliable"
+
+
+def test_tool_schema_text_rejects_empty_string() -> None:
+    request = valid_request()
+    request["tool_schema_text"] = ""
+
+    with pytest.raises(DecisionError, match="invalid_request"):
+        make_app().decide(request)
+
+
+def test_tool_schema_text_accepts_262144_utf8_bytes() -> None:
+    request = valid_request()
+    request["tool_schema_text"] = "é" * 131_072
+
+    response = make_app().decide(request)
+
+    assert response["reason_code"] == "prediction_reliable"
+
+
+def test_tool_schema_text_rejects_262145_utf8_bytes() -> None:
+    request = valid_request()
+    request["tool_schema_text"] = "é" * 131_072 + "a"
+
+    with pytest.raises(DecisionError, match="invalid_request"):
+        make_app().decide(request)
 
 
 @pytest.mark.parametrize(

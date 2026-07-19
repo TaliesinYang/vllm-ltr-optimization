@@ -92,10 +92,11 @@ class DecisionApplication:
             raise ValueError("max_concurrency must be positive")
         if quantile_mapper is None and quantile_manifest_sha256 is not None:
             raise ValueError("quantile manifest SHA requires a quantile mapper")
-        if quantile_mapper is not None and not _is_sha256(
-            quantile_manifest_sha256
+        if quantile_mapper is not None and (
+            not isinstance(quantile_manifest_sha256, str)
+            or not quantile_manifest_sha256
         ):
-            raise ValueError("quantile mapper requires a valid manifest SHA-256")
+            raise ValueError("quantile mapper requires non-empty manifest provenance")
         self._predictor = predictor
         self._predictor_revision = predictor_revision
         self._feature_variant = feature_variant
@@ -309,14 +310,6 @@ def _reason_code(
 
 def _score_to_estimated_tokens(score: float) -> int:
     return max(1, min(MAX_ESTIMATED_TOKENS, round(score * MAX_ESTIMATED_TOKENS)))
-
-
-def _is_sha256(value: object) -> bool:
-    return (
-        isinstance(value, str)
-        and len(value) == 64
-        and all(character in "0123456789abcdefABCDEF" for character in value)
-    )
 
 
 class DecisionHTTPServer(ThreadingHTTPServer):

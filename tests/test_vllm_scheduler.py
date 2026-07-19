@@ -139,6 +139,36 @@ def test_gateway_metadata_predictor_rejects_boolean_reliability_flag() -> None:
     assert result == Prediction(1.0, 0.0, True, 0.0)
 
 
+def test_gateway_metadata_predictor_rejects_boolean_estimate() -> None:
+    result = predictor_module.GatewayMetadataPredictor().predict(
+        PredictorInput(
+            request_id="gateway-request",
+            prompt_token_ids=(),
+            metadata={
+                "prediction_reliable": 1,
+                "workflow_estimated_tokens": True,
+            },
+        )
+    )
+
+    assert result == Prediction(1.0, 0.0, True, 0.0)
+
+
+def test_gateway_metadata_predictor_caps_estimate_above_contract_maximum() -> None:
+    result = predictor_module.GatewayMetadataPredictor().predict(
+        PredictorInput(
+            request_id="gateway-request",
+            prompt_token_ids=(),
+            metadata={
+                "prediction_reliable": 1,
+                "workflow_estimated_tokens": 4097,
+            },
+        )
+    )
+
+    assert result == Prediction(1.0, 0.9, False, 0.0)
+
+
 def test_build_predictor_from_env_supports_gateway(monkeypatch) -> None:
     monkeypatch.setenv("LTR_PREDICTOR", "gateway")
 

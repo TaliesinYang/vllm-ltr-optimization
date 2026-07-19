@@ -189,6 +189,47 @@ def test_mismatched_decision_id_falls_back_as_malformed_response() -> None:
     assert audit.error_code == "malformed_response"
 
 
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("mapping_version", None),
+        ("mapping_version", "wrong-mapping-version"),
+        ("approximation_notice", None),
+        ("approximation_notice", "wrong approximation notice"),
+        ("quantile_manifest_sha256", None),
+        ("quantile_manifest_sha256", "test-sha"),
+    ],
+    ids=(
+        "missing-mapping-version",
+        "wrong-mapping-version",
+        "missing-approximation-notice",
+        "wrong-approximation-notice",
+        "missing-manifest-sha",
+        "invalid-manifest-sha",
+    ),
+)
+def test_transport_rejects_invalid_quantile_provenance(
+    field: str, replacement: str | None
+) -> None:
+    bundle = reliable_bundle()
+    if replacement is None:
+        bundle.pop(field)
+    else:
+        bundle[field] = replacement
+
+    payload, audit = apply_decision_to_payload(
+        base_payload(),
+        DecisionRPCResult(bundle=bundle),
+        expected_decision_id="decision-1",
+        workflow_id="workflow-1",
+        step_id="step-1",
+    )
+
+    assert "workflow_estimated_tokens" not in payload["vllm_xargs"]
+    assert audit.fallback_source == "fallback_native"
+    assert audit.error_code == "malformed_response"
+
+
 def test_decision_rpc_calls_real_service_without_retry_layer() -> None:
     application = DecisionApplication(
         predictor=ConstantPredictor(score=0.25, confidence=0.95, ood=False),

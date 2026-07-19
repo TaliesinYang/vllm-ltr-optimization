@@ -1,3 +1,4 @@
+import hashlib
 import json
 import subprocess
 import sys
@@ -104,6 +105,17 @@ def test_cli_requires_quantile_manifest() -> None:
 
     assert result.returncode == 2
     assert "--quantile-manifest" in result.stderr
+
+
+def test_cli_hashes_original_quantile_manifest_bytes(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "quantiles.json"
+    raw = write_quantile_manifest(manifest_path)
+
+    _, manifest_sha256 = run_decision_service.load_quantile_manifest(
+        manifest_path
+    )
+
+    assert manifest_sha256 == hashlib.sha256(raw).hexdigest()
 
 
 def test_cli_rejects_malformed_quantile_manifest(tmp_path: Path) -> None:

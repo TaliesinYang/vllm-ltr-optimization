@@ -52,3 +52,15 @@ def test_toolace_tools_passes_through_openai_wrapped_tools() -> None:
     tools = _toolace_tools(wrapped)
 
     assert tools == json.loads(wrapped)
+
+
+def test_empty_wrapped_tools_do_not_become_a_system_message() -> None:
+    assert _toolace_tools("[]") == []
+
+    request = build_request(
+        {"prompt": "hello", "tool_schema": "[]", "history": []},
+        model="Qwen/Qwen3.5-9B",
+    )
+
+    assert request["messages"] == [{"role": "user", "content": "hello"}]
+    assert "tools" not in request
