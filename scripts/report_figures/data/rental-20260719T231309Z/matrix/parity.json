@@ -1,0 +1,42 @@
+{
+  "passed": false,
+  "tolerances": {
+    "throughput_rps": 0.03,
+    "mean_ttlt_ms": 0.05,
+    "p95_ttlt_ms": 0.05,
+    "p99_ttlt_ms": 0.05,
+    "mean_ttft_ms": 0.05
+  },
+  "scenarios": {
+    "saturation-90": {
+      "passed": false,
+      "checks": {
+        "throughput_rps": {
+          "relative_delta": 0.001783,
+          "tolerance": 0.03,
+          "passed": true
+        },
+        "mean_ttlt_ms": {
+          "relative_delta": 0.008374,
+          "tolerance": 0.05,
+          "passed": true
+        },
+        "p95_ttlt_ms": {
+          "relative_delta": 0.021537,
+          "tolerance": 0.05,
+          "passed": true
+        },
+        "p99_ttlt_ms": {
+          "relative_delta": 0.058663,
+          "tolerance": 0.05,
+          "passed": false
+        },
+        "mean_ttft_ms": {
+          "relative_delta": 0.001934,
+          "tolerance": 0.05,
+          "passed": true
+        }
+      }
+    }
+  }
+}
