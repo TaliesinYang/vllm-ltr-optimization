@@ -13,23 +13,24 @@
 % - Fig.4：Tier-2 held-out test tau-b 三 seed 均值；prompt-only/prompt+schema/full-context = 0.587/0.630/0.626；误差线 = 三 seed 极差。
 % - LightGBM：seed 42；test tau-b = 0.426799；不得混用 validation 0.446937。
 % - Full-context seed42 validation tau-b；500/1000/2000/4000 = 0.605171/0.610124/0.637282/0.632051；4000 未继续上升。Bib keys: bert, lightgbm, pars2025.
-\ReportFigure{fig4}{Predictor comparison and data-scale learning curve.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig5}}{fig:predictors}
+\ReportFigure{fig4}{Predictor comparison and data-scale learning curve. BERT error bars: seed min--max (2--3 seeds per group), not a bootstrap CI.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig5 --output latex\_source/figures/fig4.pdf}}{fig:predictors}
 
 \subsection{E3: Main Serving Result}
 % [作者手写区]
 % - Fig.5：MIXED；3 repeats pooled；450 requests/policy；0 errors。
-% - vs stock FCFS：learned-policy mean TTLT 改善 14.8--15.3\%；pooled p99 改善 8.5--18.2\%。
+% - vs stock FCFS：五个调度策略 mean TTLT 改善 14.8--15.3\%（learned 四策略 14.8--15.1\%；PromptLengthSJF 15.3\%，非 learned）；pooled p99 改善 8.5--18.2\%。
 % - Pooled p99：PureLTR 8.5\%；gated 14.1\%；tail 14.4\%；aging 18.2\%；Prompt SJF 19.8\%。
-% - 归因边界：constant gateway overhead；Prompt SJF parity；不能归因于 learned prediction alone。
-\ReportWideFigure{fig5}{Mixed-workload TTLT distributions and pooled statistics.}{\texttt{scripts/report\_figures/fig6\_mixed.py}}{fig:mixed-serving}
+% - 归因边界：constant gateway overhead；Prompt SJF parity；learned 四策略未超越 prompt-length SJF，不能把增益归因于 learned prediction alone。
+\ReportWideFigure{fig5}{Mixed-workload TTLT distributions and pooled statistics. Error bars: request-bootstrap 95\% CI (2000 resamples, seed 1234).}{\texttt{scripts/report\_figures/fig6\_mixed.py}}{fig:mixed-serving}
 
-\subsection{E4: Out-of-Distribution Robustness}
+\subsection{E4: Performance on One OOD Workload}
 % [作者手写区]
 % - Fig.6；仅限 On this OOD workload；不得广义化为普遍 OOD robustness。
 % - vs shim-FCFS：mean TTLT 改善 17.4--18.6\%。
 % - Pooled p99：PureLTR 改善 8.2\%；gated/tail 改善 17.7\%；不得用 per-run p99 均值。
+% - Analyzed n（去除 error 行）：shim 358 / PureLTR 359 / gated 358 / tail 358（每策略尝试 3x120=360，共剔 7 行缺 completion\_tokens）；非 "3x120 完成" observations。
 % - Gate 约等于 PureLTR：此 OOD set 未触发 predictor collapse；gate value 见 Fig.7。
-\ReportFigure{fig6}{Out-of-distribution TTLT on this workload.}{\texttt{scripts/report\_figures/fig4\_ood.py}}{fig:ood-robustness}
+\ReportFigure{fig6}{TTLT on one out-of-distribution workload (not a general OOD-robustness claim). Error bars: request-bootstrap 95\% CI (2000 resamples, seed 1234).}{\texttt{scripts/report\_figures/fig4\_ood.py}}{fig:ood-workload}
 
 \subsection{E5: Gate Value under Prediction Corruption}
 % [作者手写区]
@@ -37,7 +38,7 @@
 % - Panel (a)：live opt-125m ordering probe；n=6/class；tau 不是 latency；tool tau +1 -> 0.07；95\% CI [-0.78, +1.0]。
 % - Panel (b)：simulation；10 seeds x 4 QPS；median per-run p99 ratio，非 pooled。
 % - Gated 低于 PureLTR 于全部 corruption levels；仍 exceeds FCFS through 75\%（ratio 1.16--1.41）；不满足 <=1.1 safe bar。
-\ReportWideFigure{fig7}{Gate behavior under prediction corruption.}{\texttt{scripts/report\_figures/fig7\_gate.py}}{fig:gate-corruption}
+\ReportWideFigure{fig7}{Gate behavior under prediction corruption. Panel (a): Kendall $\tau$, n=6/class, 95\% bootstrap CI; panel (b): simulated median per-run p99 ratio over 10 seeds $\times$ 4 QPS, 95\% bootstrap CI over seeds.}{\texttt{scripts/report\_figures/fig7\_gate.py}}{fig:gate-corruption}
 
 \subsection{E6: Gateway Overhead}
 % [作者手写区]
@@ -45,4 +46,4 @@
 % - Panel (b)：TTLT matched-output n=118；32 dropped；delta mean +840 ms；95\% CI [676, 1058] ms。
 % - All-request marginal p99 delta +9482 ms = output-length confounded；不得写成 overhead。
 % - +737 ms 当前超过约 500 ms scheduling benefit；prototype end-to-end 仍慢于 direct vLLM FCFS。
-\ReportWideFigure{fig8}{Gateway overhead for paired requests.}{\texttt{scripts/report\_figures/fig8\_overhead.py}}{fig:gateway-overhead}
+\ReportWideFigure{fig8}{Gateway overhead for paired requests. Markers/$\Delta$: mean with request-bootstrap 95\% CI (2000 resamples, seed 1234).}{\texttt{scripts/report\_figures/fig8\_overhead.py}}{fig:gateway-overhead}

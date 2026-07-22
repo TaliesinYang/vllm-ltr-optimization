@@ -3,7 +3,9 @@ from typing import Callable
 
 import matplotlib as mpl
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from matplotlib.ticker import FixedFormatter, FixedLocator, NullFormatter
 
 
 IEEE_SINGLE_WIDTH = 3.5
@@ -119,6 +121,29 @@ def bootstrap_ci(
         raise ValueError("bootstrap statistic returned a non-finite value")
     lower, upper = np.percentile(estimates, [2.5, 97.5])
     return float(lower), float(upper)
+
+
+# Log axes render mathtext exponents (e.g. 10^-2) as ~7pt superscripts regardless
+# of rcParams, which violates the >=10pt figure-font rule. Replace them with plain
+# decimal tick labels whose full glyph span stays at 10pt.
+def set_log_axis_plain(
+    ax: Axes,
+    axis: str,
+    candidate_ticks,
+    fmt: Callable[[float], str] = lambda value: f"{value:g}",
+    fontsize: float = 10.0,
+) -> None:
+    is_y = axis == "y"
+    low, high = ax.get_ylim() if is_y else ax.get_xlim()
+    ticks = [value for value in candidate_ticks if low <= value <= high]
+    labels = [fmt(value) for value in ticks]
+    target = ax.yaxis if is_y else ax.xaxis
+    target.set_major_locator(FixedLocator(ticks))
+    target.set_major_formatter(FixedFormatter(labels))
+    target.set_minor_locator(FixedLocator([]))
+    target.set_minor_formatter(NullFormatter())
+    for label in (ax.get_yticklabels() if is_y else ax.get_xticklabels()):
+        label.set_fontsize(fontsize)
 
 
 def save_figure(fig: Figure, output_dir: Path, stem: str) -> list[Path]:

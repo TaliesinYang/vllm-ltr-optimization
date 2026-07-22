@@ -1,0 +1,96 @@
+{
+  "completed_runs": 10,
+  "expected_runs": 10,
+  "runs": [
+    {
+      "finished_at": "2026-07-17T10:26:11.873018+00:00",
+      "global_step": 779,
+      "run_name": "bert-prompt_only-tier1-seed17",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 1.9195610851880545e-255,
+      "validation_tau": 0.6203051002279316
+    },
+    {
+      "finished_at": "2026-07-17T10:32:55.720522+00:00",
+      "global_step": 779,
+      "run_name": "bert-prompt_only-tier1-seed42",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 1.5142490586607705e-256,
+      "validation_tau": 0.62165419685333
+    },
+    {
+      "finished_at": "2026-07-17T10:39:40.708397+00:00",
+      "global_step": 779,
+      "run_name": "bert-prompt_only-tier1-seed73",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": NaN,
+      "validation_tau": NaN
+    },
+    {
+      "finished_at": "2026-07-17T13:27:58.358414+00:00",
+      "global_step": 779,
+      "run_name": "bert-prompt_schema-tier1-seed17",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 4.739072075720123e-253,
+      "validation_tau": 0.6173687037206439
+    },
+    {
+      "finished_at": "2026-07-17T13:41:04.753784+00:00",
+      "global_step": 779,
+      "run_name": "bert-prompt_schema-tier1-seed42",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 1.6610696114138245e-243,
+      "validation_tau": 0.6055126779998471
+    },
+    {
+      "finished_at": "2026-07-17T13:54:07.156888+00:00",
+      "global_step": 779,
+      "run_name": "bert-prompt_schema-tier1-seed73",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 1.544789926338353e-266,
+      "validation_tau": 0.6337440948623178
+    },
+    {
+      "finished_at": "2026-07-17T14:06:57.187076+00:00",
+      "global_step": 779,
+      "run_name": "bert-full_context-tier1-seed17",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 1.5387997233660543e-251,
+      "validation_tau": 0.615506387351715
+    },
+    {
+      "finished_at": "2026-07-17T14:19:50.363119+00:00",
+      "global_step": 779,
+      "run_name": "bert-full_context-tier1-seed42",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 1.2978390029113861e-264,
+      "validation_tau": 0.631433523274356
+    },
+    {
+      "finished_at": "2026-07-17T14:32:41.926944+00:00",
+      "global_step": 779,
+      "run_name": "bert-full_context-tier1-seed73",
+      "total_steps": 779,
+      "validation_examples": 1363,
+      "validation_pvalue": 9.091641886490059e-271,
+      "validation_tau": 0.6387940038999246
+    },
+    {
+      "run_name": "lightgbm-structural-tier1-seed42",
+      "seed": 42,
+      "train_examples": 12456,
+      "validation_examples": 1363,
+      "validation_pvalue": 2.157949426170327e-146,
+      "validation_tau": 0.46818588340197204,
+      "variant": "structural_features"
+    }
+  ]
+}

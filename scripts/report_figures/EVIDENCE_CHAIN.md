@@ -1,17 +1,31 @@
-# Evidence Chain: data → figure → report claim (fig4/6/7/8)
+# Evidence Chain: data → figure → report claim
+
+**Final Option-B figure numbering**: fig3 baseline reproduction · fig4 predictor
+comparison · fig5 mixed serving · fig6 OOD workload · fig7 gate · fig8 overhead.
+(Section headings below are tagged with their final number; the "FIG N" text in a
+few headings reflects an earlier draft and is annotated where it differs.)
 
 Authoritative spec for the Evaluation figures. Every claim below is traceable to
 a raw data file. Rigor bar = **top-journal**: pooled percentiles (never average
-per-run p99), bootstrap 95% CI (≥2000 resamples), colorblind-safe palette,
-matplotlib-only (IEEE hard rule), vector output. AI generates figures + organizes
-data ONLY — all prose is human-written (AI prose = 0 credit).
+per-run p99), bootstrap 95% CI (≥2000 resamples) for serving/gate estimates
+(the fig4 BERT predictor bars are seed min–max (2–3 seeds per group), and are labeled as such),
+colorblind-safe palette, matplotlib-only (IEEE hard rule), vector output. AI
+generates figures + organizes data ONLY — all prose is human-written (AI prose = 0 credit).
 
-## Data locations (absolute)
+## Data locations
+**In-repo (reproducible from a fresh clone)**: `scripts/report_figures/data/`
+holds `rental-20260719T231309Z/` (mixed, OOD, overhead, serving-environment.json),
+`gateway_policy_probe/` (gate probe inputs incl. `results_clite/gated_verdict.json`),
+and `offline/` (fig3 baseline + fig4 predictor tier1/tier2/learning-curve, hashes
+in `offline/SHA256SUMS.txt`). Original provenance was `/Volumes/T7 Shield/…`.
+
 - Live matrix (this rental, qwen3.5-9b, full chain client→gateway→decision→vllm):
-  `SCRATCH/results/rental-20260719T231309Z/`
+  `data/rental-20260719T231309Z/`
   - MIXED: `matrix/<Policy>.runs/*.samples.csv` (3 repeats/policy × 150 rows; cols:
     request_id,ttft_ms,ttlt_ms,output_tokens,baseline_service_ms,...,category,policy,profile,error)
-  - OOD:   `matrix-ood/<Policy>.runs/*.samples.csv` (3 × 120 rows, same cols)
+  - OOD:   `matrix-ood/<Policy>.runs/*.samples.csv` (3 × 120 attempted; analyzed n
+    after dropping error rows = shim 358 / PureLTR 359 / gated 358 / tail 358; 7
+    rows total dropped for missing completion_tokens — not "3×120 completed")
   - Overhead: `gateway-overhead.json` → `.direct.samples[]` and `.gateway.samples[]`
     (150 each, paired by request_id; cols same as samples.csv)
   where SCRATCH = the extracted `results-full-rental-20260719T231309Z.tar.gz`
@@ -23,11 +37,14 @@ data ONLY — all prose is human-written (AI prose = 0 credit).
     p95_speedup_vs_fcfs,p99_ratio_vs_fcfs) — corruption-severity sweep
   - `results_clite/gated_run_{gated,ungated}.jsonl` (cols: request_id,cls,true_tokens,
     pred_est,send_index,first_token_index,mode) — wrong-hint response probe
-  - `results_clite/gated_verdict.json` — kendall-tau summary
+  - `results_clite/gated_verdict.json` — kendall-tau summary. Its boolean
+    `verdict_superseded_heuristic` block (decoupled/gate_works = true) is a
+    SUPERSEDED overclaim; the canonical result is the recomputed τ from the jsonl
+    and is INCONCLUSIVE (n=6, CI [−0.78, +1.0]); use `uncertainty_aware_verdict`.
 
 ---
 
-## FIG 4 — OOD robustness: LTR keeps its advantage out-of-distribution
+## FIG 6 (Option B) — OOD workload: LTR keeps its advantage on this one OOD set
 - **Data**: `matrix-ood/*.runs/*.samples.csv`, pool the 3 repeats per policy
   (StockFCFSShim, PureLTRScheduler, GatedHybridScheduler, TailSafeScheduler);
   drop rows with non-empty `error` (1–2 benign BFCL-irrelevance each).
@@ -41,7 +58,7 @@ data ONLY — all prose is human-written (AI prose = 0 credit).
 - **Honest caption note**: gate policies ≈ PureLTR here → this OOD set did not
   trigger predictor collapse; gate's protective value is shown in Fig 7, not here.
 
-## FIG 6 — Main result (MIXED): LTR beats FCFS under saturation
+## FIG 5 (Option B) — Main result (MIXED): LTR beats FCFS under saturation
 - **Data**: `matrix/*.runs/*.samples.csv`, pool 3 repeats, all 7 policies
   (stock_fcfs, StockFCFSShim, PureLTR, GatedHybrid, TailSafe, LTRAging,
   PromptLengthSJF). 0 errors.
@@ -50,10 +67,12 @@ data ONLY — all prose is human-written (AI prose = 0 credit).
   story; annotate p99 crossings.
 - **Plot B (companion)**: grouped bars mean + pooled p99 TTLT with bootstrap 95%
   CI, 7 policies, FCFS baselines visually grouped apart from LTR family.
-- **Claim**: LTR improves mean TTLT 14.8–15.3% vs real stock_fcfs; pooled-p99
-  improvement is 8.5–18.2% across learned policies (PureLTR 8.5%, gated 14.1%,
-  tail 14.4%, aging 18.2%, Prompt SJF reaches 19.8% — pooled p99, not the mean of
-  run-level p99). Clean attribution (constant gateway overhead across all policies).
+- **Claim**: the five scheduling policies improve mean TTLT 14.8–15.3% vs real
+  stock_fcfs — learned four 14.8–15.1%, PromptLengthSJF 15.3% (non-learned); do
+  NOT label 15.3% as a "learned-policy" number. Pooled-p99 improvement is 8.5–18.2%
+  (PureLTR 8.5%, gated 14.1%, tail 14.4%, aging 18.2%, Prompt SJF reaches 19.8% —
+  pooled p99, not the mean of run-level p99). Clean attribution (constant gateway
+  overhead across all policies).
 - **Honest note**: PromptLengthSJF matches learned policies → gains attributable
   to short-job prioritization generally, not to learned prediction specifically.
 
@@ -105,15 +124,23 @@ data ONLY — all prose is human-written (AI prose = 0 credit).
 
 ---
 
-## Already-done figures (do not regenerate)
-fig1 arch, fig2 static-component arch, fig3 midterm repro (2.86×/8.2×),
-fig5 predictor τ=0.642 + learning curve. See MATERIALS.md / latex_source/.
+## Already-done figures (regenerate only from repo-relative data)
+fig1 arch, fig2 static-component arch, fig3 midterm repro (2.86×/8.2×,
+`--figure 3`), fig4 predictor τ=0.642 + learning curve (Option B: predictor is
+now **fig4**, generator `--figure 5 --output latex_source/figures/fig4.pdf`).
+See MATERIALS.md / latex_source/.
 
 ## Styling contract (all figures)
 - matplotlib only; output BOTH 300-dpi PNG (for review iteration) and PDF (for LaTeX).
 - IEEE column width: single 3.5in, double 7.16in. Pick per figure; state in filename.
-- Palette: Okabe-Ito colorblind-safe. FCFS baselines in neutral grey, LTR/gate in color.
-- Fonts: consistent family, tick labels ≥7pt, axis labels ≥8pt, readable at print size.
-- Every point estimate carries a bootstrap 95% CI (≥2000 resamples). Define CI in caption.
+- Palette: Okabe-Ito colorblind-safe (incl. reddish-purple #CC79A7). FCFS baselines in neutral grey, LTR/gate in color.
+- Fonts: **all rendered text ≥10pt** (professor hard rule; captions ≥10pt too).
+  Log axes must use plain decimal tick labels — the default log formatter renders
+  mathtext exponents whose superscript shrinks to ~7pt. Verify the FINAL PDFs with
+  `python scripts/report_figures/verify_pdf_fonts.py …` (reads Tf font-operator
+  sizes; glyph bbox height and rotated-label geometry are NOT reliable).
+- Serving/gate point estimates carry a bootstrap 95% CI (≥2000 resamples); the
+  fig4 BERT predictor bars are seed min–max (2–3 seeds per group) and are labeled as such (a
+  bootstrap CI over 3 seeds would be meaningless). Define the CI in the caption.
 - Panels labelled (a)/(b); axis labels carry units; no chartjunk; minimal gridlines.
 - Deterministic: fix numpy seed for the bootstrap so figures are reproducible.

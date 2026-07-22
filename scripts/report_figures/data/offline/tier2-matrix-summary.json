@@ -1,0 +1,346 @@
+{
+  "censor_exclusion_counts": {
+    "test": {
+      "censored": 1,
+      "eligible": 999,
+      "failed_or_missing": 0,
+      "pool": 1000
+    },
+    "train": {
+      "censored": 2,
+      "eligible": 3997,
+      "failed_or_missing": 1,
+      "pool": 4000
+    },
+    "validation": {
+      "censored": 0,
+      "eligible": 998,
+      "failed_or_missing": 2,
+      "pool": 1000
+    }
+  },
+  "completed_runs": 10,
+  "expected_runs": 10,
+  "runs": [
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:21:18.534229+00:00",
+      "global_step": 250,
+      "run_name": "bert-prompt_only-tier2-seed17",
+      "test_examples": 999,
+      "test_pvalue": 8.457651530174839e-172,
+      "test_tau": 0.5921805352070084,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 1.6247072510802447e-183,
+      "validation_tau": 0.6126403975356589
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:23:21.237942+00:00",
+      "global_step": 250,
+      "run_name": "bert-prompt_only-tier2-seed42",
+      "test_examples": 999,
+      "test_pvalue": 1.5019774915611677e-162,
+      "test_tau": 0.5758211230903179,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 1.254795279135507e-161,
+      "validation_tau": 0.574505135873509
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:25:20.347625+00:00",
+      "global_step": 250,
+      "run_name": "bert-prompt_only-tier2-seed73",
+      "test_examples": 999,
+      "test_pvalue": 1.7138169432093448e-171,
+      "test_tau": 0.5916452826088485,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 3.1601915874478226e-183,
+      "validation_tau": 0.6121524145977233
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:29:22.424676+00:00",
+      "global_step": 250,
+      "run_name": "bert-prompt_schema-tier2-seed17",
+      "test_examples": 999,
+      "test_pvalue": 9.190816340162366e-202,
+      "test_tau": 0.6423292767533998,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 7.523868101442074e-211,
+      "validation_tau": 0.657171865309925
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:33:27.708034+00:00",
+      "global_step": 250,
+      "run_name": "bert-prompt_schema-tier2-seed42",
+      "test_examples": 999,
+      "test_pvalue": 2.8249291805110863e-191,
+      "test_tau": 0.6252333892572862,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 6.240621209753207e-210,
+      "validation_tau": 0.6557240481634876
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:37:34.156185+00:00",
+      "global_step": 250,
+      "run_name": "bert-prompt_schema-tier2-seed73",
+      "test_examples": 999,
+      "test_pvalue": 5.647114394050867e-190,
+      "test_tau": 0.623080305497771,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 1.9074052264668657e-205,
+      "validation_tau": 0.6486099828534165
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:41:40.154585+00:00",
+      "global_step": 250,
+      "run_name": "bert-full_context-tier2-seed17",
+      "test_examples": 999,
+      "test_pvalue": 2.3719745310923404e-186,
+      "test_tau": 0.6170436220598778,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 7.466254411080105e-206,
+      "validation_tau": 0.6492592824650499
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T19:45:46.350623+00:00",
+      "global_step": 250,
+      "run_name": "bert-full_context-tier2-seed42",
+      "test_examples": 999,
+      "test_pvalue": 3.6727593336081314e-198,
+      "test_tau": 0.6365099139192707,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 3.579395803837893e-209,
+      "validation_tau": 0.6545262718612818
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "finished_at": "2026-07-17T20:04:11.533174+00:00",
+      "global_step": 250,
+      "run_name": "bert-full_context-tier2-seed73",
+      "test_examples": 999,
+      "test_pvalue": 4.934836716222769e-191,
+      "test_tau": 0.6248335826353536,
+      "total_steps": 250,
+      "validation_examples": 998,
+      "validation_pvalue": 1.569506391850926e-202,
+      "validation_tau": 0.6439438980667088
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "run_name": "lightgbm-structural-tier2-seed42",
+      "seed": 42,
+      "test_examples": 999,
+      "test_pvalue": 3.4521262718047506e-90,
+      "test_tau": 0.4267985278708031,
+      "train_examples": 3997,
+      "validation_examples": 998,
+      "validation_pvalue": 1.3435847510483205e-98,
+      "validation_tau": 0.44693704787990834,
+      "variant": "structural_features"
+    }
+  ]
+}

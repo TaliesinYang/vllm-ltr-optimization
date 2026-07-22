@@ -7,7 +7,7 @@ import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from style import IEEE_DOUBLE_WIDTH, OKABE_ITO, bootstrap_ci, save_figure
+from style import IEEE_DOUBLE_WIDTH, OKABE_ITO, bootstrap_ci, save_figure, set_log_axis_plain
 
 
 ROOT = Path(__file__).resolve().parent
@@ -118,6 +118,12 @@ def _paired_panel(
         minimum = min(float(np.min(direct)), float(np.min(gateway)))
         maximum = max(float(np.max(direct)), float(np.max(gateway)))
         ax.set_ylim(max(minimum * 0.72, 1.0), maximum * 1.22)
+        set_log_axis_plain(
+            ax,
+            "y",
+            [1000, 2000, 3000, 5000, 10000, 20000, 30000],
+            fmt=lambda value: f"{value:g}",
+        )
     else:
         ax.set_ylim(bottom=0)
     ax.yaxis.grid(True, zorder=0)

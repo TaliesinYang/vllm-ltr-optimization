@@ -15,6 +15,7 @@ from style import (
     POLICY_LABEL,
     bootstrap_ci,
     save_figure,
+    set_log_axis_plain,
 )
 
 
@@ -128,6 +129,7 @@ def build_figure(vectors: dict[str, np.ndarray]):
 
     ax_ccdf.set_yscale("log")
     ax_ccdf.set_ylim(0.002, 1.05)
+    set_log_axis_plain(ax_ccdf, "y", [0.01, 0.1, 1.0], fmt=lambda value: f"{value:g}")
     ax_ccdf.set_xlim(left=0)
     ax_ccdf.set_xlabel("TTLT (s)")
     ax_ccdf.set_ylabel("CCDF, Pr(TTLT > t)")

@@ -1,0 +1,146 @@
+{
+  "completed_points": 4,
+  "nested_train_pool_sizes": [
+    500,
+    1000,
+    2000,
+    4000
+  ],
+  "no_new_labels": true,
+  "points": [
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 1,
+          "eligible": 499,
+          "failed_or_missing": 0,
+          "pool": 500
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "effective_train_examples": 499,
+      "finished_at": "2026-07-17T19:50:07.518000+00:00",
+      "global_step": 32,
+      "test_examples": 999,
+      "test_pvalue": 1.6323140069719165e-166,
+      "test_tau": 0.5828880671682781,
+      "total_steps": 32,
+      "train_pool_size": 500,
+      "validation_examples": 998,
+      "validation_pvalue": 4.055610883823702e-179,
+      "validation_tau": 0.6051714355434528
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "effective_train_examples": 999,
+      "finished_at": "2026-07-17T19:51:23.759110+00:00",
+      "global_step": 63,
+      "test_examples": 999,
+      "test_pvalue": 7.6546599961765635e-174,
+      "test_tau": 0.5957341295241149,
+      "total_steps": 63,
+      "train_pool_size": 1000,
+      "validation_examples": 998,
+      "validation_pvalue": 4.993154990693601e-182,
+      "validation_tau": 0.610123857425974
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 1997,
+          "failed_or_missing": 1,
+          "pool": 2000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "effective_train_examples": 1997,
+      "finished_at": "2026-07-17T19:53:34.565512+00:00",
+      "global_step": 125,
+      "test_examples": 999,
+      "test_pvalue": 1.748227902779382e-179,
+      "test_tau": 0.6054370920366219,
+      "total_steps": 125,
+      "train_pool_size": 2000,
+      "validation_examples": 998,
+      "validation_pvalue": 2.098661052586064e-198,
+      "validation_tau": 0.6372815194429915
+    },
+    {
+      "censor_exclusion_counts": {
+        "test": {
+          "censored": 1,
+          "eligible": 999,
+          "failed_or_missing": 0,
+          "pool": 1000
+        },
+        "train": {
+          "censored": 2,
+          "eligible": 3997,
+          "failed_or_missing": 1,
+          "pool": 4000
+        },
+        "validation": {
+          "censored": 0,
+          "eligible": 998,
+          "failed_or_missing": 2,
+          "pool": 1000
+        }
+      },
+      "effective_train_examples": 3997,
+      "finished_at": "2026-07-17T19:57:38.541753+00:00",
+      "global_step": 250,
+      "test_examples": 999,
+      "test_pvalue": 6.997245109607322e-189,
+      "test_tau": 0.6212652760107779,
+      "total_steps": 250,
+      "train_pool_size": 4000,
+      "validation_examples": 998,
+      "validation_pvalue": 3.3996758009878403e-195,
+      "validation_tau": 0.6320508262983416
+    }
+  ],
+  "seed": 42,
+  "variant": "full_context"
+}

@@ -39,16 +39,15 @@ COURSE_DELIVERABLES = Path(
 )
 
 DEFAULT_OUTPUT_DIR = REPO_ROOT / "latex_source" / "figures"
-DEFAULT_BASELINE_SUMMARY = (
-    COURSE_DELIVERABLES
-    / "04-evaluation"
-    / "baseline-2026-06-22"
-    / "RESULTS-summary.txt"
-)
-DEFAULT_TIER1_SUMMARY = T7_RESULTS / "tier1-matrix-summary.json"
-DEFAULT_TIER2_SUMMARY = T7_RESULTS / "tier2-matrix-summary.json"
-DEFAULT_TIER2_LEARNING_CURVE = T7_RESULTS / "tier2-learning-curve.json"
-DEFAULT_TIER2_MANIFEST = T7_RESULTS / "tier2-sample-manifest.json"
+# Offline predictor/baseline evidence is copied into the repo so fig3/fig4 are
+# reproducible from a fresh clone (hashes in data/offline/SHA256SUMS.txt). The
+# T7_RESULTS/COURSE_DELIVERABLES paths above remain only as original provenance.
+OFFLINE_DATA = REPO_ROOT / "scripts" / "report_figures" / "data" / "offline"
+DEFAULT_BASELINE_SUMMARY = OFFLINE_DATA / "baseline-2026-06-22-RESULTS-summary.txt"
+DEFAULT_TIER1_SUMMARY = OFFLINE_DATA / "tier1-matrix-summary.json"
+DEFAULT_TIER2_SUMMARY = OFFLINE_DATA / "tier2-matrix-summary.json"
+DEFAULT_TIER2_LEARNING_CURVE = OFFLINE_DATA / "tier2-learning-curve.json"
+DEFAULT_TIER2_MANIFEST = OFFLINE_DATA / "tier2-sample-manifest.json"
 DEFAULT_TRAINING_SOURCES = REPO_ROOT / "configs" / "training_sources.json"
 DEFAULT_RANK_MANIFEST = (
     Path.home()
@@ -92,7 +91,7 @@ BLUE = "#0072B2"
 VERMILLION = "#D55E00"
 GREEN = "#009E73"
 AMBER = "#E69F00"
-PURPLE = "#7A5195"
+PURPLE = "#CC79A7"  # Okabe-Ito reddish-purple (style contract requires Okabe-Ito)
 GREY = "#666666"
 LIGHT_BLUE = "#DCEAF7"
 LIGHT_GREEN = "#DDF3EC"
@@ -761,6 +760,11 @@ def draw_fig3(
             **styles[method],
         )
 
+    from matplotlib.ticker import FuncFormatter, NullFormatter
+
+    # Plain decimal tick labels keep every glyph at 10pt; the default log
+    # formatter renders mathtext exponents (10^3) whose superscript shrinks to 7pt.
+    plain_ticks = FuncFormatter(lambda value, _pos: f"{value:g}")
     for ax in axes:
         ax.set_xscale("log", base=2)
         ax.set_yscale("log")
@@ -768,6 +772,8 @@ def draw_fig3(
         ax.set_xticklabels([f"{value:g}" for value in data["FCFS"]["rate"]])
         ax.set_xlabel("Request rate (queries/s)")
         ax.grid(axis="x", visible=False)
+        ax.yaxis.set_major_formatter(plain_ticks)
+        ax.yaxis.set_minor_formatter(NullFormatter())
     axes[0].set_ylabel("Time to first token (ms)")
     axes[0].set_title("Queueing latency (lower is better)")
     axes[1].set_ylabel("p99 per-token latency (ms)")
