@@ -1,0 +1,19 @@
+{
+  "_note": "Operator-recorded serving environment for the rental-20260719T231309Z benchmark. The automated run manifests under manifests/ did not capture GPU identity; the fields below are recorded by the operator who provisioned the rental. Values marked null were not captured for the serving stage and must not be inferred.",
+  "source": "operator-recorded",
+  "stage": "serving benchmark (client -> gateway -> decision -> vLLM)",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "gpu_vram_gb": 48,
+  "provider": "Hengyuan Cloud (恒源云) rental",
+  "vllm_version": "0.24.0",
+  "vllm_source_rev": "ee0da84ab9e0",
+  "serving_model": "Qwen/Qwen3.5-9B",
+  "serving_model_rev": "c20223623576",
+  "gateway_pin": "888fba9984a34b23340f08e6faf81ace032f3a01",
+  "saturation": 0.9,
+  "capacity_rps": 0.45,
+  "os_image": null,
+  "python_version": null,
+  "pytorch_cuda_build": null,
+  "transformers_version": null
+}

@@ -134,17 +134,40 @@ PY
 )"
 
 stop_vllm() {
-  local pidfile
+  local pidfile used
   for pidfile in "$LTR_ROOT"/runs/*/vllm.pid; do
     [[ -f "$pidfile" ]] || continue
     safe_stop_pidfile "$pidfile" "vllm.entrypoints.openai.api_server"
   done
+  local http_down=0
   for _ in $(seq 1 60); do
-    curl -fsS http://127.0.0.1:8000/v1/models >/dev/null 2>&1 || return 0
+    if ! curl -fsS http://127.0.0.1:8000/v1/models >/dev/null 2>&1; then
+      http_down=1
+      break
+    fi
     sleep 1
   done
-  echo "vLLM did not stop" >&2
-  return 1
+  if [[ "$http_down" != 1 ]]; then
+    echo "vLLM did not stop" >&2
+    return 1
+  fi
+  # vLLM spawns a VLLM::EngineCore subprocess whose cmdline does NOT contain
+  # "vllm.entrypoints.openai.api_server", so the pidfile-signature stop above
+  # never reaps it. It keeps the GPU allocation, so the NEXT scheduler's launch
+  # hits "Free memory on device cuda:0 (…) is less than desired GPU memory
+  # utilization". Reap it explicitly, then wait for the driver to reclaim the
+  # memory before returning (launch_vllm.sh would otherwise fail at startup).
+  pkill -9 -f "VLLM::EngineCore" 2>/dev/null || true
+  pkill -9 -f "multiprocessing.resource_tracker" 2>/dev/null || true
+  for _ in $(seq 1 40); do
+    used="$(nvidia-smi --query-gpu=memory.used --format=csv,noheader,nounits 2>/dev/null | head -1 | tr -d ' ')"
+    if [[ "${used:-99999}" -lt 5000 ]] 2>/dev/null; then
+      return 0
+    fi
+    sleep 5
+  done
+  echo "warning: GPU memory not reclaimed after vLLM stop (used=${used:-unknown} MiB)" >&2
+  return 0
 }
 
 policy_name() {

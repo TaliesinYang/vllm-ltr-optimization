@@ -1,0 +1,30 @@
+{
+  "_note": "The boolean 'verdict' block is a SUPERSEDED heuristic that ignored sampling uncertainty. With n=6/class the gated tool tau point estimate 0.0667 has a 95% bootstrap CI of [-0.7778, 1.0000], which includes +1. The canonical, uncertainty-aware conclusion (see EVIDENCE_CHAIN.md, Fig.7) is INCONCLUSIVE, not 'decoupled'/'gate_works'. The 'analyses' tau values are the measured data; use those (recomputed from the gated_run_*.jsonl), not the boolean verdict.",
+  "analyses": {
+    "ungated": {
+      "chat_tau_pred_vs_order": 1.0,
+      "chat_tau_true_vs_order": 1.0,
+      "tool_tau_pred_vs_order": 1.0,
+      "tool_tau_true_vs_order": -1.0
+    },
+    "gated": {
+      "chat_tau_pred_vs_order": 1.0,
+      "chat_tau_true_vs_order": 1.0,
+      "tool_tau_pred_vs_order": 0.0667,
+      "tool_tau_true_vs_order": -0.0667
+    }
+  },
+  "verdict_superseded_heuristic": {
+    "tool_wrong_hint_decoupled": true,
+    "chat_prediction_preserved": true,
+    "gate_works": true
+  },
+  "uncertainty_aware_verdict": {
+    "n_per_class": 6,
+    "gated_tool_tau_point_estimate": 0.0667,
+    "gated_tool_tau_ci95": [-0.7778, 1.0],
+    "tool_wrong_hint_decoupled": "inconclusive (CI includes +1)",
+    "chat_prediction_preserved": "supported (tau=1 in both arms)",
+    "gate_works": "not established at this sample size; suggestive only"
+  }
+}

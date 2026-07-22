@@ -3,31 +3,47 @@
 \section{Evaluation}
 
 \subsection{E1: Baseline Reproduction}
-% [作者手写区] 要点: Fig.3 固定写图中观察、解释、边界；展示全负载扫描和最高 2.86x 的分子/分母，低负载变慢与尾部退化也必须出现。标明这是旧环境的动机证据，不与 Fig.8 数值混算。Bib keys: fuLTR2024.
+% [作者手写区]
+% - Fig.3：全负载扫描；最高 2.86x 的分子/分母；低负载变慢与尾部退化。
+% - 边界：旧环境动机证据；不与 Fig.8 数值混算。Bib keys: fuLTR2024.
 \ReportFigure{fig3}{Baseline reproduction across offered load.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig3}}{fig:reproduction}
 
-\subsection{E2: Distribution Shift}
-% [作者手写区] 要点: Fig.4 区分旧聊天域 0.559->0.315 与新工具域 ID/OOD；只用同模型同标签口径做直接差值，BFCL proxy labels 不能冒充 backend generation lengths。Bib keys: bfcl, toolathlon2025, pars2025.
-% [数据到位时间] 离线打分完成后；在此之前 fig4.pdf 必须保持缺失。
-\ReportFigure{fig4}{Predictor rank quality under distribution shift.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig4}}{fig:ood-shift}
+\subsection{E2: Predictor Comparison and Data Scale}
+% [作者手写区]
+% - Fig.4：Tier-2 held-out test tau-b 三 seed 均值；prompt-only/prompt+schema/full-context = 0.587/0.630/0.626；误差线 = 三 seed 极差。
+% - LightGBM：seed 42；test tau-b = 0.426799；不得混用 validation 0.446937。
+% - Full-context seed42 validation tau-b；500/1000/2000/4000 = 0.605171/0.610124/0.637282/0.632051；4000 未继续上升。Bib keys: bert, lightgbm, pars2025.
+\ReportFigure{fig4}{Predictor comparison and data-scale learning curve. BERT error bars: seed min--max (2--3 seeds per group), not a bootstrap CI.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig5 --output latex\_source/figures/fig4.pdf}}{fig:predictors}
 
-\subsection{E3: Predictor and Data-Scale Comparison}
-% [作者手写区] 要点: Fig.5 的 Tier-2 held-out test tau-b 统一采用三 seed 均值: prompt-only/prompt+schema/full-context = 0.587/0.630/0.626；误差线是三 seed 极差。LightGBM 仅 seed 42，test tau-b=0.426799；不得与 validation 0.446937 混写。
-% [作者手写区] 要点: 同图读取 \texttt{tier2-learning-curve.json}；full-context seed42 在 500/1000/2000/4000 训练池的 validation tau-b=0.605171/0.610124/0.637282/0.632051；强调 4000 未继续上升，而不是挑单点。Bib keys: bert, lightgbm, pars2025.
-\ReportFigure{fig5}{Predictor comparison and Tier-2 learning curve.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig5}}{fig:predictors}
+\subsection{E3: Main Serving Result}
+% [作者手写区]
+% - Fig.5：MIXED；3 repeats pooled；450 requests/policy；0 errors。
+% - vs stock FCFS：五个调度策略 mean TTLT 改善 14.8--15.3\%（learned 四策略 14.8--15.1\%；PromptLengthSJF 15.3\%，非 learned）；pooled p99 改善 8.5--18.2\%。
+% - Pooled p99：PureLTR 8.5\%；gated 14.1\%；tail 14.4\%；aging 18.2\%；Prompt SJF 19.8\%。
+% - 归因边界：constant gateway overhead；Prompt SJF parity；learned 四策略未超越 prompt-length SJF，不能把增益归因于 learned prediction alone。
+\ReportWideFigure{fig5}{Mixed-workload TTLT distributions and pooled statistics. Error bars: request-bootstrap 95\% CI (2000 resamples, seed 1234).}{\texttt{scripts/report\_figures/fig6\_mixed.py}}{fig:mixed-serving}
 
-\subsection{E4: Reliability Operating Point}
-% [作者手写区] 要点: Fig.6 展示 confidence/OOD score 与 empirical error 的关系；阈值必须由预先声明规则选取并与 Fig.7--Fig.8 完全一致。当前 confidence=0.9 是占位值时不得称 calibrated probability。Bib keys: tie2026, beyondPrediction2026.
-% [数据到位时间] 离线打分完成后；在此之前 fig6.pdf 必须保持缺失。
-\ReportFigure{fig6}{Reliability coverage and empirical error.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig6}}{fig:reliability}
+\subsection{E4: Performance on One OOD Workload}
+% [作者手写区]
+% - Fig.6；仅限 On this OOD workload；不得广义化为普遍 OOD robustness。
+% - vs shim-FCFS：mean TTLT 改善 17.4--18.6\%。
+% - Pooled p99：PureLTR 改善 8.2\%；gated/tail 改善 17.7\%；不得用 per-run p99 均值。
+% - Analyzed n（去除 error 行）：shim 358 / PureLTR 359 / gated 358 / tail 358（每策略尝试 3x120=360，共剔 7 行缺 completion\_tokens）；非 "3x120 完成" observations。
+% - Gate 约等于 PureLTR：此 OOD set 未触发 predictor collapse；gate value 见 Fig.7。
+\ReportFigure{fig6}{TTLT on one out-of-distribution workload (not a general OOD-robustness claim). Error bars: request-bootstrap 95\% CI (2000 resamples, seed 1234).}{\texttt{scripts/report\_figures/fig4\_ood.py}}{fig:ood-workload}
 
-\subsection{E5: Scheduler Regime Map}
-% [作者手写区] 要点: Fig.7 报策略×负载×可靠性区域和中断成本敏感性；主结果用非抢占式，零成本 preemption 只作 sensitivity。备用可核验模拟器数字: mean delta +0.182 [0.149,0.223]、P99 delta -0.612 [-0.850,-0.515]，仅在对应 artifact 校验后使用。Bib keys: fastServe2026, jitServe2026, agentix2026.
-% [数据到位时间] 离线打分完成后；在此之前 fig7.pdf 必须保持缺失。
-\ReportFigure{fig7}{Scheduler utility across reliability and load regimes.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig7}}{fig:simulator}
+\subsection{E5: Gate Value under Prediction Corruption}
+% [作者手写区]
+% - Fig.7：predefined workload-class fallback（tool->fallback）；不是 online unreliability detector。
+% - Panel (a)：live opt-125m ordering probe；n=6/class；tau 不是 latency；tool tau +1 -> 0.07；95\% CI [-0.78, +1.0]。
+% - Panel (b)：simulation；10 seeds x 4 QPS；median per-run p99 ratio，非 pooled。
+% - Gated 低于 PureLTR 于全部 corruption levels；仍 exceeds FCFS through 75\%（ratio 1.16--1.41）；不满足 <=1.1 safe bar。
+\ReportWideFigure{fig7}{Gate behavior under prediction corruption. Panel (a): Kendall $\tau$, n=6/class, 95\% bootstrap CI; panel (b): simulated median per-run p99 ratio over 10 seeds $\times$ 4 QPS, 95\% bootstrap CI over seeds.}{\texttt{scripts/report\_figures/fig7\_gate.py}}{fig:gate-corruption}
 
-\subsection{E6: End-to-End Serving}
-% [作者手写区] 要点: Fig.8 只放完整 gateway->decision->vLLM 链路数据；TTLT median/P95/P99、slowdown、throughput、goodput、max wait 按 run manifest 汇总，prediction 与 gateway 开销计入。stock FCFS vs shim parity gate 必须先通过。
-% [作者手写区] 要点: 六策略/七档 parity 的最终数量、repeats、capacity fraction 以真实 matrix manifest 为准；未执行的档位不得保留空柱。Pareto 副图横纵轴必须有单位。Bib keys: vllm2023, fuLTR2024, beyondPrediction2026.
-% [数据到位时间] 租卡日；仅在 matrix/parity/run manifest 全部归档后生成 fig8.pdf。
-\ReportFigure{fig8}{End-to-end latency, goodput, and Pareto frontier.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig8}}{fig:live-serving}
+\subsection{E6: Gateway Overhead}
+% [作者手写区]
+% - Fig.8 Panel (a)：TTFT paired n=150；gateway + CPU-BERT decision delta mean +737 ms；95\% CI [708, 764] ms。
+% - Panel (b)：TTLT matched-output n=118；32 dropped；delta mean +840 ms；95\% CI [676, 1058] ms。
+% - All-request marginal p99 delta +9482 ms = output-length confounded；不得写成 overhead。
+% - +737 ms 当前超过约 500 ms scheduling benefit；prototype end-to-end 仍慢于 direct vLLM FCFS。
+\ReportWideFigure{fig8}{Gateway overhead for paired requests. Markers/$\Delta$: mean with request-bootstrap 95\% CI (2000 resamples, seed 1234).}{\texttt{scripts/report\_figures/fig8\_overhead.py}}{fig:gateway-overhead}
