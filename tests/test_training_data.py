@@ -149,6 +149,11 @@ class ToolAceProductionSnapshotTest(unittest.TestCase):
 class LmCacheCanonicalSnapshotTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
+        snapshot = os.environ.get("LMCACHE_ROWS_SNAPSHOT")
+        if snapshot:
+            payload = json.loads(Path(snapshot).read_text())
+            cls.rows = [item["row"] for item in payload["rows"]]
+            return
         query = urllib.parse.urlencode(
             {
                 "dataset": "sammshen/lmcache-agentic-traces",

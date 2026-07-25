@@ -12,6 +12,7 @@ from ltr_training.train_ranker import (
     build_pair_indices,
     load_tier1_examples,
     pairwise_margin_loss,
+    render_example,
     should_save_checkpoint,
 )
 
@@ -20,6 +21,27 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class RankerDataTest(unittest.TestCase):
+    def test_render_example_supports_matrix_variants(self) -> None:
+        example = TrainingExample(
+            sample_id="sample-1",
+            session_id="session-1",
+            prompt="current prompt",
+            output_length=7,
+            generator_id="generator",
+            tool_schema="tool schema",
+            history=(("user", "old prompt"), ("assistant", "old answer")),
+        )
+
+        self.assertEqual(render_example(example, variant="prompt_only"), "current prompt")
+        prompt_schema = render_example(example, variant="prompt_schema")
+        self.assertTrue(prompt_schema.startswith("[USER]\ncurrent prompt"))
+        self.assertIn("tool schema", prompt_schema)
+        full_context = render_example(example, variant="full_context")
+        self.assertTrue(full_context.startswith("[USER]\ncurrent prompt"))
+        self.assertIn("old prompt", full_context)
+        self.assertIn("old answer", full_context)
+        self.assertIn("current prompt", full_context)
+
     def test_first_step_is_checkpointed_then_configured_interval_is_used(self) -> None:
         self.assertTrue(should_save_checkpoint(1, save_steps=10))
         self.assertFalse(should_save_checkpoint(2, save_steps=10))
