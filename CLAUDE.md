@@ -98,3 +98,17 @@ Base: `/Volumes/T7 Shield/obsidian/4-Resources/Courses/VPL/FDUClasses/26VU_CSCI_
 **PARS** — write the pairwise-margin + BERT predictor (Dazhi's contribution), train it, compare its
 generalization gap vs listMLE. Plus: draw Fig E1 (latency-vs-rate) from the baseline data for Wednesday
 (`docs/presentation-plan.md`). Classification baseline has a benchmark-side `IndexError` to fix if a 3rd line is wanted.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues (repo `TaliesinYang/vllm-ltr-optimization`); use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary — `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` + `docs/adr/` at repo root. See `docs/agents/domain.md`.
