@@ -35,6 +35,8 @@ SCHEDULER_CLASS_TO_POLICY = {
     "scheduler_benchmark.vllm_scheduler.GatedHybridScheduler": "gated_hybrid",
     "scheduler_benchmark.vllm_scheduler.PromptLengthSJFScheduler": "prompt_sjf",
     "scheduler_benchmark.vllm_scheduler.LTRAgingScheduler": "ltr_aging",
+    "scheduler_benchmark.vllm_scheduler.PolicyFCFS": "policy_fcfs",
+    "scheduler_benchmark.vllm_scheduler.GatedRuleCScheduler": "gated_rule_c",
 }
 
 

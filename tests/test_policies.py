@@ -343,3 +343,13 @@ def test_every_policy_name_has_a_scheduler_class() -> None:
     from scheduler_benchmark.vllm_scheduler import SCHEDULER_CLASSES
 
     assert set(POLICIES) == set(SCHEDULER_CLASSES)
+
+
+def test_runner_scheduler_mapping_covers_every_policy() -> None:
+    # The argparse choices for --scheduler-cls derive from this mapping; a
+    # policy missing here is invisible to the benchmark runner (bit us on
+    # rental day: PolicyFCFS/GatedRuleC existed but the runner rejected them).
+    from scheduler_benchmark.policies import POLICIES
+    from scheduler_benchmark.runner import SCHEDULER_CLASS_TO_POLICY
+
+    assert set(SCHEDULER_CLASS_TO_POLICY.values()) >= set(POLICIES)
