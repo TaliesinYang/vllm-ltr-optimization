@@ -50,6 +50,13 @@ Ranking Tau measured on a workload family the Ranker was never trained on, such 
 chat-trained ranker scored against tool-calling traffic.
 _Avoid_: OOD, generalization, distribution shift
 
+**Cold-Start Transfer**:
+Ranking Tau measured within the training workload family, on test strata whose tool sets
+were not seen in training. Strata: S1 seen-combination, S2 new-combination (all tools
+seen), S3 partial-new tools, S4 all-new tools. Distinct from Cross-Workload Transfer,
+which changes the workload family; Cold-Start Transfer changes only the tool vocabulary.
+_Avoid_: OOD, unseen split, cold start (unqualified)
+
 **Ordering Tau**:
 Correlation between served order and true order when the gate probe feeds deliberately
 corrupted length hints. A property of the Reliability Gate, not of the Ranker.

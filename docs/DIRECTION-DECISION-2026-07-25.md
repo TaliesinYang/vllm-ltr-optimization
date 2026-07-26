@@ -6,14 +6,24 @@ P09 (JITServe, NSDI'26 camera-ready), Park et al. 2026 IEEE Access survey, and a
 citation-identity re-verification. PDFs archived in the course repo under
 `materials/references/` (UniBoost, JITServe camera-ready, Park survey, PARS arXiv v3).
 
-## ① Spine claim (SETTLED)
+## ① Spine claim (SETTLED — revised 07-26 after E1/E2/E3, user ruling "(b)")
 
-> **In shared serving queues carrying heterogeneous agent clients, the tool-schema text
-> of a request is an untapped scheduling signal: it improves output-length ranking over
-> the scalar tool features used by deployed schedulers (+0.203 τ offline), and — unlike
-> per-client statistics — generalizes cold-start to unseen tool sets. Because the schema
-> is constant within a deployment, its encoding is cacheable per client, which removes
-> most of the predictor's per-request cost.**
+> **In shared serving queues carrying heterogeneous agent clients, reading the request as
+> TEXT (prompt + tool schema) improves output-length ranking over the scalar features
+> deployed today by +0.20 τ, and holds across Cold-Start Transfer strata (unseen tool
+> combinations and fully unseen tools), where identity/lookup features take zero hits and
+> collapse to the scalar baseline. The schema's specific contribution concentrates where
+> schemas repeat — the regime real deployments live in (probe-verified constancy) — and is
+> capped by the current 512-token truncation, a hypothesis E4's cached two-tower encoder
+> tests. The Cold-Start stratification also gives the Reliability Gate its first
+> evidence-based confidence signal, replacing the hardcoded 0.9 placeholder.**
+
+Honest decomposition (E2 control, must accompany the headline): of the +0.2034 gap,
+~79% (+0.160) comes from the text encoder itself (BERT prompt_only over LightGBM scalars)
+and ~21% (+0.044) from adding schema text; on cold-start strata schema adds only ~+0.015.
+Where schema earns its keep: seen-combination rows (n=45) — prompt_only craters to 0.239
+while prompt_schema holds 0.601. Caveat: the decomposition bundles encoder-vs-trees with
+text-vs-scalars in its first step; state that in one sentence, do not overclaim precision.
 
 Supporting acts (this is candidate (D) with B′ load-bearing):
 - **Act 1 — workload characterization**: measured 68.9% of a real coding-agent request
@@ -49,13 +59,18 @@ whether ranking helps mean/goodput under *mixed agent traffic* — that is E5, l
 
 ## Experiment ladder (ordered by cost; each rung has a kill condition)
 
-| # | Experiment | Cost | Kills B′ if |
+| # | Experiment | Status (07-26) | Outcome |
 |---|---|---|---|
-| E1 | **Schema-hash baseline**: replace schema text with schema-identity categorical (+ scalar stats) on ToolACE; same recipe as BERT runs | $0, hours, 201 box | hash ties schema text on seen tool sets AND E2 shows no cold-start gap |
-| E2 | **Unseen-tool-set split** (cold-start): schema text vs scalars vs hash on held-out tool sets | $0, hours | schema text ≤ hash/scalars on unseen split — B′'s distinctive leg dies |
-| E3 | **Same-recipe confound close**: LightGBM 3-seed rerun so +0.203 isn't feature-type × model-family | $0, <1h | Δτ collapses when only feature set moves |
-| E4 | **Cached-schema encoding prototype** (two-tower or schema-embedding lookup): per-request cost with schema precomputed; also fixes the 512-token truncation (median prompt+schema = 781 tok) | 201 box, ~1 day | per-request cost still ≥ heuristic budget by orders of magnitude → deployability act weakens (JITServe's 7 ms QRF is the published bar) |
-| E5 | **Serving-level validation under mixed multi-tenant agent trace** (mean E2E / goodput, NOT P99 supremacy) | GPU rental — **only if E1–E4 survive** | ranking gain doesn't move mean/goodput even in heterogeneous queue |
+| E3 | LightGBM same-recipe 3-seed rerun | **DONE** (`d0ca541`) | Baseline is deterministic w.r.t. seed (std = 0.0000 by construction — no stochastic sampling in recipe); 0.4268 reproduced bit-exact; CI [0.391, 0.461]. "Single-seed" objection void. |
+| E1 | Schema-hash / identity baseline | **DONE** (`064f9ed`) | Identity adds +0.008 (inside noise). Only 45/999 test fingerprints seen in train (1.26 rows/fingerprint) — lookup has nothing to look up. Forced categorical use → τ falls to 0.4131 (memorisation). Identity route dead. |
+| E2 | Cold-start evaluation (two-subset; S1–S4 re-stratification pending, few sec CPU from saved scores) | **DONE** (`f3067ec`) | Text holds on unseen strata: 0.627 (unseen-combo, n=954) / 0.639 (strict unseen-tools, n=333) vs hash/scalar 0.40–0.49, CIs separated. Pre-registered survival criterion PASSED. Control finding: 79/21 decomposition (see spine claim). Checkpoint provenance reproduced to delta 0. |
+| E4 | **Cached two-tower encoder** — now dual-purpose: (i) per-request latency with schema precomputed, at the Decision Service contract; (ii) tests whether un-truncating the schema (median prompt+schema = 781 tok vs 512 cap) recovers schema-specific τ | pending | Kill for deployability leg: per-request cost still ≥ heuristic budget by orders of magnitude (JITServe's 7 ms QRF is the published bar) |
+| E5 | Serving-level validation under a REAL agent trace (mean E2E / goodput, NOT P99 supremacy), replaying OpenCode-through-gateway traces | pending — **GPU rental only after E4 + live-chain trace collection** | ranking gain doesn't move mean/goodput even in heterogeneous queue |
+
+Pre-registered criteria used for E1/E2 (ruled before results were known): primary =
+session-clustered bootstrap 95% CI separation on unseen strata (community-standard);
+secondary = Δτ ≥ 0.05 material-effect bar (self-imposed, stated as such); tie on seen
+stratum = Δτ < 0.02 (expected, supports lookup-table deployment story, does not kill).
 
 **③ GPU: do not rent now.** E1–E4 are local. ④ backend choice: moot until E5.
 
