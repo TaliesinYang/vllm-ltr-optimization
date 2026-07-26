@@ -1,0 +1,277 @@
+{
+  "architecture": {
+    "batch_size": 64,
+    "epochs": 3,
+    "fusion": "MLP 256 hidden over [prompt_emb, schema_emb]",
+    "learning_rate": 0.001,
+    "loss": "pairwise margin, same-generator pairs (train_ranker.build_pair_indices, relative_delta=0.1, margin=1.0)",
+    "towers": "frozen bert-prompt_schema-tier2-seed17 encoder, mean-pooled"
+  },
+  "controlled_contrast": "trunc512 vs full - one encoder, one fusion recipe, one split; truncation is the only thing that moves",
+  "embedding_meta": {
+    "censor_exclusion_counts": {
+      "test": {
+        "censored": 1,
+        "eligible": 999,
+        "failed_or_missing": 0,
+        "pool": 1000
+      },
+      "train": {
+        "censored": 2,
+        "eligible": 3997,
+        "failed_or_missing": 1,
+        "pool": 4000
+      },
+      "validation": {
+        "censored": 0,
+        "eligible": 998,
+        "failed_or_missing": 2,
+        "pool": 1000
+      }
+    },
+    "embedding_dim": 768,
+    "encoder_checkpoint": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-matrix/bert-prompt_schema-tier2-seed17/final",
+    "encoder_sha256_note": "same checkpoint as bert-prompt_schema-tier2-seed17 used by the single-tower baseline; towers are FROZEN (feature extraction), only the fusion head is trained",
+    "inputs": {
+      "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+      "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+      "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+      "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+    },
+    "max_chunks": 8,
+    "max_length": 512,
+    "pooling": "mean over non-pad tokens; full variant additionally means over windows",
+    "rows_per_schema_encode": 1.2666948436179206,
+    "schema_token_length": {
+      "count": 4732,
+      "max": 2954,
+      "median": 691.0,
+      "over_max_length": 3375,
+      "p95": 1382
+    },
+    "schema_version": "e4-embeddings-v1",
+    "split_sizes": {
+      "test": 999,
+      "train": 3997,
+      "validation": 998
+    },
+    "unique_schema_bodies": 4732,
+    "wall_clock_seconds": 1446.311900138855,
+    "windows_per_schema_mean": 1.9429416737109044
+  },
+  "results": {
+    "two_tower_full": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.5901462484729456,
+          0.6632011252207423
+        ],
+        "mean_tau_b": 0.6291116859992926,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.62745748032793,
+          "42": 0.6376826527470671,
+          "73": 0.6221949249228808
+        },
+        "stdev_tau_b": 0.00787526035070559
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.578015871727715,
+          0.6785228477034776
+        ],
+        "mean_tau_b": 0.6193417539727442,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.6299248642170715,
+          "42": 0.619982788078972,
+          "73": 0.6081176096221889
+        },
+        "stdev_tau_b": 0.010917750765863729
+      },
+      "all": {
+        "ci95_seed17": [
+          0.5814567178559047,
+          0.6399788728487709
+        ],
+        "mean_tau_b": 0.6078624972934464,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.6105763218700816,
+          "42": 0.6118239031139129,
+          "73": 0.601187266896345
+        },
+        "stdev_tau_b": 0.005814476793382219
+      }
+    },
+    "two_tower_trunc512": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.5909504884009008,
+          0.6610137263231531
+        ],
+        "mean_tau_b": 0.6282800386425361,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.6264213295227907,
+          "42": 0.6345196660787473,
+          "73": 0.6238991203260703
+        },
+        "stdev_tau_b": 0.005548882564539005
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.5805017854264369,
+          0.6781238438229473
+        ],
+        "mean_tau_b": 0.6305658983232995,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.6329727999674378,
+          "42": 0.63329936451212,
+          "73": 0.6254255304903403
+        },
+        "stdev_tau_b": 0.004454682614289256
+      },
+      "all": {
+        "ci95_seed17": [
+          0.5870259906412233,
+          0.643695986739699
+        ],
+        "mean_tau_b": 0.6145176054124216,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.6153171305966404,
+          "42": 0.6177277795161724,
+          "73": 0.6105079061244522
+        },
+        "stdev_tau_b": 0.003675741195768214
+      }
+    }
+  },
+  "runs": [
+    {
+      "seed": 17,
+      "test_tau_b": 0.6153171305966404,
+      "train_pairs": 3997,
+      "train_seconds": 0.2008650302886963,
+      "validation_tau_b": 0.6382776499030751,
+      "variant": "trunc512"
+    },
+    {
+      "seed": 42,
+      "test_tau_b": 0.6177277795161724,
+      "train_pairs": 3997,
+      "train_seconds": 0.14307904243469238,
+      "validation_tau_b": 0.636095841891313,
+      "variant": "trunc512"
+    },
+    {
+      "seed": 73,
+      "test_tau_b": 0.6105079061244522,
+      "train_pairs": 3997,
+      "train_seconds": 0.1423940658569336,
+      "validation_tau_b": 0.6299254791223737,
+      "variant": "trunc512"
+    },
+    {
+      "seed": 17,
+      "test_tau_b": 0.6105763218700816,
+      "train_pairs": 3997,
+      "train_seconds": 0.14972901344299316,
+      "validation_tau_b": 0.6288916680007207,
+      "variant": "full"
+    },
+    {
+      "seed": 42,
+      "test_tau_b": 0.6118239031139129,
+      "train_pairs": 3997,
+      "train_seconds": 0.1741471290588379,
+      "validation_tau_b": 0.6173306798234213,
+      "variant": "full"
+    },
+    {
+      "seed": 73,
+      "test_tau_b": 0.601187266896345,
+      "train_pairs": 3997,
+      "train_seconds": 0.14220190048217773,
+      "validation_tau_b": 0.6182421190298136,
+      "variant": "full"
+    }
+  ],
+  "schema_version": "e4-fusion-v1",
+  "status": "done",
+  "stratum_definition": {
+    "identity_key": "sha256 over sorted top-level tool names (E1 multi-template parser); the raw tool_schema string is never hashed - 2383 rows embed a per-row timestamp",
+    "partition_check_S1_S2_S3_S4_plus_unstratified": 999,
+    "rows_unstratified_no_tools_new_combination": 0,
+    "sizes": {
+      "S1": 45,
+      "S2": 78,
+      "S3": 543,
+      "S4": 333,
+      "all": 999
+    },
+    "source": "CONTEXT.md glossary, Cold-Start Transfer",
+    "tau_reporting_threshold": 100,
+    "toolless_rows_by_stratum": {
+      "S1": 20,
+      "S2": 0,
+      "S3": 0,
+      "S4": 0,
+      "all": 0
+    },
+    "train_unique_fingerprints": 3162,
+    "train_unique_tool_names": 7690
+  },
+  "ticket": "issue #8 (T4/E4)",
+  "truncation_effect_full_minus_trunc512": {
+    "S1": {
+      "evaluated": false,
+      "n": 45
+    },
+    "S2": {
+      "evaluated": false,
+      "n": 78
+    },
+    "S3": {
+      "ci_overlap": true,
+      "delta_tau_b": 0.0008316473567564486,
+      "full_tau_b": 0.6291116859992926,
+      "n": 543,
+      "trunc512_tau_b": 0.6282800386425361
+    },
+    "S4": {
+      "ci_overlap": true,
+      "delta_tau_b": -0.011224144350555298,
+      "full_tau_b": 0.6193417539727442,
+      "n": 333,
+      "trunc512_tau_b": 0.6305658983232995
+    },
+    "all": {
+      "ci_overlap": true,
+      "delta_tau_b": -0.006655108118975184,
+      "full_tau_b": 0.6078624972934464,
+      "n": 999,
+      "trunc512_tau_b": 0.6145176054124216
+    }
+  },
+  "uncontrolled_comparison_caveat": "the single-tower prompt_schema baseline was fine-tuned end to end; these towers are frozen. A two-tower vs single-tower gap therefore mixes frozen-vs-fine-tuned with two-tower-vs-single-tower and must not be read as a truncation result",
+  "wall_clock_seconds": 14.609307289123535
+}

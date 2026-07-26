@@ -1,0 +1,51 @@
+{
+  "censor_exclusion_counts": {
+    "test": {
+      "censored": 1,
+      "eligible": 999,
+      "failed_or_missing": 0,
+      "pool": 1000
+    },
+    "train": {
+      "censored": 2,
+      "eligible": 3997,
+      "failed_or_missing": 1,
+      "pool": 4000
+    },
+    "validation": {
+      "censored": 0,
+      "eligible": 998,
+      "failed_or_missing": 2,
+      "pool": 1000
+    }
+  },
+  "embedding_dim": 768,
+  "encoder_checkpoint": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-matrix/bert-prompt_schema-tier2-seed17/final",
+  "encoder_sha256_note": "same checkpoint as bert-prompt_schema-tier2-seed17 used by the single-tower baseline; towers are FROZEN (feature extraction), only the fusion head is trained",
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "max_chunks": 8,
+  "max_length": 512,
+  "pooling": "mean over non-pad tokens; full variant additionally means over windows",
+  "rows_per_schema_encode": 1.2666948436179206,
+  "schema_token_length": {
+    "count": 4732,
+    "max": 2954,
+    "median": 691.0,
+    "over_max_length": 3375,
+    "p95": 1382
+  },
+  "schema_version": "e4-embeddings-v1",
+  "split_sizes": {
+    "test": 999,
+    "train": 3997,
+    "validation": 998
+  },
+  "unique_schema_bodies": 4732,
+  "wall_clock_seconds": 1446.311900138855,
+  "windows_per_schema_mean": 1.9429416737109044
+}

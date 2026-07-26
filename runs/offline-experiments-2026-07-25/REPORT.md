@@ -243,3 +243,160 @@ Implementation note: `t1_strata.py` imports `lightgbm` **before** anything that 
 torch. Importing it afterwards loads a second OpenMP runtime and segfaults (SIGSEGV,
 exit 139) on the first `fit`. E3 only worked because its import order happened to be
 correct; this is now a load-bearing comment at the top of the file.
+
+---
+
+# E4 — cached two-tower Ranker (2026-07-26)
+
+Ticket: issue #8. Scripts `e4_embed.py`, `e4_fusion.py`, `e4_latency.py`; artifacts
+`e4-embeddings-meta.json`, `e4-fusion.json`, `e4-latency.json`; logs `e4_embed.log`,
+`e4_fusion.log`, `e4_latency.log`. Compute: 24 min embedding precompute, 15 s fusion
+training, 89 s latency measurement.
+
+## Architecture
+
+Two towers over one **frozen** encoder (the fine-tuned `bert-prompt_schema-tier2-seed17`
+checkpoint, keeping the encoder in-family with the single-tower baseline):
+
+- **prompt tower** — `[USER]\n{prompt}`, per request, 512 cap.
+- **schema tower** — `[TOOLS]\n{tool_schema}`, precomputed per schema body hash.
+- **fusion** — MLP (256 hidden) over `[prompt_emb, schema_emb]`, trained with the *same*
+  pairwise margin loss and same-generator pair construction as the single-tower ranker
+  (`train_ranker.build_pair_indices` / `pairwise_margin_loss`), same fixed split,
+  seeds 17/42/73.
+
+Only the fusion head is trained. This is the "frozen towers + MLP fusion on cached
+embeddings" option the brief pre-authorised; full end-to-end fine-tuning on CPU was not
+attempted and is not needed to answer either question.
+
+## Schema length — why the truncation question is worth asking
+
+| Statistic | Value |
+|---|---:|
+| unique schema bodies | 4732 (over 5994 rows) |
+| median schema tokens | **691** |
+| p95 / max | 1382 / 2954 |
+| **schemas exceeding the 512 cap** | **3375 of 4732 (71%)** |
+| mean 512-token windows per schema | 1.94 |
+
+So the single-tower model really is discarding most of the schema on most requests. The
+hypothesis was well-motivated. It is still wrong — see below.
+
+## Question (ii): does un-truncating the schema recover τ? **No.**
+
+The controlled contrast — one encoder, one fusion recipe, one split, truncation the only
+thing that moves:
+
+| Stratum | n | full | trunc512 | Δτ (full − trunc) | CIs overlap |
+|---|---:|---:|---:|---:|:--:|
+| S1 | 45 | — | — | — | withheld (n<100) |
+| S2 | 78 | — | — | — | withheld (n<100) |
+| S3 | 543 | 0.6291 | 0.6283 | **+0.0008** | yes |
+| S4 | 333 | 0.6193 | 0.6306 | **−0.0112** | yes |
+| all | 999 | 0.6079 | 0.6145 | **−0.0067** | yes |
+
+**Reading the whole schema does not help, and is very slightly worse on S4 and overall.**
+Every interval overlaps; the effect is indistinguishable from zero in both directions.
+
+This kills the truncation-cap hypothesis in the ratified spine claim, which currently
+says the schema's contribution "is capped by the current 512-token truncation, a
+hypothesis E4's cached two-tower encoder tests." E4 tested it. The cap is not the
+binding constraint. That sentence needs to change.
+
+Plausible reading (not tested here): mean-pooling 1.94 windows dilutes the signal about
+as much as truncation discards it, so the tail of a long tool list carries little
+length-relevant information beyond what the first 512 tokens already convey. Testing
+that would need a different pooling rule, not a different cap.
+
+## τ table — two-tower vs the T1 baselines
+
+| Model | S3 (543) | S4 (333) | all (999) |
+|---|---|---|---|
+| BERT prompt_schema single-tower (fine-tuned) | 0.6468 ±.0109 | 0.6393 ±.0081 | **0.6302** ±.0105 |
+| BERT prompt_only single-tower (fine-tuned) | 0.6247 ±.0118 | 0.6230 ±.0085 | 0.5865 ±.0093 |
+| two-tower trunc512 (frozen towers) | 0.6283 ±.0055 | 0.6306 ±.0045 | 0.6145 ±.0037 |
+| two-tower full (frozen towers) | 0.6291 ±.0079 | 0.6193 ±.0109 | 0.6079 ±.0058 |
+| LightGBM grid (baseline of record) | 0.3987 ±.0000 | 0.5008 ±.0000 | 0.4395 ±.0000 |
+
+**The two-tower rows are NOT a controlled comparison against the single-tower rows.**
+Those towers are frozen; the single-tower baselines were fine-tuned end to end. A
+two-tower deficit (−0.016 on all) mixes frozen-vs-fine-tuned with
+two-tower-vs-single-tower and must not be read as a truncation or architecture result.
+The only clean claim from this experiment is the trunc-vs-full contrast above.
+
+Worth noting anyway: two-tower with frozen towers lands within ~0.016 τ of the fine-tuned
+single tower overall, and *above* `prompt_only` — so the architecture is not obviously
+lossy, it simply was not given a fine-tuning budget.
+
+## Question (i): per-request latency at the `/v1/decision` contract
+
+Real HTTP through the unchanged `DecisionApplication`; no contract change. Protocol
+mirrors `scripts/server/measure_decision_latency.sh` — 20 warm-up calls discarded, then
+200 measured samples. Mac CPU, torch intra-op threads = 2 (the deployed default), same
+machine for every row.
+
+| Configuration | conc. | p50 ms | p95 ms | p99 ms | × 15 ms contract | × 7 ms JITServe QRF |
+|---|---:|---:|---:|---:|---:|---:|
+| single-tower (deployed shape) | 8 | 628.8 | 698.3 | 722.0 | **48.1×** | 103.1× |
+| two-tower, schema cached | 8 | 222.1 | 353.3 | 377.2 | **25.1×** | 53.9× |
+| two-tower, cold cache | 8 | 249.1 | 1650.3 | 1950.1 | 130.0× | 278.6× |
+| single-tower | 1 | 114.5 | 117.7 | 119.6 | 8.0× | 17.1× |
+| two-tower, schema cached | 1 | 37.4 | 57.2 | **64.1** | **4.3×** | 9.2× |
+
+Cache accounting: the cached run took 220 hits / 0 misses; the cold run 156 / 64 (64
+distinct schemas, each encoded once). Throughput rose from 12.8 to 33.8 rps at
+concurrency 8.
+
+**Caching the schema tower buys a consistent ~1.9× at p99** (1.91× at concurrency 8,
+1.87× serial). It does not buy an order of magnitude.
+
+### Honest verdict against the pre-registered kill condition
+
+The kill condition for the deployability leg is "per-request cost still ≥ heuristic
+budget by orders of magnitude (JITServe's 7 ms QRF is the published bar)".
+
+Under the protocol this ticket specified (concurrency 8): **25× the contract and 54× the
+QRF bar — the kill condition is met.** E4 does not rescue deployability on CPU.
+
+The serial diagnostic complicates that, and should be stated rather than buried: at
+concurrency 1 the cached two-tower is 64 ms p99, **4.3×** the contract — within one order
+of magnitude. Most of the concurrency-8 gap is CPU contention on this machine (8 handlers
+× 2 torch threads on a laptop), not model cost. So the honest summary is: *the cached
+two-tower is roughly 4× over budget in per-request compute, and the measured 25× is
+hardware contention on top of that.* Whether a dedicated box or GPU closes the remaining
+4× is untested and should not be assumed.
+
+Either way, no pass/fail theater: on the evidence specified, the artifact does not meet
+the 15 ms contract, and it is nowhere near JITServe's 7 ms.
+
+## Thread-safety note
+
+HuggingFace fast tokenizers are not thread-safe — `enable_truncation` mutates shared Rust
+state and concurrent callers can hit `RuntimeError: Already borrowed`. The two-tower
+predictor reproduced this reliably (it tokenizes twice per request), so it uses a
+per-thread tokenizer.
+
+The shipped `BertPredictor` **survived** an 8-way × 24-call probe at this contract. That
+is evidence it does not race easily at this load — **not** evidence that it is
+thread-safe, and it is not being reported as a defect. The single-tower row is measured
+with a `ThreadSafeBertPredictor` subclass for run stability; it differs from the shipped
+class only in tokenizer ownership, not in the model or the scoring path.
+
+## Caveat on the caching premise
+
+In this dataset the schema cache is nearly useless: 4732 unique schema bodies across 5994
+rows, i.e. **1.27 rows per encode**. ToolACE is multi-tenant by construction. The caching
+argument rests entirely on the separate probe finding that schema is byte-identical
+across turns within one real deployment — not on anything measured here. The latency rows
+above assume a warm cache because that is the deployed steady state the probe supports;
+the cold-cache row shows what a miss costs.
+
+## Reproduction
+
+```bash
+V=/Users/alex/develop/vllm-ltr-optimization/.worktrees/final-training-artifacts/.venv/bin/python
+cd /Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25
+$V e4_embed.py      # ~24 min, writes e4-embeddings.pt (gitignored)
+$V e4_fusion.py     # ~15 s
+$V e4_latency.py    # ~90 s
+```

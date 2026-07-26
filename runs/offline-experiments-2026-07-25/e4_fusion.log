@@ -1,0 +1,38 @@
+trunc512  seed17: val=0.6383 test=0.6153 (0.2s)
+trunc512  seed42: val=0.6361 test=0.6177 (0.1s)
+trunc512  seed73: val=0.6299 test=0.6105 (0.1s)
+full      seed17: val=0.6289 test=0.6106 (0.1s)
+full      seed42: val=0.6173 test=0.6118 (0.2s)
+full      seed73: val=0.6182 test=0.6012 (0.1s)
+{
+  "S1": {
+    "evaluated": false,
+    "n": 45
+  },
+  "S2": {
+    "evaluated": false,
+    "n": 78
+  },
+  "S3": {
+    "ci_overlap": true,
+    "delta_tau_b": 0.0008316473567564486,
+    "full_tau_b": 0.6291116859992926,
+    "n": 543,
+    "trunc512_tau_b": 0.6282800386425361
+  },
+  "S4": {
+    "ci_overlap": true,
+    "delta_tau_b": -0.011224144350555298,
+    "full_tau_b": 0.6193417539727442,
+    "n": 333,
+    "trunc512_tau_b": 0.6305658983232995
+  },
+  "all": {
+    "ci_overlap": true,
+    "delta_tau_b": -0.006655108118975184,
+    "full_tau_b": 0.6078624972934464,
+    "n": 999,
+    "trunc512_tau_b": 0.6145176054124216
+  }
+}
+done in 14.6s
