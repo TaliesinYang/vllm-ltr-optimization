@@ -12,7 +12,7 @@
 % [作者手写区]
 % - Fig.4：Tier-2 held-out test tau-b 三 seed 均值；prompt-only/prompt+schema/full-context = 0.587/0.630/0.626；误差线 = 三 seed 极差。
 % - LightGBM：seed 42；test tau-b = 0.426799；不得混用 validation 0.446937。
-% - Full-context seed42 validation tau-b；500/1000/2000/4000 = 0.605171/0.610124/0.637282/0.632051；4000 未继续上升。Bib keys: bert, lightgbm, pars2025.
+% - Full-context seed42 validation tau-b；500/1000/2000/4000 = 0.605171/0.610124/0.637282/0.632051；4000 未继续上升。Bib keys: bert, lightgbm, tao2026ranking.
 \ReportFigure{fig4}{Predictor comparison and data-scale learning curve. BERT error bars: seed min--max (2--3 seeds per group), not a bootstrap CI.}{\texttt{scripts/plot\_final\_report\_figures.py --figure fig5 --output latex\_source/figures/fig4.pdf}}{fig:predictors}
 
 \subsection{E3: Main Serving Result}

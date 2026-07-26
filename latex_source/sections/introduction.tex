@@ -4,7 +4,7 @@
 
 % [作者手写区] 要点: 建立“可预测属性 -> 调度 -> 完成延迟”的动机；引用 Fu-LTR 与 vLLM。可用数据点: 旧环境全负载扫描中最高 2.86x，但低负载与尾部代价必须同时交代。Bib keys: fuLTR2024, vllm2023.
 
-% [作者手写区] 要点: 说明长度预测跨域失效风险；区分聊天域旧证据与 Qwen3.5-9B 工具域新证据，禁止跨环境直接比大小。可用数据点: 旧聊天 predictor tau 0.559 -> 0.315；新 prompt+schema BERT test tau-b=0.642329。Bib keys: pars2025, tie2026, egtp2026.
+% [作者手写区] 要点: 说明长度预测跨域失效风险；区分聊天域旧证据与 Qwen3.5-9B 工具域新证据，禁止跨环境直接比大小。可用数据点: 旧聊天 predictor tau 0.559 -> 0.315；新 prompt+schema BERT test tau-b=0.642329。Bib keys: tao2026ranking, tie2026, egtp2026.
 
 % [作者手写区] 要点: 说明 gateway 是可靠性判决与 fail-open 注入的系统接缝；真实链路 client -> gateway -> decision service -> vLLM，prediction_reliable 合同为 int 0/1。Bib keys: beyondPrediction2026, agentix2026, vllm2023.
 
