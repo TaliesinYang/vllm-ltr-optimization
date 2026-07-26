@@ -169,8 +169,12 @@ class DecisionApplication:
             return None
         tool_schema = predictor_input.metadata.get("tool_schema_text")
         if not isinstance(tool_schema, str) or not tool_schema:
-            # Nothing to classify; let the predictor decide (and fail) as before.
-            return None
+            # Zero-tool request (no tools array, no schema text, no system-message
+            # fallback). The gate's own rule applies: an unclassifiable request is
+            # never vouched for. Abstain with the unknown confidence instead of
+            # letting the predictor crash into a 503 fail-open — 33% of real agent
+            # traffic is zero-tool (probes/agent-traces-2026-07-26).
+            return self._gate_vocabulary.unknown_confidence                 if self._gate_vocabulary.unknown_confidence <= 0.0 else None
         confidence = self._gate_vocabulary.confidence(tool_schema)
         return confidence if confidence <= 0.0 else None
 

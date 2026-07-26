@@ -718,3 +718,27 @@ def test_health_endpoint_reflects_readiness(
         assert response == {"schema_version": "1.0", "ready": True}
     else:
         assert response["error_code"] == "not_ready"
+
+
+def test_zero_tool_request_abstains_instead_of_crashing(tmp_path) -> None:
+    # 33% of real agent traffic carries no tools at all (title-gen etc.).
+    # Before this fix the predictor raised on the missing schema -> 503
+    # internal_error -> gateway fail-open on a third of live traffic.
+    predictor = ExplodingPredictor()
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="stub-exploding-v1",
+        feature_variant="prompt_schema_history_workflow",
+        gate_vocabulary=gate_vocabulary(tmp_path),
+    )
+    request = valid_request()
+    request.pop("tools", None)
+    request.pop("tool_schema_text", None)
+    request["messages"] = [{"role": "user", "content": "Generate a title"}]
+
+    response = app.decide(request)
+
+    assert predictor.calls == 0
+    assert response["prediction_reliable"] is False
+    assert response["reliability_probability"] == 0.0
+    assert "estimated_tokens" not in response
