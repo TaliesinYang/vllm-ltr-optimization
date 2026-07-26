@@ -8,9 +8,11 @@ from .predictor import Prediction
 
 POLICIES = (
     "fcfs",
+    "policy_fcfs",
     "pure_ltr",
     "tail_safe",
     "gated_hybrid",
+    "gated_rule_c",
     "prompt_sjf",
     "ltr_aging",
 )
@@ -96,6 +98,56 @@ def _gated_score(
     return _tail_safe_score(item, now_s, config)
 
 
+def _is_ranker_eligible(item: RequestContext, config: PolicyConfig) -> bool:
+    """Whether the Reliability Gate vouches for this request's prediction.
+
+    Under Rule C (T5) the gate assigns confidence 0.0 to strata it cannot
+    measure, so this is exactly "did the gate abstain".
+    """
+    return (
+        not item.prediction.ood
+        and item.prediction.confidence >= config.confidence_threshold
+    )
+
+
+def _slot_preserving_rule_c(
+    waiting: list[RequestContext], config: PolicyConfig
+) -> list[RequestContext]:
+    """Reorder ONLY the requests the Ranker is eligible for.
+
+    Start from the FCFS queue. Requests the gate abstained on keep the slots
+    arrival order gave them; the trusted requests are re-sorted among
+    themselves and dropped back into the slots trusted requests already held.
+
+    This is what stops a trusted request from overtaking an older abstained
+    one: uncertainty about a request can never cost it its place in line, so
+    the policy cannot starve traffic by failing to understand it. Degenerate
+    cases fall out for free - no trusted requests means pure FCFS, all trusted
+    means pure LTR order.
+    """
+    fcfs = sorted(waiting, key=lambda item: (item.arrival_time_s, item.request_id))
+    trusted_slots = [
+        index
+        for index, item in enumerate(fcfs)
+        if _is_ranker_eligible(item, config)
+    ]
+    if len(trusted_slots) < 2:
+        # Nothing to permute; ordering is already FCFS.
+        return fcfs
+    reordered = sorted(
+        (fcfs[index] for index in trusted_slots),
+        key=lambda item: (
+            item.prediction.score,
+            item.arrival_time_s,
+            item.request_id,
+        ),
+    )
+    result = list(fcfs)
+    for slot, item in zip(trusted_slots, reordered):
+        result[slot] = item
+    return result
+
+
 def order_waiting_requests(
     waiting: list[RequestContext],
     policy: str,
@@ -107,6 +159,8 @@ def order_waiting_requests(
         raise ValueError(f"unknown policy: {policy}")
     resolved_config = config or PolicyConfig()
     queue_depth = len(waiting)
+    if policy == "gated_rule_c":
+        return _slot_preserving_rule_c(waiting, resolved_config)
     if policy == "prompt_sjf" and any(item.prompt_token_count <= 0 for item in waiting):
         return sorted(
             waiting,
@@ -114,7 +168,7 @@ def order_waiting_requests(
         )
 
     def key(item: RequestContext) -> tuple[float, float, str]:
-        if policy == "fcfs":
+        if policy in ("fcfs", "policy_fcfs"):
             score = item.arrival_time_s
         elif policy == "pure_ltr":
             score = item.prediction.score

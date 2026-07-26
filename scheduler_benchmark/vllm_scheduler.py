@@ -219,6 +219,30 @@ class GatedHybridScheduler(_PolicyScheduler):
     policy_name = "gated_hybrid"
 
 
+class GatedRuleCScheduler(_PolicyScheduler):
+    """Slot-preserving gating: only Ranker-eligible requests are reordered.
+
+    Abstained requests keep the slot arrival order gave them, so uncertainty
+    about a request can never cost it its place in line.
+    """
+
+    policy_name = "gated_rule_c"
+
+
+class PolicyFCFS(_PolicyScheduler):
+    """FCFS on the custom scheduler base, as an algorithmic control.
+
+    StockFCFSShim inherits vLLM's stock Scheduler, so comparing a custom policy
+    against it confounds "this ordering is better" with "these are different
+    scheduler code paths". This class runs arrival order through the same
+    _PolicyScheduler machinery as every other custom policy, which isolates the
+    ordering as the only difference.
+    """
+
+    policy_name = "policy_fcfs"
+    uses_predictor = False
+
+
 class PromptLengthSJFScheduler(_PolicyScheduler):
     """Prompt-length SJF with zero predictor inference overhead."""
 
@@ -232,9 +256,11 @@ class LTRAgingScheduler(_PolicyScheduler):
 
 SCHEDULER_CLASSES = {
     "fcfs": StockFCFSShim,
+    "policy_fcfs": PolicyFCFS,
     "pure_ltr": PureLTRScheduler,
     "tail_safe": TailSafeScheduler,
     "gated_hybrid": GatedHybridScheduler,
+    "gated_rule_c": GatedRuleCScheduler,
     "prompt_sjf": PromptLengthSJFScheduler,
     "ltr_aging": LTRAgingScheduler,
 }

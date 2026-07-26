@@ -46,12 +46,17 @@ def test_stock_fcfs_shim_does_not_override_scheduler_behavior() -> None:
     assert "add_request" not in StockFCFSShim.__dict__
 
 
-def test_scheduler_class_roster_matches_six_benchmark_policies() -> None:
+def test_scheduler_class_roster_matches_the_benchmark_policies() -> None:
     assert set(SCHEDULER_CLASSES) == {
         "fcfs",
+        # FCFS on the custom base, so ordering can be compared without the
+        # stock-vs-custom scheduler code-path confound.
+        "policy_fcfs",
         "pure_ltr",
         "tail_safe",
         "gated_hybrid",
+        # Slot-preserving gating (Rule C).
+        "gated_rule_c",
         "prompt_sjf",
         "ltr_aging",
     }
