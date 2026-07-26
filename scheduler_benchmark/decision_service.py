@@ -6,11 +6,14 @@ import json
 import threading
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
 from scheduler_benchmark.contracts import MAX_ESTIMATED_TOKENS
 from scheduler_benchmark.predictor import Predictor, PredictorInput
 from scheduler_benchmark.rank_quantiles import RankQuantileMapper
+
+if TYPE_CHECKING:
+    from scheduler_benchmark.tool_vocabulary import GateVocabulary
 
 SCHEMA_VERSION = "1.0"
 DEFAULT_RELIABILITY_THRESHOLD = 0.8
@@ -83,6 +86,7 @@ class DecisionApplication:
         max_concurrency: int = 8,
         quantile_mapper: RankQuantileMapper | None = None,
         quantile_manifest_sha256: str | None = None,
+        gate_vocabulary: "GateVocabulary | None" = None,
     ) -> None:
         if feature_variant not in FEATURE_VARIANTS:
             raise ValueError(f"unknown feature variant: {feature_variant}")
@@ -105,6 +109,16 @@ class DecisionApplication:
         self._capacity = threading.BoundedSemaphore(max_concurrency)
         self._quantile_mapper = quantile_mapper
         self._quantile_manifest_sha256 = quantile_manifest_sha256
+        # Gate-first short-circuit. When the predictor carries a training
+        # vocabulary, requests whose stratum earns zero confidence are answered
+        # without running the model: the answer cannot depend on the score,
+        # because an unreliable decision never reports estimated_tokens.
+        # Predictors without a vocabulary keep the original flow exactly.
+        self._gate_vocabulary = (
+            gate_vocabulary
+            if gate_vocabulary is not None
+            else getattr(predictor, "gate_vocabulary", None)
+        )
 
     @property
     def is_ready(self) -> bool:
@@ -114,10 +128,26 @@ class DecisionApplication:
         if not self._ready:
             raise DecisionError(503, "not_ready", retryable=True)
         validated = _validate_request(request)
+        predictor_input = _predictor_input(validated)
+        missing_optional = _has_missing_optional_features(
+            validated, self._feature_variant
+        )
+
+        abstained = self._abstain_confidence(predictor_input)
+        if abstained is not None:
+            # No model call, no capacity slot: the gate answers on its own.
+            return self._build_response(
+                validated,
+                confidence=abstained,
+                ood=False,
+                score=None,
+                missing_optional=missing_optional,
+            )
+
         if not self._capacity.acquire(blocking=False):
             raise DecisionError(429, "rate_limited", retryable=True)
         try:
-            prediction = self._predictor.predict(_predictor_input(validated))
+            prediction = self._predictor.predict(predictor_input)
         except DecisionError:
             raise
         except Exception as exc:
@@ -125,12 +155,37 @@ class DecisionApplication:
         finally:
             self._capacity.release()
 
-        missing_optional = _has_missing_optional_features(
-            validated, self._feature_variant
-        )
-        reason = _reason_code(
-            ood=prediction.ood,
+        return self._build_response(
+            validated,
             confidence=prediction.confidence,
+            ood=prediction.ood,
+            score=prediction.score,
+            missing_optional=missing_optional,
+        )
+
+    def _abstain_confidence(self, predictor_input: PredictorInput) -> float | None:
+        """The gate's confidence when it is zero, else None to run the model."""
+        if self._gate_vocabulary is None:
+            return None
+        tool_schema = predictor_input.metadata.get("tool_schema_text")
+        if not isinstance(tool_schema, str) or not tool_schema:
+            # Nothing to classify; let the predictor decide (and fail) as before.
+            return None
+        confidence = self._gate_vocabulary.confidence(tool_schema)
+        return confidence if confidence <= 0.0 else None
+
+    def _build_response(
+        self,
+        validated: Mapping[str, object],
+        *,
+        confidence: float,
+        ood: bool,
+        score: float | None,
+        missing_optional: bool,
+    ) -> dict[str, object]:
+        reason = _reason_code(
+            ood=ood,
+            confidence=confidence,
             missing_optional=missing_optional,
             threshold=self._reliability_threshold,
         )
@@ -138,8 +193,8 @@ class DecisionApplication:
         response: dict[str, object] = {
             "schema_version": SCHEMA_VERSION,
             "decision_id": validated["decision_id"],
-            "reliability_probability": prediction.confidence,
-            "ood_score": 1.0 if prediction.ood else 0.0,
+            "reliability_probability": confidence,
+            "ood_score": 1.0 if ood else 0.0,
             "prediction_reliable": is_reliable,
             "predictor_revision": self._predictor_revision,
             "feature_variant": self._feature_variant,
@@ -156,12 +211,12 @@ class DecisionApplication:
                 }
             )
         if is_reliable:
+            if score is None:
+                raise ValueError("a reliable decision requires a predictor score")
             if self._quantile_mapper is None:
-                response["estimated_tokens"] = _score_to_estimated_tokens(
-                    prediction.score
-                )
+                response["estimated_tokens"] = _score_to_estimated_tokens(score)
             else:
-                mapped = self._quantile_mapper.map_score(prediction.score)
+                mapped = self._quantile_mapper.map_score(score)
                 response["estimated_tokens"] = max(
                     1,
                     min(

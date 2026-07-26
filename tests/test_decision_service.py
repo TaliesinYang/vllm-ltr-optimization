@@ -87,6 +87,194 @@ def make_app(
     )
 
 
+class ExplodingPredictor:
+    """Fails the test if the gate lets an abstained request reach the model."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def predict(self, predictor_input):  # noqa: ANN001 - protocol shape
+        self.calls += 1
+        raise AssertionError("predictor must not run for an abstained stratum")
+
+
+def gate_vocabulary(tmp_path):
+    from scheduler_benchmark.tool_vocabulary import GateVocabulary, toolset_fingerprint
+
+    path = tmp_path / "gate_confidence.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "gate-confidence-v1",
+                "confidence_by_stratum": {"S1": 0.0, "S2": 0.0, "S3": 0.25, "S4": 0.5},
+                "unknown_confidence": 0.0,
+                "fingerprint_prefix_length": 32,
+                "train_fingerprints": [
+                    toolset_fingerprint(tool_schema("alpha", "beta"))[:32]
+                ],
+                "train_tool_names": ["alpha", "beta"],
+            }
+        )
+    )
+    return GateVocabulary.from_artifact(path)
+
+
+def tool_schema(*names: str) -> str:
+    tools = ", ".join(f'{{"name": "{name}", "description": "d"}}' for name in names)
+    return (
+        "You are an expert in composing functions.\n"
+        "Here is a list of functions in JSON format that you can invoke:\n"
+        f"[{tools}]. \n"
+    )
+
+
+def gated_request(schema: str) -> dict[str, object]:
+    request = valid_request()
+    request["tool_schema_text"] = schema
+    return request
+
+
+def test_abstained_stratum_short_circuits_without_running_the_predictor(
+    tmp_path,
+) -> None:
+    predictor = ExplodingPredictor()
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="stub-exploding-v1",
+        feature_variant="prompt_schema_history_workflow",
+        gate_vocabulary=gate_vocabulary(tmp_path),
+    )
+
+    # S1: the tool-set combination is in the training vocabulary -> confidence 0.0
+    response = app.decide(gated_request(tool_schema("alpha", "beta")))
+
+    assert predictor.calls == 0
+    assert response["prediction_reliable"] is False
+    assert response["reason_code"] == "low_reliability"
+    assert response["reliability_probability"] == 0.0
+    assert "estimated_tokens" not in response
+
+
+@pytest.mark.parametrize(
+    "schema",
+    (
+        pytest.param(tool_schema("alpha"), id="S2_new_combination"),
+        pytest.param(tool_schema(), id="unknown_empty_tool_list"),
+        pytest.param("raw unparseable schema", id="unknown_unparseable"),
+    ),
+)
+def test_every_zero_confidence_stratum_short_circuits(tmp_path, schema) -> None:
+    predictor = ExplodingPredictor()
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="stub-exploding-v1",
+        feature_variant="prompt_schema_history_workflow",
+        gate_vocabulary=gate_vocabulary(tmp_path),
+    )
+
+    response = app.decide(gated_request(schema))
+
+    assert predictor.calls == 0
+    assert response["reliability_probability"] == 0.0
+    assert response["prediction_reliable"] is False
+
+
+@pytest.mark.parametrize(
+    ("schema", "confidence"),
+    (
+        pytest.param(tool_schema("alpha", "gamma"), 0.25, id="S3_partial_new"),
+        pytest.param(tool_schema("gamma", "delta"), 0.5, id="S4_all_new"),
+    ),
+)
+def test_trusted_strata_still_run_the_predictor(tmp_path, schema, confidence) -> None:
+    app = DecisionApplication(
+        predictor=ConstantPredictor(0.25, confidence, False),
+        predictor_revision="stub-constant-v1",
+        feature_variant="prompt_schema_history_workflow",
+        gate_vocabulary=gate_vocabulary(tmp_path),
+        reliability_threshold=0.2,
+    )
+
+    response = app.decide(gated_request(schema))
+
+    assert response["reliability_probability"] == confidence
+    assert response["prediction_reliable"] is True
+    assert response["estimated_tokens"] >= 1
+
+
+def test_default_threshold_marks_every_rule_c_confidence_unreliable(tmp_path) -> None:
+    """Operational tripwire: Rule C tops out at 0.6233, the default gate is 0.8.
+
+    A deployment that keeps the default threshold runs BERT on S3/S4 and then
+    discards the answer. Serving must lower --reliability-threshold; this test
+    exists so that requirement cannot be forgotten silently.
+    """
+    app = DecisionApplication(
+        predictor=ConstantPredictor(0.25, 0.6233, False),
+        predictor_revision="stub-constant-v1",
+        feature_variant="prompt_schema_history_workflow",
+        gate_vocabulary=gate_vocabulary(tmp_path),
+    )
+
+    response = app.decide(gated_request(tool_schema("gamma", "delta")))
+
+    assert response["reason_code"] == "low_reliability"
+    assert response["prediction_reliable"] is False
+
+
+def test_short_circuit_response_is_contract_identical_to_the_predictor_path(
+    tmp_path,
+) -> None:
+    """The abstain path must not invent or drop a single field."""
+    schema = tool_schema("alpha", "beta")
+    gated = DecisionApplication(
+        predictor=ExplodingPredictor(),
+        predictor_revision="stub-v1",
+        feature_variant="prompt_schema_history_workflow",
+        gate_vocabulary=gate_vocabulary(tmp_path),
+    )
+    ungated = DecisionApplication(
+        predictor=ConstantPredictor(0.25, 0.0, False),
+        predictor_revision="stub-v1",
+        feature_variant="prompt_schema_history_workflow",
+    )
+
+    assert gated.decide(gated_request(schema)) == ungated.decide(gated_request(schema))
+
+
+def test_gate_vocabulary_is_auto_wired_from_the_predictor(tmp_path) -> None:
+    """BertPredictor exposes .gate_vocabulary; serving must pick it up unasked.
+
+    Without this the short-circuit would silently never fire in production,
+    because run_decision_service does not pass gate_vocabulary explicitly.
+    """
+
+    class PredictorWithVocabulary(ExplodingPredictor):
+        gate_vocabulary = None  # replaced per instance below
+
+    predictor = PredictorWithVocabulary()
+    predictor.gate_vocabulary = gate_vocabulary(tmp_path)
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="stub-v1",
+        feature_variant="prompt_schema_history_workflow",
+    )
+
+    response = app.decide(gated_request(tool_schema("alpha", "beta")))
+
+    assert predictor.calls == 0
+    assert response["prediction_reliable"] is False
+
+
+def test_without_a_gate_vocabulary_behaviour_is_unchanged() -> None:
+    app = make_app(confidence=0.0)
+
+    response = app.decide(valid_request())
+
+    assert response["reliability_probability"] == 0.0
+    assert response["prediction_reliable"] is False
+
+
 def test_reliable_prediction_echoes_decision_id_and_estimate() -> None:
     response = make_app().decide(valid_request())
 

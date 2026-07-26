@@ -581,3 +581,81 @@ at HEAD, where it fails identically. It belongs to the report track, not the ser
 - No serving-benchmark claim is made. Under Rule C, S1+S2 traffic fails any positive
   reliability threshold and takes the Fallback path (~12% of the offline test split);
   Fallback load should be sized before deployment.
+
+---
+
+# T8 — gate-first short-circuit (2026-07-26)
+
+Ticket: issue #12. `DecisionApplication.decide` now classifies the request's Cold-Start
+stratum **before** calling the predictor, and answers directly when the stratum earns zero
+confidence. Contract unchanged.
+
+## The inversion, and why it is safe
+
+The original flow computed the prediction first and the reason code second. For the
+abstain path that order is now inverted. This is sound because an unreliable decision
+never reports `estimated_tokens` — so the response for a zero-confidence stratum cannot
+depend on the score, and skipping the model changes nothing a caller can observe.
+
+The trusted path (S3/S4) is untouched: same capacity semaphore, same predictor call, same
+response construction. Both paths build their response through one shared
+`_build_response`, so the two cannot drift apart in shape.
+
+Abstained requests also skip the concurrency semaphore entirely — they consume no
+predictor capacity, which is the point.
+
+## Wiring
+
+`DecisionApplication` takes an optional `gate_vocabulary`. When not passed, it picks one up
+from the predictor via `getattr(predictor, "gate_vocabulary", None)`; `BertPredictor` now
+exposes exactly that. Predictors without a vocabulary — `ConstantPredictor`,
+`GatewayMetadataPredictor`, the stubs — keep the original flow bit for bit.
+
+Sharing the predictor's own vocabulary object (rather than a second copy) is what makes
+the short-circuit and the predictor's own confidence agree by construction.
+
+## Tests
+
+TDD: the red test used a predictor stub that raises `AssertionError` if `predict` is ever
+called, then asserted an S1 request still returns a well-formed abstain decision. Seven
+tests failed before implementation.
+
+Coverage added:
+
+- S1 abstains without touching the predictor
+- S2, empty tool list, and unparseable schema all abstain (parametrised)
+- S3 and S4 still call the predictor and still produce `estimated_tokens`
+- the abstain response is **identical** to what the old predictor path produced for a
+  confidence-0.0 prediction (compared field-for-field against an ungated application)
+- the vocabulary is auto-wired from the predictor — without this the short-circuit would
+  silently never fire in production, since `run_decision_service` passes no vocabulary
+- no vocabulary present ⇒ behaviour unchanged
+
+```
+tests/test_decision_service.py + tests/test_predictor.py    55 passed
+full suite                                                 271 passed, 1 skipped, 1 failed
+```
+
+The single failure remains `test_final_report_figures.py::test_latex_review_contracts_are_recorded`,
+pre-existing and unrelated (verified failing identically in a clean worktree at HEAD
+during T6).
+
+## Operational tripwire found while testing
+
+`DEFAULT_RELIABILITY_THRESHOLD` is **0.8**, and Rule C's highest confidence is **0.6233**.
+A deployment that keeps the default marks *every* request unreliable — including S3/S4,
+which would still pay full BERT cost and then have the answer discarded.
+
+`scripts/run_decision_service.py` already exposes `--reliability-threshold` and its help
+text records this, so the requirement is known; a test now pins it
+(`test_default_threshold_marks_every_rule_c_confidence_unreliable`) so it cannot be
+forgotten silently. **Serving must set `--reliability-threshold <= 0.5787`** for the
+Ranker to contribute anything at all.
+
+## Expected effect
+
+Per the real agent trace, ~33% of requests carry zero tools (→ unknown → abstain) and
+~12% of tool-bearing traffic is S1/S2. Those requests now cost a vocabulary lookup
+(microsecond-scale hashing and set membership) instead of a BERT forward pass. No
+serving-benchmark claim is made here — this section states the mechanism, not a measured
+end-to-end saving.

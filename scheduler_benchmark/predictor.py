@@ -95,6 +95,15 @@ class BertPredictor:
         self._model.to(self._device)
         self._model.eval()
 
+    @property
+    def gate_vocabulary(self) -> "GateVocabulary":
+        """Exposed so the Decision Service can classify before calling the model.
+
+        Sharing this object rather than a copy is what makes the gate's
+        short-circuit and this predictor's confidence agree by construction.
+        """
+        return self._vocabulary
+
     def predict(self, predictor_input: PredictorInput) -> Prediction:
         started = time.perf_counter()
         prompt = _required_metadata_text(predictor_input, "prompt_text")
