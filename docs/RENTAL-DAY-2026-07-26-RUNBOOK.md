@@ -36,7 +36,7 @@ build_gateway (feat/ltr-decision-adapter, pin 888fba9+)
 launch decision service:
   --predictor bert --checkpoint checkpoints_best_predictor \
   --quantile-manifest <built from labels-merged, 3 exclusions declared> \
-  --reliability-threshold 0.5 --device cuda --batch-max 8 --batch-window-ms 3   # T9 flags
+  --reliability-threshold 0.5 --device cuda --batch-max 8 --batch-window-ms 3   # T9 flags (fp16 auto on CUDA; expect p50 ~38ms, p99 ~170ms cold / ~53ms warm at conc 8)
 measure_decision_latency (conc 8, 200 samples) — expect p99 well under 100ms on GPU
 launch gateway (LTR_DECISION_ENDPOINT, timeout per manifest)
 build_server_workloads --trace-calibrated (T10) — manifest printed, verify params vs
