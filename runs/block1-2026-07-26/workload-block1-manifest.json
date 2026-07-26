@@ -1,0 +1,69 @@
+{
+  "calibration": {
+    "completion_tokens_p50": 42.0,
+    "completion_tokens_p90": 143.0,
+    "completion_tokens_p99": 328.0,
+    "distinct_tool_schema_hashes": 3,
+    "note": "every parameter below is measured from the trace at build time; none is hardcoded",
+    "request_count": 75,
+    "source_measurement": "/Users/alex/develop/vllm-ltr-optimization/probes/agent-traces-2026-07-26/agent_trace_vanilla.jsonl.gz",
+    "trace_sha256": "a530c4ea54616002cbde6a72d3248d9fb0bffa584ad9be6610284bacf3d10696",
+    "turn_depth_max": 10,
+    "turn_depth_p50": 3.0,
+    "zero_tool_fraction": 0.3333333333333333
+  },
+  "calibration_targets_vs_realized": {
+    "completion_max": {
+      "trace": 328,
+      "workload": 328
+    },
+    "completion_p50": {
+      "trace": 42.0,
+      "workload": 42.0
+    },
+    "completion_p99": {
+      "note": "the trace's p99 at n=75 IS its single largest observation, so it is one data point rather than a tail estimate. Lengths are resampled from the full empirical distribution, so the workload's own p99 varies with the draw; compare completion_max and tail_count below to confirm the tail is present rather than truncated.",
+      "trace": 328.0,
+      "workload": 229.0
+    },
+    "completion_tail_count_at_trace_max": {
+      "of_rows": 2000,
+      "workload": 19
+    },
+    "turn_depth_p50": {
+      "trace": 3.0,
+      "workload": 3.0
+    },
+    "zero_tool_fraction": {
+      "trace": 0.3333333333333333,
+      "workload": 0.327
+    }
+  },
+  "deterministic": "same seed and same trace file reproduce this file byte for byte",
+  "multi_tenancy": {
+    "client_count": 32,
+    "clients_per_stratum": {
+      "S1": 8,
+      "S2": 8,
+      "S3": 8,
+      "S4": 8
+    },
+    "note": "NOT trace-derived. The trace was a single client with 3 schemas, which cannot characterise a shared queue. Client count and stratum spread are a design choice so the queue exercises all four Cold-Start strata.",
+    "schema_constant_per_client": true
+  },
+  "output": "runs/block1-2026-07-26/workload-block1.jsonl",
+  "rows": {
+    "real_trace": 75,
+    "synthetic": 2000,
+    "synthetic_by_stratum": {
+      "S1": 322,
+      "S2": 347,
+      "S3": 337,
+      "S4": 340,
+      "unknown": 654
+    },
+    "total": 2075
+  },
+  "schema_version": "block1-workload-v1",
+  "seed": 42
+}
