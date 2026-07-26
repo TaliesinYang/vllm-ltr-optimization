@@ -157,3 +157,42 @@
   year      = {2017},
   url       = {https://proceedings.neurips.cc/paper/2017/hash/6449f44a102fde848669bdd9eb6b76fa-Abstract.html}
 }
+
+@inproceedings{qin2024toolllm,
+  title     = {{ToolLLM}: Facilitating Large Language Models to Master 16000+ Real-world {APIs}},
+  author    = {Qin, Yujia and Liang, Shihao and Ye, Yining and Zhu, Kunlun and Yan, Lan and
+               Lu, Yaxi and Lin, Yankai and Cong, Xin and Tang, Xiangru and Qian, Bill and
+               Zhao, Sihan and Hong, Lauren and Tian, Runchu and Xie, Ruobing and Zhou, Jie and
+               Gerstein, Mark and Li, Dahai and Liu, Zhiyuan and Sun, Maosong},
+  booktitle = {Proceedings of the 12th International Conference on Learning Representations (ICLR)},
+  year      = {2024}
+}
+% Verified 2026-07-26 from PDF: I1/I2/I3 x Inst./Tool/Cat. splits (S3.2) = published
+% precedent for tool-novelty-stratified evaluation within one workload family.
+% CAVEAT: their metric is Pass/Win Rate (task quality), NOT length ranking — precedent
+% licenses the experimental DESIGN, not the metric. Say so in prose.
+
+@inproceedings{patil2024gorilla,
+  title     = {Gorilla: Large Language Model Connected with Massive {APIs}},
+  author    = {Patil, Shishir G. and Zhang, Tianjun and Wang, Xin and Gonzalez, Joseph E.},
+  booktitle = {Advances in Neural Information Processing Systems 37 (NeurIPS)},
+  year      = {2024}
+}
+% TRAP (verified): Gorilla has NO unseen-API split (random holdout only); its "zero-shot"
+% means NO RETRIEVER, not unseen APIs. Do not cite it for novelty-stratified eval.
+% Safe: test-time API documentation changes (S4.3); or cite ToolLLM S3.3 for APIBench-as-OOD.
+
+@inproceedings{patil2025bfcl,
+  title     = {The {Berkeley} Function Calling Leaderboard ({BFCL}): From Tool Use to Agentic
+               Evaluation of Large Language Models},
+  author    = {Patil, Shishir G. and Mao, Huanzhi and Yan, Fanjia and Ji, Charlie Cheng-Jie and
+               Suresh, Vishnu and Stoica, Ion and Gonzalez, Joseph E.},
+  booktitle = {Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {267},
+  pages     = {48371--48392},
+  year      = {2025},
+  publisher = {PMLR}
+}
+% Verified 2026-07-26: "Live" renamed "Crowd-sourced" in the ICML paper (S3.2); its axis is
+% contamination control, not graded tool novelty — separate sentence from the ToolLLM claim.
