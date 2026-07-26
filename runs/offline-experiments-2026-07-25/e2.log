@@ -1,0 +1,52 @@
+{
+  "identity_key": "sha256 of sorted top-level tool-name list",
+  "sizes": {
+    "all": 999,
+    "seen_combination": 45,
+    "unseen_combination": 954,
+    "unseen_tools": 333
+  },
+  "test_rows_advertising_no_tools": 20,
+  "train_unique_fingerprints": 3162,
+  "train_unique_tool_names": 7690,
+  "unseen_tools_nested_in_unseen_combination": true
+}
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 17075.92it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (543 > 512). Running this sequence through the model will result in indexing errors
+scored bert-prompt_schema-seed17 in 81.6s
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 34428.68it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (543 > 512). Running this sequence through the model will result in indexing errors
+scored bert-prompt_schema-seed42 in 79.4s
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 25229.08it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (543 > 512). Running this sequence through the model will result in indexing errors
+scored bert-prompt_schema-seed73 in 79.8s
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 26464.56it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (547 > 512). Running this sequence through the model will result in indexing errors
+scored bert-prompt_only-seed17 in 48.2s
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 23383.12it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (547 > 512). Running this sequence through the model will result in indexing errors
+scored bert-prompt_only-seed42 in 48.1s
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 24695.50it/s]
+[transformers] Token indices sequence length is longer than the specified maximum sequence length for this model (547 > 512). Running this sequence through the model will result in indexing errors
+scored bert-prompt_only-seed73 in 47.9s
+bert_prompt_schema           all                  n= 999 tau=0.6302+-0.0105
+bert_prompt_schema           seen_combination     n=  45 tau=0.6012+-0.0357
+bert_prompt_schema           unseen_combination   n= 954 tau=0.6274+-0.0071
+bert_prompt_schema           unseen_tools         n= 333 tau=0.6393+-0.0081
+bert_prompt_only             all                  n= 999 tau=0.5865+-0.0093
+bert_prompt_only             seen_combination     n=  45 tau=0.2385+-0.0576
+bert_prompt_only             unseen_combination   n= 954 tau=0.6129+-0.0060
+bert_prompt_only             unseen_tools         n= 333 tau=0.6230+-0.0085
+lightgbm_scalar              all                  n= 999 tau=0.4268+-0.0000
+lightgbm_scalar              seen_combination     n=  45 tau=0.6533+-0.0000
+lightgbm_scalar              unseen_combination   n= 954 tau=0.4041+-0.0000
+lightgbm_scalar              unseen_tools         n= 333 tau=0.4842+-0.0000
+schema_hash_categorical      all                  n= 999 tau=0.4268+-0.0000
+schema_hash_categorical      seen_combination     n=  45 tau=0.6533+-0.0000
+schema_hash_categorical      unseen_combination   n= 954 tau=0.4041+-0.0000
+schema_hash_categorical      unseen_tools         n= 333 tau=0.4842+-0.0000
+schema_hash_lookup           all                  n= 999 tau=0.4348+-0.0069
+schema_hash_lookup           seen_combination     n=  45 tau=0.5823+-0.0231
+schema_hash_lookup           unseen_combination   n= 954 tau=0.4158+-0.0072
+schema_hash_lookup           unseen_tools         n= 333 tau=0.4872+-0.0026
+done in 392.0s

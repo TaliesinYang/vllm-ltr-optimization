@@ -1,0 +1,439 @@
+{
+  "censor_exclusion_counts": {
+    "test": {
+      "censored": 1,
+      "eligible": 999,
+      "failed_or_missing": 0,
+      "pool": 1000
+    },
+    "train": {
+      "censored": 2,
+      "eligible": 3997,
+      "failed_or_missing": 1,
+      "pool": 4000
+    },
+    "validation": {
+      "censored": 0,
+      "eligible": 998,
+      "failed_or_missing": 2,
+      "pool": 1000
+    }
+  },
+  "checkpoint_root": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-matrix",
+  "checkpoint_sha256": {
+    "bert_prompt_only_seed17": "472e8c795ccee9d71919ec098ddb4eb7019556ce359917dab29e7d6051689ba5",
+    "bert_prompt_only_seed42": "e1eca0ae6c1cfb516a7119d8f86298fe4d723c87ecf13f93b3ccd7188e879e0e",
+    "bert_prompt_only_seed73": "d005911a77dc099cf9849b4fda9c20a63674e49cf33087e5f014c422ce3b3ddb",
+    "bert_prompt_schema_seed17": "9755fd9f510dd39e85f2dfd8aefb0b6fc76725cdc43920e42df8304daa6b4740",
+    "bert_prompt_schema_seed42": "49b1df6ca54e71aadb5ace358d35b7f7a5993946ad7ddf0a0d098d74a29af77f",
+    "bert_prompt_schema_seed73": "43367a9123a47e6ffabfe6e6d5c9b5dccf8cb9cdfbcc62884c41249e5ea7b9b2"
+  },
+  "experiment": "E2",
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "question": "does schema TEXT hold its tau on unseen tool sets while hash/lookup collapses?",
+  "results": {
+    "bert_prompt_only": {
+      "all": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.5607798479907458,
+            0.6236298052721871
+          ],
+          "cluster_count": 809,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.5865488978724083,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.5921831413989639,
+          "42": 0.5758196884139817,
+          "73": 0.5916438638042792
+        },
+        "stdev_tau_b": 0.009295679468609338
+      },
+      "seen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.06180165405913052,
+            0.48137762024341
+          ],
+          "cluster_count": 45,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.23854214911071145,
+        "n": 45,
+        "per_seed_tau_b": {
+          "17": 0.2838759512041498,
+          "42": 0.17377957469151378,
+          "73": 0.25797092143647077
+        },
+        "stdev_tau_b": 0.05756223524036981
+      },
+      "unseen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.5872494454987998,
+            0.6456219203928649
+          ],
+          "cluster_count": 764,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6128924153476762,
+        "n": 954,
+        "per_seed_tau_b": {
+          "17": 0.6161993954263353,
+          "42": 0.6059386365078983,
+          "73": 0.6165392141087953
+        },
+        "stdev_tau_b": 0.006024545567812207
+      },
+      "unseen_tools": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.5866562505687711,
+            0.6748718943593466
+          ],
+          "cluster_count": 310,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6229823438967927,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.6326099504733466,
+          "42": 0.6199465031295629,
+          "73": 0.6163905780874689
+        },
+        "stdev_tau_b": 0.008525213019093657
+      }
+    },
+    "bert_prompt_schema": {
+      "all": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.6133070365341885,
+            0.6682624250173786
+          ],
+          "cluster_count": 809,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6302143238361523,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.6423292767533998,
+          "42": 0.6252333892572862,
+          "73": 0.623080305497771
+        },
+        "stdev_tau_b": 0.010546942948514212
+      },
+      "seen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.4827563784034201,
+            0.777404812901649
+          ],
+          "cluster_count": 45,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6012125658582185,
+        "n": 45,
+        "per_seed_tau_b": {
+          "17": 0.6422288629903771,
+          "42": 0.5774662885711793,
+          "73": 0.5839425460130991
+        },
+        "stdev_tau_b": 0.035668444743759777
+      },
+      "unseen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.6049090842917964,
+            0.6637951453732717
+          ],
+          "cluster_count": 764,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6273913912598744,
+        "n": 954,
+        "per_seed_tau_b": {
+          "17": 0.6355087827202353,
+          "42": 0.6243212578822426,
+          "73": 0.6223441331771455
+        },
+        "stdev_tau_b": 0.007099034343868894
+      },
+      "unseen_tools": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.5820216421925607,
+            0.6751523717371247
+          ],
+          "cluster_count": 310,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6393347610971706,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.6314488320922547,
+          "42": 0.6476682044781324,
+          "73": 0.6388872467211248
+        },
+        "stdev_tau_b": 0.008118941555739853
+      }
+    },
+    "lightgbm_scalar": {
+      "all": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.39070814727721526,
+            0.46106424684588915
+          ],
+          "cluster_count": 809,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.4267985278708031,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4267985278708031,
+          "42": 0.4267985278708031,
+          "73": 0.4267985278708031
+        },
+        "stdev_tau_b": 0.0
+      },
+      "seen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.45734500017850077,
+            0.8050898506507653
+          ],
+          "cluster_count": 45,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6532643107899485,
+        "n": 45,
+        "per_seed_tau_b": {
+          "17": 0.6532643107899485,
+          "42": 0.6532643107899485,
+          "73": 0.6532643107899485
+        },
+        "stdev_tau_b": 0.0
+      },
+      "unseen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.3671941884875177,
+            0.4418135594224052
+          ],
+          "cluster_count": 764,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.40406074861583635,
+        "n": 954,
+        "per_seed_tau_b": {
+          "17": 0.40406074861583635,
+          "42": 0.40406074861583635,
+          "73": 0.40406074861583635
+        },
+        "stdev_tau_b": 0.0
+      },
+      "unseen_tools": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.43066374280742103,
+            0.5382797794900507
+          ],
+          "cluster_count": 310,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.4841544592546887,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.4841544592546887,
+          "42": 0.4841544592546887,
+          "73": 0.4841544592546887
+        },
+        "stdev_tau_b": 0.0
+      }
+    },
+    "schema_hash_categorical": {
+      "all": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.39070814727721526,
+            0.46106424684588915
+          ],
+          "cluster_count": 809,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.4267985278708031,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4267985278708031,
+          "42": 0.4267985278708031,
+          "73": 0.4267985278708031
+        },
+        "stdev_tau_b": 0.0
+      },
+      "seen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.45734500017850077,
+            0.8050898506507653
+          ],
+          "cluster_count": 45,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.6532643107899485,
+        "n": 45,
+        "per_seed_tau_b": {
+          "17": 0.6532643107899485,
+          "42": 0.6532643107899485,
+          "73": 0.6532643107899485
+        },
+        "stdev_tau_b": 0.0
+      },
+      "unseen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.3671941884875177,
+            0.4418135594224052
+          ],
+          "cluster_count": 764,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.40406074861583635,
+        "n": 954,
+        "per_seed_tau_b": {
+          "17": 0.40406074861583635,
+          "42": 0.40406074861583635,
+          "73": 0.40406074861583635
+        },
+        "stdev_tau_b": 0.0
+      },
+      "unseen_tools": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.43066374280742103,
+            0.5382797794900507
+          ],
+          "cluster_count": 310,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.4841544592546887,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.4841544592546887,
+          "42": 0.4841544592546887,
+          "73": 0.4841544592546887
+        },
+        "stdev_tau_b": 0.0
+      }
+    },
+    "schema_hash_lookup": {
+      "all": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.39394036348323125,
+            0.46151431309729024
+          ],
+          "cluster_count": 809,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.4348005990731334,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4274272047941808,
+          "42": 0.43587417621471075,
+          "73": 0.4411004162105087
+        },
+        "stdev_tau_b": 0.006899536471248497
+      },
+      "seen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.3690292496477179,
+            0.7250761100655538
+          ],
+          "cluster_count": 45,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.5822823482156841,
+        "n": 45,
+        "per_seed_tau_b": {
+          "17": 0.5604794106540328,
+          "42": 0.5799180029310513,
+          "73": 0.6064496310619684
+        },
+        "stdev_tau_b": 0.023076132421991063
+      },
+      "unseen_combination": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.37271607071841156,
+            0.44500827239529456
+          ],
+          "cluster_count": 764,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.4157620701518767,
+        "n": 954,
+        "per_seed_tau_b": {
+          "17": 0.40791795658300944,
+          "42": 0.4172427236773989,
+          "73": 0.42212553019522175
+        },
+        "stdev_tau_b": 0.0072185897607211945
+      },
+      "unseen_tools": {
+        "bootstrap_seed17": {
+          "ci95_percentile": [
+            0.4310806733489093,
+            0.5393328500122803
+          ],
+          "cluster_count": 310,
+          "iterations": 1000
+        },
+        "mean_tau_b": 0.48722040264902416,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.4861364041803254,
+          "42": 0.48537440645778107,
+          "73": 0.4901503973089661
+        },
+        "stdev_tau_b": 0.002565893930535078
+      }
+    }
+  },
+  "schema_version": "e2-cold-start-v1",
+  "scores_path": "/Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25/e2-bert-test-scores.jsonl",
+  "scoring": {
+    "batch_size": 32,
+    "device": "cpu",
+    "max_length": 512
+  },
+  "split_note": "the tier-2 split is fixed by the sample file's tier2_split column and does not depend on seed, so there is one split, not three",
+  "split_sizes": {
+    "test": 999,
+    "train": 3997,
+    "validation": 998
+  },
+  "status": "done",
+  "subset_definition": {
+    "identity_key": "sha256 of sorted top-level tool-name list",
+    "sizes": {
+      "all": 999,
+      "seen_combination": 45,
+      "unseen_combination": 954,
+      "unseen_tools": 333
+    },
+    "test_rows_advertising_no_tools": 20,
+    "train_unique_fingerprints": 3162,
+    "train_unique_tool_names": 7690,
+    "unseen_tools_nested_in_unseen_combination": true
+  },
+  "wall_clock_seconds": 391.9977309703827
+}
