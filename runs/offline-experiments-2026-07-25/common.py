@@ -33,7 +33,18 @@ _INVOKE_MARKER = "you can invoke:"
 # ToolACE ships several system-prompt templates. Besides the embedded JSON list
 # there is a YAML-ish one ("tool_name: X") and a markdown one
 # ("- **tool_name**: X"); both name the tools in plain text.
-_TEXT_NAME_PATTERN = re.compile(r"^\s*(?:[-*]\s*)?\**tool_name\**\s*:\s*(.+?)\s*$", re.MULTILINE)
+_NAME_PATTERNS = (
+    # YAML-ish and markdown: "tool_name: X" / "- **tool_name**: X"
+    re.compile(r"^\s*(?:[-*]\s*)?\**tool_name\**\s*:\s*(?!\s*$)(.+?)\s*$", re.MULTILINE),
+    # JSON object stream keyed by tool_name rather than name
+    re.compile(r'"tool_name"\s*:\s*"((?:[^"\\]|\\.)*)"'),
+    # XML-ish
+    re.compile(r"<tool_name>\s*(.+?)\s*</tool_name>", re.DOTALL),
+)
+# HTML table: first cell of each body row, when the header declares tool_name
+_HTML_ROW_PATTERN = re.compile(r"<tr>\s*<td>\s*(.*?)\s*</td>", re.DOTALL | re.IGNORECASE)
+# LaTeX tabular: first cell of each body row
+_LATEX_ROW_PATTERN = re.compile(r"^\s*([^&\\\n][^&\n]*?)\s*&", re.MULTILINE)
 
 
 def sha256_file(path: Path) -> str:
@@ -114,7 +125,23 @@ def tool_names(tool_schema: str) -> tuple[str, ...]:
         ]
         if names:
             return tuple(sorted(names))
-    return tuple(sorted(_TEXT_NAME_PATTERN.findall(tool_schema)))
+    for pattern in _NAME_PATTERNS:
+        found = [name for name in pattern.findall(tool_schema) if name]
+        if found:
+            return tuple(sorted(found))
+    if "<th>tool_name</th>" in tool_schema.lower():
+        found = [name for name in _HTML_ROW_PATTERN.findall(tool_schema) if name]
+        if found:
+            return tuple(sorted(found))
+    if "begin{tabular}" in tool_schema:
+        found = [
+            name
+            for name in _LATEX_ROW_PATTERN.findall(tool_schema)
+            if name and name != "tool_name"
+        ]
+        if found:
+            return tuple(sorted(found))
+    return ()
 
 
 def toolset_fingerprint(tool_schema: str) -> str:

@@ -1,0 +1,67 @@
+{
+  "purpose": "confirm the null categorical result is not an artifact of LightGBM's default min_data_per_group=100 guardrail",
+  "results": [
+    {
+      "fingerprint_gain": 0.0,
+      "fingerprint_split_count": 0,
+      "seed": 17,
+      "setting": "default_guardrails",
+      "test_tau_b": 0.4267985278708031
+    },
+    {
+      "fingerprint_gain": 0.0,
+      "fingerprint_split_count": 0,
+      "seed": 42,
+      "setting": "default_guardrails",
+      "test_tau_b": 0.4267985278708031
+    },
+    {
+      "fingerprint_gain": 0.0,
+      "fingerprint_split_count": 0,
+      "seed": 73,
+      "setting": "default_guardrails",
+      "test_tau_b": 0.4267985278708031
+    },
+    {
+      "fingerprint_gain": 140965351.01416016,
+      "fingerprint_split_count": 2110,
+      "seed": 17,
+      "setting": "relaxed_guardrails",
+      "test_tau_b": 0.4131258178925551
+    },
+    {
+      "fingerprint_gain": 140965351.01416016,
+      "fingerprint_split_count": 2110,
+      "seed": 42,
+      "setting": "relaxed_guardrails",
+      "test_tau_b": 0.4131258178925551
+    },
+    {
+      "fingerprint_gain": 140965351.01416016,
+      "fingerprint_split_count": 2110,
+      "seed": 73,
+      "setting": "relaxed_guardrails",
+      "test_tau_b": 0.4131258178925551
+    }
+  ],
+  "scalar_only_reference_test_tau_b": 0.4267985278708031,
+  "schema_version": "e1-categorical-sensitivity-v1",
+  "settings": [
+    {
+      "name": "default_guardrails",
+      "params": {}
+    },
+    {
+      "name": "relaxed_guardrails",
+      "params": {
+        "cat_l2": 1.0,
+        "cat_smooth": 1.0,
+        "max_cat_threshold": 512,
+        "max_cat_to_onehot": 1,
+        "min_data_per_group": 1
+      }
+    }
+  ],
+  "status": "done",
+  "wall_clock_seconds": 6.8482887744903564
+}

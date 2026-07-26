@@ -1,0 +1,111 @@
+{
+  "censor_exclusion_counts": {
+    "test": {
+      "censored": 1,
+      "eligible": 999,
+      "failed_or_missing": 0,
+      "pool": 1000
+    },
+    "train": {
+      "censored": 2,
+      "eligible": 3997,
+      "failed_or_missing": 1,
+      "pool": 4000
+    },
+    "validation": {
+      "censored": 0,
+      "eligible": 998,
+      "failed_or_missing": 2,
+      "pool": 1000
+    }
+  },
+  "e1a_categorical_test_tau_b_mean": 0.4267985278708031,
+  "e1a_categorical_test_tau_b_stdev": 0.0,
+  "e1a_categorical_validation_tau_b_mean": 0.4469370478799084,
+  "e1a_categorical_validation_tau_b_stdev": 0.0,
+  "e1b_lookup_test_tau_b_mean": 0.4348005990731334,
+  "e1b_lookup_test_tau_b_stdev": 0.006899536471248497,
+  "e1b_lookup_validation_tau_b_mean": 0.4539484086739413,
+  "e1b_lookup_validation_tau_b_stdev": 0.002881348028964158,
+  "encoding_justification": "fingerprint cardinality is high relative to train size, so native categorical splits degenerate into near-per-row memorisation; target encoding is also the literal deployed lookup table, which is what the experiment is testing",
+  "experiment": "E1",
+  "identity_coverage": {
+    "identity_key": "sha256 of sorted top-level tool-name list",
+    "test_rows_with_fingerprint_seen_in_train": 45,
+    "train_rows": 3997,
+    "train_unique_fingerprints": 3162,
+    "validation_rows_with_fingerprint_seen_in_train": 74
+  },
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "leakage_control": "train-row lookup features computed out-of-fold (K=5, fold assignment shuffled with the run seed); validation/test use full-train statistics",
+  "predictions_path": "/Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25/e1-schema-hash-test-predictions.jsonl",
+  "question": "does schema IDENTITY + history match schema TEXT on the seen split?",
+  "runs": [
+    {
+      "e1a_categorical_test_tau_b": 0.4267985278708031,
+      "e1a_categorical_test_tau_scipy": 0.4267985278708031,
+      "e1a_categorical_validation_tau_b": 0.4469370478799084,
+      "e1a_categorical_validation_tau_scipy": 0.44693704787990834,
+      "e1b_lookup_test_tau_b": 0.4274272047941808,
+      "e1b_lookup_test_tau_scipy": 0.4274272047941808,
+      "e1b_lookup_validation_tau_b": 0.45727421770368143,
+      "e1b_lookup_validation_tau_scipy": 0.45727421770368154,
+      "lookup_hits": {
+        "test": 45,
+        "validation": 74
+      },
+      "seed": 17,
+      "train_out_of_fold_lookup_hits": 1092
+    },
+    {
+      "e1a_categorical_test_tau_b": 0.4267985278708031,
+      "e1a_categorical_test_tau_scipy": 0.4267985278708031,
+      "e1a_categorical_validation_tau_b": 0.4469370478799084,
+      "e1a_categorical_validation_tau_scipy": 0.44693704787990834,
+      "e1b_lookup_test_tau_b": 0.43587417621471075,
+      "e1b_lookup_test_tau_scipy": 0.43587417621471075,
+      "e1b_lookup_validation_tau_b": 0.45236558029340596,
+      "e1b_lookup_validation_tau_scipy": 0.452365580293406,
+      "lookup_hits": {
+        "test": 45,
+        "validation": 74
+      },
+      "seed": 42,
+      "train_out_of_fold_lookup_hits": 1066
+    },
+    {
+      "e1a_categorical_test_tau_b": 0.4267985278708031,
+      "e1a_categorical_test_tau_scipy": 0.4267985278708031,
+      "e1a_categorical_validation_tau_b": 0.4469370478799084,
+      "e1a_categorical_validation_tau_scipy": 0.44693704787990834,
+      "e1b_lookup_test_tau_b": 0.4411004162105087,
+      "e1b_lookup_test_tau_scipy": 0.44110041621050866,
+      "e1b_lookup_validation_tau_b": 0.45220542802473657,
+      "e1b_lookup_validation_tau_scipy": 0.4522054280247365,
+      "lookup_hits": {
+        "test": 45,
+        "validation": 74
+      },
+      "seed": 73,
+      "train_out_of_fold_lookup_hits": 1078
+    }
+  ],
+  "schema_version": "e1-schema-hash-v1",
+  "seed_controls": "LGBMRegressor.random_state (inert - see E3) and the out-of-fold fold assignment, which does vary the E1b fit",
+  "split_sizes": {
+    "test": 999,
+    "train": 3997,
+    "validation": 998
+  },
+  "status": "done",
+  "variants": {
+    "e1a_categorical": "5 scalars + LightGBM native categorical over tool-set fingerprint (unseen fingerprints share code -1)",
+    "e1b_lookup": "5 scalars + per-fingerprint train-label lookup (mean, median, count, seen-flag); unseen falls back to global train mean/median, count 0, seen 0"
+  },
+  "wall_clock_seconds": 12.055853128433228
+}
