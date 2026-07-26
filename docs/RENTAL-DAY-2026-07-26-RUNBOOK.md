@@ -124,12 +124,12 @@ keep whole sessions. Also show per-run effects (≥2 launches is thin — displa
 
 ## 6. Assets checklist (before paying)
 
-- [ ] main green: #12 T8 ✅, #13 T9 ✅, #14 T10 ✅, #15 gated_rule_c + policy_fcfs (in flight)
+- [x] main green: #12 T8 ✅, #13 T9 ✅, #14 T10 ✅, #15 gated_rule_c + policy_fcfs ✅ (313 tests)
 - [x] frozen-75 stratum classification DONE (runs/block1-2026-07-26/frozen75-stratum-classification.json): **S4=50, zero_tool=25, S1/S2/unknown=0** — natural OpenCode traffic is ALL-S4 vs the ToolACE vocabulary; real-traffic BERT-skip rate = 33.3% (zero-tool only). **Kill condition 7 pre-fired**: on natural traffic Rule C degenerates to ZeroToolGate ⇒ ZeroToolGate is a MANDATORY diagnostic arm, and the Rule C claim for natural traffic must be narrowed to "abstains on zero-tool + would abstain on S1/S2 if present". The synthetic workload's balanced strata (test-labeled NOT trace-derived) is where the gate's differential behavior is actually exercised.
-- [ ] decision stub mode for Block 1A (ConstantPredictor / frozen-score file — verify CLI)
-- [ ] oracle-file predictor path smoke-tested locally
-- [ ] checkpoints + tier2 sample/ledger + quantile inputs + probes/agent-traces local
-- [ ] gateway binary builds; live-chain runbook fresh (07-26 PASS)
-- [ ] ONNX rejected — no rental time on it
+- [x] Block 1A frozen-score mechanism verified: OracleFromFilePredictor serves per-request score/confidence/ood from a request-id JSON (smoke-tested 07-26); same mechanism serves the Oracle arm with true lengths
+- [x] oracle-file predictor path smoke-tested locally (LTR_ORACLE_FILE + kind=oracle in vllm_scheduler)
+- [x] checkpoints + tier2 sample/ledger + quantile inputs + probes/agent-traces local
+- [x] gateway binary builds; live-chain runbook fresh (07-26 PASS). Go-side note: ltr.Apply's per-call http.Client is cosmetic — nil Transport uses the shared pooled DefaultTransport (keep-alive works); real RPC cost quantified by G1−G0
+- [x] ONNX rejected — no rental time on it
 - [ ] launch flags: `--reliability-threshold 0.5 --device cuda --batch-max 8
       --batch-window-ms 3` (fp16 auto; expect p50 ~38 ms warm)
