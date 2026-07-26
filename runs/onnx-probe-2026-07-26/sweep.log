@@ -1,0 +1,11 @@
+torch {'p50_ms': 103.46899996511638, 'p99_ms': 118.70641697896644, 'mean_ms': 101.27722363007099, 'samples': 60}
+fp32_plain               tau=1.000000 maxd=1.12e-06 p50=  150.4ms p99=  156.5ms
+fp32_fused               tau=1.000000 maxd=1.18e-06 p50=  135.2ms p99=  144.7ms
+fp32_eager               tau=1.000000 maxd=9.90e-07 p50=  129.6ms p99=  144.4ms
+fp32_eager_fused         tau=1.000000 maxd=9.77e-07 p50=  115.3ms p99=  121.2ms
+int8_per_tensor          tau=0.965975 maxd=6.94e-02 p50=  142.8ms p99=  154.8ms
+int8_per_channel         tau=0.982074 maxd=8.31e-02 p50=  141.5ms p99=  197.2ms
+int8_fused_per_channel   tau=0.982252 maxd=7.39e-02 p50=  134.6ms p99=  137.6ms
+int8_eager_fused_per_channel tau=0.982386 maxd=7.56e-02 p50=  120.7ms p99=  126.2ms
+
+done in 418.3s -> /Users/alex/develop/vllm-ltr-optimization/runs/onnx-probe-2026-07-26/onnx-variant-sweep.json

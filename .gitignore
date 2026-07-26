@@ -8,6 +8,7 @@ jsonfiles/
 *.pt
 *.bin
 *.safetensors
+*.onnx
 __pycache__/
 *.pyc
 .venv/

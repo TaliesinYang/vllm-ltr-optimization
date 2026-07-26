@@ -1,0 +1,60 @@
+{
+  "artifacts": {
+    "ranker-fp32-eager-fused.onnx": {
+      "bytes": 438093244,
+      "sha256": "958c95840eb671e7938cb8efcfd1edec68d32595305ca9e3225e9218349b817d"
+    },
+    "ranker-fp32-eager.onnx": {
+      "bytes": 438144257,
+      "sha256": "2f36b1c8ea7a8d8ce84b873be401f983f441da43e2c1ca40298de740eb20e847"
+    },
+    "ranker-fp32-fused.onnx": {
+      "bytes": 438109152,
+      "sha256": "423e6f428fa4dea8760de4fbe61bf06971a504f7fdaf4deae9a8c5505a20f66d"
+    },
+    "ranker-fp32.onnx": {
+      "bytes": 438163971,
+      "sha256": "f8bfdd3e7a54c2c4e176d86c78b4a700cc569de8af6e53eba6be1c322fd6468d"
+    },
+    "ranker-int8-eager-fused.onnx": {
+      "bytes": 110573512,
+      "sha256": "4713b7235a95c4c8d735e4661c3b71bccecd18ee9a8439c40a807cdfad3aacd6"
+    },
+    "ranker-int8-fused.onnx": {
+      "bytes": 110594893,
+      "sha256": "dc81de7d3409b939f15b33843ef316380f4951d3c6c545fa3edd61275f135249"
+    },
+    "ranker-int8-perchannel.onnx": {
+      "bytes": 110694842,
+      "sha256": "5ac49788e73e4d92d111aa9e279dc16966571a657b5a91d1d329673c967dfc79"
+    },
+    "ranker-int8.onnx": {
+      "bytes": 110275913,
+      "sha256": "7f3d94a06a11bbb5c494ed614a0afa72a999e8af5b5e04a9be8532dd9273b55c"
+    }
+  },
+  "checkpoint": "/Users/alex/develop/vllm-ltr-optimization/checkpoints_best_predictor",
+  "checkpoint_safetensors_sha256": "8a00b458fe7d983a1709bd4b617e4613da9b1d0f24158bc8b39c4befabb03519",
+  "fusion_note": "ORT's BERT Attention fusion matched zero patterns on both the SDPA and the eager export under transformers 5.14.1 / onnxruntime 1.28.0; only BiasGelu and SkipLayerNormalization fused.",
+  "fusion_statistics": {
+    "fp32_eager_fused": {
+      "BiasGelu": 12,
+      "LayerNormalization": 1,
+      "SkipLayerNormalization": 24
+    },
+    "fp32_fused": {
+      "BiasGelu": 12,
+      "LayerNormalization": 1,
+      "SkipLayerNormalization": 24
+    }
+  },
+  "input_names": [
+    "input_ids",
+    "attention_mask",
+    "token_type_ids"
+  ],
+  "max_length": 512,
+  "opset": 17,
+  "torch": "2.13.0",
+  "wall_clock_seconds": 45.38142108917236
+}

@@ -1,0 +1,55 @@
+test rows: 999
+scored 999 rows on torch in 93.6s
+scored 999 rows on onnx_fp32 in 130.6s
+scored 999 rows on onnx_fp32_eager_fused in 101.8s
+scored 999 rows on onnx_int8 in 131.7s
+scored 999 rows on onnx_int8_eager_fused in 111.1s
+torch_conc1            p50=   97.0ms p99=  105.2ms rps=  10.5
+torch_conc8            p50=  576.2ms p99=  670.6ms rps=  14.0
+onnx_fp32_conc1        p50=  139.6ms p99=  151.5ms rps=   7.3
+onnx_fp32_conc8        p50=  748.7ms p99=  873.8ms rps=  10.8
+onnx_fp32_eager_fused_conc1 p50=  113.4ms p99=  119.6ms rps=   9.1
+onnx_fp32_eager_fused_conc8 p50=  596.2ms p99=  672.6ms rps=  13.7
+onnx_int8_conc1        p50=  148.9ms p99=  209.5ms rps=   6.7
+onnx_int8_conc8        p50=  532.1ms p99=  652.2ms rps=  15.3
+onnx_int8_eager_fused_conc1 p50=  124.7ms p99=  147.9ms rps=   8.1
+onnx_int8_eager_fused_conc8 p50=  506.8ms p99=  679.1ms rps=  15.9
+{
+  "onnx_fp32": {
+    "kendall_tau": 0.99999598797194,
+    "max_abs_delta": 1.3237310911851097e-06,
+    "mean_abs_delta": 1.6447998691059933e-07,
+    "rows": 999,
+    "tau_note": "tau computed over sigmoid scores; sigmoid is monotonic so the value is identical in logit space"
+  },
+  "onnx_fp32_eager_fused": {
+    "kendall_tau": 1.0,
+    "max_abs_delta": 1.0429936921629857e-06,
+    "mean_abs_delta": 1.760346823134923e-07,
+    "rows": 999,
+    "tau_note": "tau computed over sigmoid scores; sigmoid is monotonic so the value is identical in logit space"
+  },
+  "onnx_int8": {
+    "kendall_tau": 0.9662708800985356,
+    "max_abs_delta": 0.11106722245486123,
+    "mean_abs_delta": 0.014958056249516481,
+    "rows": 999,
+    "tau_note": "tau computed over sigmoid scores; sigmoid is monotonic so the value is identical in logit space"
+  },
+  "onnx_int8_eager_fused": {
+    "kendall_tau": 0.979036129352419,
+    "max_abs_delta": 0.075615260710791,
+    "mean_abs_delta": 0.012254516134872866,
+    "rows": 999,
+    "tau_note": "tau computed over sigmoid scores; sigmoid is monotonic so the value is identical in logit space"
+  },
+  "torch_vs_saved_e2_reference": {
+    "kendall_tau": 1.0,
+    "max_abs_delta": 4.078418769370984e-07,
+    "mean_abs_delta": 3.4899296577190884e-08,
+    "rows": 999,
+    "tau_note": "tau computed over sigmoid scores; sigmoid is monotonic so the value is identical in logit space"
+  }
+}
+
+done in 785.6s -> /Users/alex/develop/vllm-ltr-optimization/runs/onnx-probe-2026-07-26/onnx-probe.json

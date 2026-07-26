@@ -1,0 +1,120 @@
+{
+  "note": "direction check only: 10 warm-ups, 60 samples, concurrency 1, parity over the first 300 tier-2 test rows",
+  "results": {
+    "fp32_eager": {
+      "bytes": 438144257,
+      "file": "ranker-fp32-eager.onnx",
+      "kendall_tau_vs_torch": 1.0,
+      "latency": {
+        "mean_ms": 126.47123890346847,
+        "p50_ms": 129.57933300640434,
+        "p99_ms": 144.39016702817753,
+        "samples": 60
+      },
+      "max_abs_delta": 9.897182042806207e-07,
+      "mean_abs_delta": 1.622372789000561e-07
+    },
+    "fp32_eager_fused": {
+      "bytes": 438093244,
+      "file": "ranker-fp32-eager-fused.onnx",
+      "kendall_tau_vs_torch": 1.0,
+      "latency": {
+        "mean_ms": 111.99442363673977,
+        "p50_ms": 115.25637505110353,
+        "p99_ms": 121.20724999113008,
+        "samples": 60
+      },
+      "max_abs_delta": 9.767146597616794e-07,
+      "mean_abs_delta": 1.6702631438936244e-07
+    },
+    "fp32_fused": {
+      "bytes": 438109152,
+      "file": "ranker-fp32-fused.onnx",
+      "kendall_tau_vs_torch": 1.0,
+      "latency": {
+        "mean_ms": 131.3476944807917,
+        "p50_ms": 135.24500001221895,
+        "p99_ms": 144.71987501019612,
+        "samples": 60
+      },
+      "max_abs_delta": 1.1810560784364377e-06,
+      "mean_abs_delta": 1.6222230315695676e-07
+    },
+    "fp32_plain": {
+      "bytes": 438163971,
+      "file": "ranker-fp32.onnx",
+      "kendall_tau_vs_torch": 1.0,
+      "latency": {
+        "mean_ms": 146.03767499890333,
+        "p50_ms": 150.35166702000424,
+        "p99_ms": 156.51579096447676,
+        "samples": 60
+      },
+      "max_abs_delta": 1.1160383533992402e-06,
+      "mean_abs_delta": 1.487104805036425e-07
+    },
+    "int8_eager_fused_per_channel": {
+      "bytes": 110573512,
+      "file": "ranker-int8-eager-fused.onnx",
+      "kendall_tau_vs_torch": 0.9823857302118172,
+      "latency": {
+        "mean_ms": 117.13698057186168,
+        "p50_ms": 120.74195797322318,
+        "p99_ms": 126.15525000728667,
+        "samples": 60
+      },
+      "max_abs_delta": 0.075615260710791,
+      "mean_abs_delta": 0.011960446361790283
+    },
+    "int8_fused_per_channel": {
+      "bytes": 110594893,
+      "file": "ranker-int8-fused.onnx",
+      "kendall_tau_vs_torch": 0.9822519509476032,
+      "latency": {
+        "mean_ms": 130.3750285510129,
+        "p50_ms": 134.6353340195492,
+        "p99_ms": 137.59850000496954,
+        "samples": 60
+      },
+      "max_abs_delta": 0.07393021328498933,
+      "mean_abs_delta": 0.01190573803527567
+    },
+    "int8_per_channel": {
+      "bytes": 110694842,
+      "file": "ranker-int8-perchannel.onnx",
+      "kendall_tau_vs_torch": 0.9820735785953179,
+      "latency": {
+        "mean_ms": 139.10161795599075,
+        "p50_ms": 141.5419580298476,
+        "p99_ms": 197.17829203000292,
+        "samples": 60
+      },
+      "max_abs_delta": 0.08311530599194927,
+      "mean_abs_delta": 0.011952407512929782
+    },
+    "int8_per_tensor": {
+      "bytes": 110275913,
+      "file": "ranker-int8.onnx",
+      "kendall_tau_vs_torch": 0.9659754738015609,
+      "latency": {
+        "mean_ms": 138.1450437135451,
+        "p50_ms": 142.75012497091666,
+        "p99_ms": 154.8047079704702,
+        "samples": 60
+      },
+      "max_abs_delta": 0.06937900850255108,
+      "mean_abs_delta": 0.01350926319718767
+    },
+    "torch": {
+      "bytes": null,
+      "latency": {
+        "mean_ms": 101.27722363007099,
+        "p50_ms": 103.46899996511638,
+        "p99_ms": 118.70641697896644,
+        "samples": 60
+      }
+    }
+  },
+  "schema_version": "onnx-variant-sweep-v1",
+  "wall_clock_seconds": 418.3391320705414
+}
