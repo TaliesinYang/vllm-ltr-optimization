@@ -50,13 +50,39 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Override DEFAULT_RELIABILITY_THRESHOLD (0.8). Rule C confidences "
         "top out at 0.6233, so a functional gate needs <= 0.5787.",
     )
+    parser.add_argument(
+        "--device",
+        choices=("cpu", "cuda"),
+        default="cpu",
+        help="Predictor device. cuda falls back to cpu, with a startup log line, "
+        "when torch.cuda.is_available() is False.",
+    )
+    parser.add_argument(
+        "--batch-max",
+        type=int,
+        default=1,
+        help="Coalesce up to this many concurrent requests into one forward; "
+        "1 disables batching. The 201-box GPU prototype used 8.",
+    )
+    parser.add_argument(
+        "--batch-window-ms",
+        type=float,
+        default=3.0,
+        help="How long the batcher waits to fill a batch (prototype: 3ms). "
+        "Ignored when --batch-max is 1.",
+    )
     return parser.parse_args(argv)
 
 
 def build_predictor(args: argparse.Namespace) -> Predictor:
     if args.predictor == "stub":
         return ConstantPredictor(args.score, args.confidence, args.ood)
-    return BertPredictor(args.checkpoint)
+    return BertPredictor(
+        args.checkpoint,
+        device=args.device,
+        batch_max=args.batch_max,
+        batch_window_ms=args.batch_window_ms,
+    )
 
 
 def effective_feature_variant(args: argparse.Namespace) -> str:

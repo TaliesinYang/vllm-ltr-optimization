@@ -266,6 +266,43 @@ def test_gate_vocabulary_is_auto_wired_from_the_predictor(tmp_path) -> None:
     assert response["prediction_reliable"] is False
 
 
+def test_abstained_requests_never_enter_the_batch_queue(tmp_path) -> None:
+    """T8 short-circuit must compose with T9 batching.
+
+    An abstained request that reached the batcher would occupy a slot in a
+    forward whose result is then discarded - the exact waste the gate exists
+    to avoid.
+    """
+    from scheduler_benchmark.micro_batcher import MicroBatcher
+    from scheduler_benchmark.predictor import Prediction
+
+    batcher = MicroBatcher(lambda items: [0.5] * len(items), batch_max=8, window_s=0.01)
+
+    class BatchingPredictor:
+        def __init__(self, vocabulary) -> None:
+            self.gate_vocabulary = vocabulary
+
+        def predict(self, predictor_input):  # noqa: ANN001 - protocol shape
+            score = batcher.submit(predictor_input.metadata["prompt_text"])
+            return Prediction(score, 0.5, False, 0.0)
+
+    try:
+        app = DecisionApplication(
+            predictor=BatchingPredictor(gate_vocabulary(tmp_path)),
+            predictor_revision="stub-batching-v1",
+            feature_variant="prompt_schema_history_workflow",
+            reliability_threshold=0.2,
+        )
+
+        app.decide(gated_request(tool_schema("alpha", "beta")))  # S1 -> abstain
+        assert batcher.batch_sizes == []
+
+        app.decide(gated_request(tool_schema("gamma", "delta")))  # S4 -> predict
+        assert batcher.batch_sizes == [1]
+    finally:
+        batcher.close()
+
+
 def test_without_a_gate_vocabulary_behaviour_is_unchanged() -> None:
     app = make_app(confidence=0.0)
 

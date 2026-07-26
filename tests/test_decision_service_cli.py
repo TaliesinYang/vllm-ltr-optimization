@@ -71,8 +71,18 @@ def test_cli_selects_stub_or_real_bert_checkpoint(monkeypatch, tmp_path: Path) -
     loaded = {}
 
     class FakeBertPredictor:
-        def __init__(self, checkpoint: Path) -> None:
+        def __init__(
+            self,
+            checkpoint: Path,
+            *,
+            device: str = "cpu",
+            batch_max: int = 1,
+            batch_window_ms: float = 0.0,
+        ) -> None:
             loaded["checkpoint"] = checkpoint
+            loaded["device"] = device
+            loaded["batch_max"] = batch_max
+            loaded["batch_window_ms"] = batch_window_ms
 
     monkeypatch.setattr(run_decision_service, "BertPredictor", FakeBertPredictor)
     bert_args = run_decision_service.parse_args(
@@ -88,6 +98,29 @@ def test_cli_selects_stub_or_real_bert_checkpoint(monkeypatch, tmp_path: Path) -
 
     assert isinstance(predictor, FakeBertPredictor)
     assert loaded["checkpoint"] == REPO_ROOT / "checkpoints_best_predictor"
+    # Serving defaults: CPU, batching off. GPU runs opt in explicitly.
+    assert loaded["device"] == "cpu"
+    assert loaded["batch_max"] == 1
+
+    gpu_args = run_decision_service.parse_args(
+        [
+            "--predictor",
+            "bert",
+            "--quantile-manifest",
+            str(manifest_path),
+            "--device",
+            "cuda",
+            "--batch-max",
+            "8",
+            "--batch-window-ms",
+            "3",
+        ]
+    )
+    run_decision_service.build_predictor(gpu_args)
+
+    assert loaded["device"] == "cuda"
+    assert loaded["batch_max"] == 8
+    assert loaded["batch_window_ms"] == 3.0
     assert run_decision_service.effective_feature_variant(bert_args) == "prompt_schema"
     assert run_decision_service.effective_predictor_revision(bert_args) == (
         "bert-prompt_schema-tier2-seed17"

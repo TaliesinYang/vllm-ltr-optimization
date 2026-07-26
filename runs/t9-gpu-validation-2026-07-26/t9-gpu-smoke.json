@@ -1,0 +1,36 @@
+{
+  "contract": "/v1/decision unchanged",
+  "host": "192.168.8.201 (WSL2, RTX 4090 Laptop 16GB)",
+  "protocol": "concurrency 8, 20 warm, 200 samples",
+  "results": {
+    "gate_composition": {
+      "forward_passes_after_request": 1,
+      "reason_code": "prediction_reliable",
+      "reliability_probability": 0.6232874397453674
+    },
+    "gpu_batched": {
+      "device": "cuda",
+      "forward_passes": 49,
+      "mean_ms": 45.64622377511114,
+      "observed_batch_size_max": 8,
+      "observed_batch_size_mean": 3.7142857142857144,
+      "p50_ms": 37.875257985433564,
+      "p95_ms": 67.80236097984016,
+      "p99_ms": 173.21844000252895,
+      "sample_count": 200,
+      "throughput_rps": 170.50414796280808,
+      "wall_clock_seconds": 1.1729919910430908
+    },
+    "gpu_unbatched": {
+      "device": "cuda",
+      "mean_ms": 199.6260515092581,
+      "p50_ms": 228.35583300911821,
+      "p95_ms": 265.7584240077995,
+      "p99_ms": 316.67833199026063,
+      "sample_count": 200,
+      "throughput_rps": 39.642195103532444,
+      "wall_clock_seconds": 5.045129299163818
+    }
+  },
+  "schema_version": "t9-gpu-smoke-v1"
+}

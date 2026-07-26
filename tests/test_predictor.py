@@ -58,8 +58,8 @@ def gate_artifact(tmp_path) -> Path:
 
 
 class FakeBatchEncoding(dict):
-    def __init__(self) -> None:
-        super().__init__(input_ids=torch.tensor([[101, 102]]))
+    def __init__(self, rows: int = 1) -> None:
+        super().__init__(input_ids=torch.tensor([[101, 102]] * rows))
         self.device = None
 
     def to(self, device):
@@ -74,6 +74,8 @@ class RecordingTokenizer:
 
     def __call__(self, texts, **kwargs):
         self.calls.append((texts, kwargs))
+        # One encoded row per text, so batched forwards get the right shape.
+        self.encoding = FakeBatchEncoding(len(texts) if isinstance(texts, list) else 1)
         return self.encoding
 
 
@@ -91,12 +93,25 @@ class ScalarLogitModel:
         self.is_eval = True
         return self
 
+    def half(self):
+        return self
+
     def __call__(self, **inputs):
         assert "input_ids" in inputs
-        return SimpleNamespace(logits=torch.tensor([[self.logit]]))
+        rows = int(inputs["input_ids"].shape[0])
+        return SimpleNamespace(logits=torch.tensor([[self.logit]] * rows))
 
 
-def make_bert_predictor(monkeypatch, tmp_path, *, logit: float = 2.0, vocabulary=None):
+def make_bert_predictor(
+    monkeypatch,
+    tmp_path,
+    *,
+    logit: float = 2.0,
+    vocabulary=None,
+    device: str = "cpu",
+    batch_max: int = 1,
+    batch_window_ms: float = 0.0,
+):
     tokenizer = RecordingTokenizer()
     model = ScalarLogitModel(logit)
     loaded = {}
@@ -116,7 +131,13 @@ def make_bert_predictor(monkeypatch, tmp_path, *, logit: float = 2.0, vocabulary
     )
     checkpoint = tmp_path / "checkpoint"
     checkpoint.mkdir()
-    predictor = BertPredictor(checkpoint, vocabulary=vocabulary)
+    predictor = BertPredictor(
+        checkpoint,
+        vocabulary=vocabulary,
+        device=device,
+        batch_max=batch_max,
+        batch_window_ms=batch_window_ms,
+    )
     return predictor, tokenizer, model, loaded
 
 
@@ -350,6 +371,82 @@ def test_committed_gate_artifact_matches_the_offline_evaluation() -> None:
     # The abstain value must never exceed what any stratum earned.
     assert vocabulary.unknown_confidence <= min(vocabulary.confidence_by_stratum.values())
     assert vocabulary.provenance["rule"] == "C_abstain"
+
+
+def test_bert_predictor_defaults_to_cpu_and_no_batching(
+    monkeypatch, tmp_path, gate_artifact
+) -> None:
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch, tmp_path, vocabulary=GateVocabulary.from_artifact(gate_artifact)
+    )
+
+    assert predictor.device == "cpu"
+    assert predictor.batcher is None
+
+
+def test_bert_predictor_falls_back_to_cpu_when_cuda_is_unavailable(
+    monkeypatch, tmp_path, gate_artifact, capsys
+) -> None:
+    monkeypatch.setattr("torch.cuda.is_available", lambda: False)
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch,
+        tmp_path,
+        vocabulary=GateVocabulary.from_artifact(gate_artifact),
+        device="cuda",
+    )
+
+    assert predictor.device == "cpu"
+    # The fallback must be visible at startup, not silent.
+    assert "cuda" in capsys.readouterr().out.lower()
+
+
+def test_bert_predictor_batches_concurrent_requests_into_one_forward(
+    monkeypatch, tmp_path, gate_artifact
+) -> None:
+    """Coalescing must be observable on CPU, with no GPU in the loop."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch,
+        tmp_path,
+        vocabulary=GateVocabulary.from_artifact(gate_artifact),
+        batch_max=8,
+        batch_window_ms=50.0,
+    )
+    try:
+        assert predictor.batcher is not None
+        schema = schema_with("gamma", "delta")
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            predictions = list(
+                pool.map(lambda _: predict_with_schema(predictor, schema), range(8))
+            )
+
+        assert len(predictions) == 8
+        assert all(0.0 <= item.score <= 1.0 for item in predictions)
+        # 8 arrivals must not have cost 8 forwards.
+        assert max(predictor.batcher.batch_sizes) > 1
+        assert sum(predictor.batcher.batch_sizes) == 8
+    finally:
+        predictor.close()
+
+
+def test_batched_predictor_still_scores_a_lone_request(
+    monkeypatch, tmp_path, gate_artifact
+) -> None:
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch,
+        tmp_path,
+        vocabulary=GateVocabulary.from_artifact(gate_artifact),
+        batch_max=8,
+        batch_window_ms=5.0,
+    )
+    try:
+        prediction = predict_with_schema(predictor, schema_with("gamma", "delta"))
+        assert prediction.score == pytest.approx(1.0 / (1.0 + math.exp(-2.0)))
+        assert prediction.confidence == 0.5
+    finally:
+        predictor.close()
 
 
 def test_bert_predictor_fails_closed_without_raw_training_features(
