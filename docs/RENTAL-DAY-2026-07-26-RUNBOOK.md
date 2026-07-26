@@ -5,7 +5,9 @@ Report (due 07-27 08:59), then extensions. Presentation 07-29 gets the live mate
 
 ## 0. Hard rules (violating any one invalidates the day)
 
-1. **Decision service MUST launch with `--reliability-threshold 0.5`** (≤0.5787).
+1. **Decision service MUST launch with `--reliability-threshold 0.5`** — exactly 0.5,
+   never a "rounded" 0.5787: S3's true confidence is 0.57867…, so 0.5787 would mark
+   all S3 traffic unreliable (external review catch).
    Default 0.8 > Rule C max 0.6233 ⇒ every request unreliable ⇒ Ranker contributes
    nothing and the run silently measures noise. Pinned by test; check the launch line.
 2. Teardown between vLLM restarts: `pkill -9 -f "VLLM::EngineCore"` + poll nvidia-smi
