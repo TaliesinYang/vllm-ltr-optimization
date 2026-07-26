@@ -152,6 +152,11 @@ def test_decision_application_transports_exact_prompt_schema_training_text() -> 
         feature_variant="prompt_schema",
     )
     request = valid_request()
+    # The replay client (ltr_training/tier2.py) sends EITHER a system-message
+    # schema OR a tools array, never both. The system-message fallback only
+    # applies when no tools array is present; with both, tools wins (real
+    # gateway traffic carries agent instructions in system, not a schema).
+    request.pop("tools", None)
     request["messages"] = [
         {"role": "system", "content": "raw ToolACE system\nwith spacing\n"},
         {"role": "user", "content": "current prompt"},
@@ -194,6 +199,41 @@ def test_explicit_tool_schema_text_takes_precedence_over_system_message() -> Non
     assert predictor.predictor_input.metadata["tool_schema_text"] == (
         "explicit schema\nwith exact spacing\n"
     )
+
+
+def test_tools_array_derives_schema_text_when_explicit_text_absent() -> None:
+    # Gateways forward the OpenAI `tools` array without ltr_tool_schema; the
+    # service must score that traffic instead of crashing into fail-open.
+    class CapturingPredictor:
+        def __init__(self) -> None:
+            self.predictor_input = None
+
+        def predict(self, predictor_input):
+            self.predictor_input = predictor_input
+            return Prediction(0.25, 0.9, False, 1.0)
+
+    predictor = CapturingPredictor()
+    app = DecisionApplication(
+        predictor=predictor,
+        predictor_revision="capture",
+        feature_variant="prompt_schema",
+    )
+    request = valid_request()
+    request.pop("tool_schema_text", None)
+    request["messages"] = [{"role": "user", "content": "current prompt"}]
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "glob", "parameters": {"type": "object"}},
+        }
+    ]
+    request["tools"] = tools
+
+    app.decide(request)
+
+    derived = predictor.predictor_input.metadata["tool_schema_text"]
+    assert json.loads(derived) == tools
+    assert derived == json.dumps(tools, sort_keys=True, separators=(",", ":"))
 
 
 def test_mapper_estimate_includes_quantile_provenance() -> None:

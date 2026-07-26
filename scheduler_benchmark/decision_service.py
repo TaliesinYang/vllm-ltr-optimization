@@ -273,15 +273,25 @@ def _predictor_input(request: Mapping[str, object]) -> PredictorInput:
     if isinstance(explicit_tool_schema_text, str):
         metadata["tool_schema_text"] = explicit_tool_schema_text
     else:
-        system_contents = [
-            message.get("content")
-            for message in messages
-            if message.get("role") == "system"
-            and isinstance(message.get("content"), str)
-            and message.get("content")
-        ]
-        if len(system_contents) == 1:
-            metadata["tool_schema_text"] = system_contents[0]
+        tools = request.get("tools")
+        if isinstance(tools, list) and tools:
+            # Gateways forward the OpenAI `tools` array without a rendered
+            # schema text (clients never send `ltr_tool_schema`). Derive a
+            # deterministic serialization so real traffic is scored instead
+            # of crashing into fail-open.
+            metadata["tool_schema_text"] = json.dumps(
+                tools, sort_keys=True, separators=(",", ":")
+            )
+        else:
+            system_contents = [
+                message.get("content")
+                for message in messages
+                if message.get("role") == "system"
+                and isinstance(message.get("content"), str)
+                and message.get("content")
+            ]
+            if len(system_contents) == 1:
+                metadata["tool_schema_text"] = system_contents[0]
     return PredictorInput(
         request_id=str(request["request_id"]),
         prompt_token_ids=tuple(serialized.encode("utf-8")),
@@ -293,7 +303,34 @@ def _has_missing_optional_features(
     request: Mapping[str, object], feature_variant: str
 ) -> bool:
     required_optional = FEATURE_VARIANTS[feature_variant]
-    return any(request.get(field) is None for field in required_optional)
+    return any(
+        _optional_feature_missing(request, field) for field in required_optional
+    )
+
+
+def _optional_feature_missing(request: Mapping[str, object], field: str) -> bool:
+    if field == "tools":
+        # "tools" stands for THE SCHEMA, which has three transports: explicit
+        # tool_schema_text, the OpenAI tools array, or the single-system-message
+        # fallback used by ToolACE replay traffic. Any of them satisfies it.
+        if isinstance(request.get("tool_schema_text"), str):
+            return False
+        if request.get("tools") is not None:
+            return False
+        messages = request.get("messages")
+        if isinstance(messages, list):
+            system_contents = [
+                message.get("content")
+                for message in messages
+                if isinstance(message, Mapping)
+                and message.get("role") == "system"
+                and isinstance(message.get("content"), str)
+                and message.get("content")
+            ]
+            if len(system_contents) == 1:
+                return False
+        return True
+    return request.get(field) is None
 
 
 def _reason_code(
