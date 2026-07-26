@@ -24,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from ltr_training.block1_workload import (  # noqa: E402
+    DEFAULT_PER_TOKEN_MS,
     build_clients,
     build_manifest,
     generate_requests,
@@ -49,6 +50,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--requests", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
+        "--per-token-ms",
+        type=float,
+        default=DEFAULT_PER_TOKEN_MS,
+        help="Proxy service time per output token, matching the legacy "
+        "workload builder so slowdown stays comparable across workloads.",
+    )
+    parser.add_argument(
         "--no-trace-rows",
         action="store_true",
         help="Emit synthetic traffic only, without the 75 real trace requests.",
@@ -73,8 +81,13 @@ def main(argv: list[str] | None = None) -> int:
         clients=clients,
         request_count=args.requests,
         seed=args.seed,
+        per_token_ms=args.per_token_ms,
     )
-    traces = [] if args.no_trace_rows else trace_rows(calibration)
+    traces = (
+        []
+        if args.no_trace_rows
+        else trace_rows(calibration, per_token_ms=args.per_token_ms)
+    )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8") as handle:
@@ -87,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
         synthetic=synthetic,
         traces=traces,
         seed=args.seed,
+        per_token_ms=args.per_token_ms,
     )
     manifest["output"] = str(args.output)
     args.manifest.parent.mkdir(parents=True, exist_ok=True)

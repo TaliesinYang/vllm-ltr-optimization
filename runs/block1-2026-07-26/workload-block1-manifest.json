@@ -1,4 +1,11 @@
 {
+  "baseline_service_ms": {
+    "claim": "proxy; not isolated service timing",
+    "formula": "true_length * per_token_ms",
+    "kind": "output_length_per_token_proxy",
+    "note": "identical formula, constant and units to ltr_training.workload_builder, so Block-1 slowdown (ttlt_ms / baseline_service_ms) is on the same scale as the v2 workloads. NOT trace-derived: the trace's own e2e_ms is wall clock through the whole live chain against a different model on a different box, so calibrating from it would be less faithful, not more. Real-trace rows keep their measured value as trace_e2e_ms.",
+    "per_token_ms": 2.5
+  },
   "calibration": {
     "completion_tokens_p50": 42.0,
     "completion_tokens_p90": 143.0,

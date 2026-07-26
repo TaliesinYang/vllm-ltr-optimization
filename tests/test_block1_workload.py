@@ -5,10 +5,12 @@ from pathlib import Path
 import pytest
 
 from ltr_training.block1_workload import (
+    DEFAULT_PER_TOKEN_MS,
     SOURCE_SYNTHETIC,
     SOURCE_TRACE,
     STRATA,
     WORKLOAD_FIELDS,
+    baseline_service_ms,
     build_clients,
     build_manifest,
     generate_requests,
@@ -239,3 +241,82 @@ def test_stratum_assignment_survives_the_real_vocabulary_parser(clients) -> None
     """A client's rendered schema must parse back to the tool set it was built from."""
     for client in clients:
         assert tool_names(client.tool_schema) == tuple(sorted(client.tool_names))
+
+
+def test_every_row_has_a_positive_baseline_service_ms(calibration, clients) -> None:
+    """runner.py rejects the whole workload on the first non-positive value."""
+    rows = generate_requests(
+        calibration=calibration, clients=clients, request_count=500, seed=5
+    ) + trace_rows(calibration)
+
+    assert rows
+    for row in rows:
+        assert isinstance(row["baseline_service_ms"], float)
+        assert row["baseline_service_ms"] > 0.0
+
+
+def test_baseline_service_ms_uses_the_legacy_proxy_formula(calibration, clients) -> None:
+    """Same formula and constant as workload_builder, so slowdown is comparable."""
+    rows = generate_requests(
+        calibration=calibration, clients=clients, request_count=50, seed=5
+    )
+
+    for row in rows:
+        assert row["baseline_service_ms"] == pytest.approx(
+            round(int(row["true_length"]) * DEFAULT_PER_TOKEN_MS, 6)
+        )
+
+
+def test_trace_rows_use_the_proxy_not_measured_wall_clock(calibration) -> None:
+    """e2e_ms is full-chain wall clock; using it would put the two subsets on
+    different scales and silently corrupt slowdown comparisons."""
+    rows = trace_rows(calibration)
+
+    assert rows
+    for row in rows:
+        assert row["baseline_service_ms"] == pytest.approx(
+            round(int(row["true_length"]) * DEFAULT_PER_TOKEN_MS, 6)
+        )
+        # The measured value is preserved, just not used as the baseline.
+        assert "trace_e2e_ms" in row
+
+
+def test_per_token_ms_is_configurable(calibration, clients) -> None:
+    rows = generate_requests(
+        calibration=calibration,
+        clients=clients,
+        request_count=20,
+        seed=5,
+        per_token_ms=4.0,
+    )
+
+    for row in rows:
+        assert row["baseline_service_ms"] == pytest.approx(
+            round(int(row["true_length"]) * 4.0, 6)
+        )
+
+
+def test_baseline_helper_rejects_non_positive_inputs() -> None:
+    with pytest.raises(ValueError, match="true_length"):
+        baseline_service_ms(0, DEFAULT_PER_TOKEN_MS)
+    with pytest.raises(ValueError, match="per_token_ms"):
+        baseline_service_ms(10, 0.0)
+
+
+def test_manifest_documents_the_baseline_formula(calibration, clients) -> None:
+    synthetic = generate_requests(
+        calibration=calibration, clients=clients, request_count=50, seed=5
+    )
+    manifest = build_manifest(
+        calibration=calibration,
+        clients=clients,
+        synthetic=synthetic,
+        traces=trace_rows(calibration),
+        seed=5,
+    )
+
+    baseline = manifest["baseline_service_ms"]
+    assert baseline["formula"] == "true_length * per_token_ms"
+    assert baseline["per_token_ms"] == DEFAULT_PER_TOKEN_MS
+    assert "proxy" in baseline["claim"]
+    assert "NOT trace-derived" in baseline["note"]

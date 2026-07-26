@@ -43,6 +43,23 @@ SOURCE_SYNTHETIC = "block1-synthetic"
 SOURCE_TRACE = "block1-trace"
 STRATA = ("S1", "S2", "S3", "S4")
 
+# runner.py normalises every request by baseline_service_ms to produce slowdown
+# (ttlt_ms / baseline_service_ms) and rejects any row where it is not positive.
+# The legacy builder's proxy is output_length * per_token_ms with
+# per_token_ms = 2.5; Block 1 keeps BOTH the formula and the constant so its
+# slowdown numbers sit on the same scale as the v2 workloads rather than a
+# private one.
+DEFAULT_PER_TOKEN_MS = 2.5
+
+
+def baseline_service_ms(true_length: int, per_token_ms: float) -> float:
+    """Legacy proxy service time - same formula and units as workload_builder."""
+    if true_length <= 0:
+        raise ValueError("true_length must be positive to derive a baseline")
+    if per_token_ms <= 0.0:
+        raise ValueError("per_token_ms must be positive")
+    return round(true_length * per_token_ms, 6)
+
 # Row schema of the existing run_matrix workload jsonl. Emitting anything else
 # would break the consumer, so it is asserted rather than assumed.
 WORKLOAD_FIELDS = (
@@ -303,6 +320,7 @@ def generate_requests(
     seed: int,
     max_tokens: int = 4096,
     source_revision: str = "block1-v1",
+    per_token_ms: float = DEFAULT_PER_TOKEN_MS,
 ) -> list[dict[str, object]]:
     """Synthetic multi-tenant traffic with trace-calibrated marginals.
 
@@ -323,7 +341,7 @@ def generate_requests(
         depth = int(rng.choice(calibration.turn_depths))
         depth = max(1, depth)
         turn = rng.randint(1, depth)
-        true_length = int(rng.choice(calibration.completion_tokens))
+        true_length = max(1, int(rng.choice(calibration.completion_tokens)))
         session_id = f"{client.client_id}-s{index // max(1, len(clients)):04d}"
         sample_id = f"block1-{index:06d}"
         # A zero-tool request is a utility call on the same tenant; the tenant's
@@ -331,7 +349,7 @@ def generate_requests(
         tool_schema = "" if zero_tool else client.tool_schema
         rows.append(
             {
-                "baseline_service_ms": 0.0,
+                "baseline_service_ms": baseline_service_ms(true_length, per_token_ms),
                 "category": f"block1:{client.stratum.lower()}"
                 if not zero_tool
                 else "block1:zero_tool",
@@ -360,9 +378,20 @@ def generate_requests(
 
 
 def trace_rows(
-    calibration: TraceCalibration, *, max_tokens: int = 4096
+    calibration: TraceCalibration,
+    *,
+    max_tokens: int = 4096,
+    per_token_ms: float = DEFAULT_PER_TOKEN_MS,
 ) -> list[dict[str, object]]:
-    """The 75 real requests, in workload shape, marked as not synthetic."""
+    """The 75 real requests, in workload shape, marked as not synthetic.
+
+    baseline_service_ms uses the SAME proxy formula as the synthetic rows, not
+    the trace's measured e2e_ms. e2e_ms is wall clock through the whole live
+    chain - queueing, gateway, network, a different model on a different box -
+    so using it here would put the two subsets on different scales and make
+    slowdown incomparable between them. The measured value is kept alongside as
+    ``trace_e2e_ms`` for reference.
+    """
     rows: list[dict[str, object]] = []
     for index, row in enumerate(calibration.rows):
         body = row.get("body") or {}
@@ -370,7 +399,9 @@ def trace_rows(
         tools = body.get("tools") or []
         usage = row.get("usage") or {}
         completion = usage.get("completion_tokens")
-        if not isinstance(completion, int) or completion < 0:
+        if not isinstance(completion, int) or completion <= 0:
+            # A zero-token completion has no positive baseline, and runner.py
+            # rejects the row outright. Drop it rather than invent a floor.
             continue
         prompt = ""
         for message in reversed(messages):
@@ -393,7 +424,8 @@ def trace_rows(
         sample_id = f"trace-{index:04d}"
         rows.append(
             {
-                "baseline_service_ms": float(row.get("e2e_ms") or 0.0),
+                "baseline_service_ms": baseline_service_ms(completion, per_token_ms),
+                "trace_e2e_ms": float(row.get("e2e_ms") or 0.0),
                 "category": "block1:trace",
                 "history": [],
                 "kind": "tool" if tools else "utility",
@@ -425,6 +457,7 @@ def build_manifest(
     synthetic: Sequence[Mapping[str, object]],
     traces: Sequence[Mapping[str, object]],
     seed: int,
+    per_token_ms: float = DEFAULT_PER_TOKEN_MS,
 ) -> dict[str, object]:
     lengths = [int(row["true_length"]) for row in synthetic]
     depths = [int(row["turn_depth"]) for row in synthetic]
@@ -441,6 +474,19 @@ def build_manifest(
             "note": "every parameter below is measured from the trace at build "
             "time; none is hardcoded",
             **calibration.as_manifest(),
+        },
+        "baseline_service_ms": {
+            "kind": "output_length_per_token_proxy",
+            "formula": "true_length * per_token_ms",
+            "per_token_ms": per_token_ms,
+            "claim": "proxy; not isolated service timing",
+            "note": "identical formula, constant and units to "
+            "ltr_training.workload_builder, so Block-1 slowdown "
+            "(ttlt_ms / baseline_service_ms) is on the same scale as the v2 "
+            "workloads. NOT trace-derived: the trace's own e2e_ms is wall clock "
+            "through the whole live chain against a different model on a "
+            "different box, so calibrating from it would be less faithful, not "
+            "more. Real-trace rows keep their measured value as trace_e2e_ms.",
         },
         "calibration_targets_vs_realized": {
             "zero_tool_fraction": {
