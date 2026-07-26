@@ -1,0 +1,500 @@
+{
+  "baseline_of_record": {
+    "fixed_test_tau_b": 0.4267985278708031,
+    "grid_test_tau_b_mean": 0.4395085596825918,
+    "model": "lightgbm_grid",
+    "note": "grid mean 0.4395 vs fixed 0.4268; stronger = lightgbm_grid"
+  },
+  "censor_exclusion_counts": {
+    "test": {
+      "censored": 1,
+      "eligible": 999,
+      "failed_or_missing": 0,
+      "pool": 1000
+    },
+    "train": {
+      "censored": 2,
+      "eligible": 3997,
+      "failed_or_missing": 1,
+      "pool": 4000
+    },
+    "validation": {
+      "censored": 0,
+      "eligible": 998,
+      "failed_or_missing": 2,
+      "pool": 1000
+    }
+  },
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "lightgbm_grid": {
+    "features": [
+      "prompt_char_count",
+      "prompt_word_count",
+      "tool_schema_char_count",
+      "tool_name_count",
+      "history_turn_count"
+    ],
+    "grid_size": 20,
+    "per_seed": [
+      {
+        "best_config": {
+          "learning_rate": 0.1,
+          "max_depth": 3,
+          "n_estimators": 300,
+          "num_leaves": 7
+        },
+        "best_validation_tau_b": 0.4585663271978351,
+        "seed": 17,
+        "test_tau_b": 0.4395085596825918
+      },
+      {
+        "best_config": {
+          "learning_rate": 0.1,
+          "max_depth": 3,
+          "n_estimators": 300,
+          "num_leaves": 7
+        },
+        "best_validation_tau_b": 0.4585663271978351,
+        "seed": 42,
+        "test_tau_b": 0.4395085596825918
+      },
+      {
+        "best_config": {
+          "learning_rate": 0.1,
+          "max_depth": 3,
+          "n_estimators": 300,
+          "num_leaves": 7
+        },
+        "best_validation_tau_b": 0.4585663271978351,
+        "seed": 73,
+        "test_tau_b": 0.4395085596825918
+      }
+    ],
+    "recipe_source": "ltr_training.offline_baselines.run_lightgbm_grid",
+    "selection_split": "validation",
+    "test_tau_b_mean": 0.4395085596825918,
+    "test_tau_b_stdev": 0.0
+  },
+  "model_labels": {
+    "bert_prompt_only": "BERT prompt_only (control, no schema)",
+    "bert_prompt_schema": "BERT prompt_schema (schema TEXT)",
+    "lightgbm_grid": "LightGBM scalar (grid-searched, 40 configs)",
+    "lightgbm_scalar": "LightGBM scalar (fixed hyperparameters, E3)",
+    "schema_hash_categorical": "schema-hash categorical (E1a)",
+    "schema_hash_lookup": "schema-hash lookup table (E1b)"
+  },
+  "new_bert_inference": false,
+  "pre_registered_criteria": {
+    "baseline_model_of_record": "lightgbm_grid",
+    "claim_model": "bert_prompt_schema",
+    "criteria_text": {
+      "frozen_before_results": true,
+      "primary": "session-clustered bootstrap 95% CI separation on unseen strata (community-standard)",
+      "secondary": "delta-tau >= 0.05 material-effect bar (self-imposed, stated as such)",
+      "seen_stratum_tie_bar": "delta-tau < 0.02 (expected, supports lookup-table deployment story, does not kill)",
+      "source": "docs/DIRECTION-DECISION-2026-07-25.md"
+    },
+    "per_stratum": [
+      {
+        "evaluated": false,
+        "n": 45,
+        "reason": "n<100; tau withheld per ticket",
+        "stratum": "S1"
+      },
+      {
+        "evaluated": false,
+        "n": 78,
+        "reason": "n<100; tau withheld per ticket",
+        "stratum": "S2"
+      },
+      {
+        "baseline_ci95": [
+          0.3518120130177405,
+          0.4429723204974275
+        ],
+        "baseline_tau_b": 0.39869649368305043,
+        "claim_ci95": [
+          0.6193827870781734,
+          0.692443268665021
+        ],
+        "claim_tau_b": 0.6467898729817119,
+        "delta_tau_b": 0.24809337929866143,
+        "evaluated": true,
+        "n": 543,
+        "primary_ci_separated": true,
+        "secondary_material_effect_delta_ge_0.05": true,
+        "stratum": "S3"
+      },
+      {
+        "baseline_ci95": [
+          0.443520002092407,
+          0.5538255591551424
+        ],
+        "baseline_tau_b": 0.5007546781523777,
+        "claim_ci95": [
+          0.5820216421925607,
+          0.6751523717371247
+        ],
+        "claim_tau_b": 0.6393347610971706,
+        "delta_tau_b": 0.13858008294479285,
+        "evaluated": true,
+        "n": 333,
+        "primary_ci_separated": true,
+        "secondary_material_effect_delta_ge_0.05": true,
+        "stratum": "S4"
+      }
+    ]
+  },
+  "results": {
+    "bert_prompt_only": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.5869087487904752,
+          0.6617584092015705
+        ],
+        "mean_tau_b": 0.6247306181506044,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.6243852333753326,
+          "42": 0.6131102382773164,
+          "73": 0.6366963827991642
+        },
+        "stdev_tau_b": 0.011796864894268101
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.5866562505687711,
+          0.6748718943593466
+        ],
+        "mean_tau_b": 0.6229823438967927,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.6326099504733466,
+          "42": 0.6199465031295629,
+          "73": 0.6163905780874689
+        },
+        "stdev_tau_b": 0.008525213019093657
+      },
+      "all": {
+        "ci95_seed17": [
+          0.5607798479907458,
+          0.6236298052721871
+        ],
+        "mean_tau_b": 0.5865488978724083,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.5921831413989639,
+          "42": 0.5758196884139817,
+          "73": 0.5916438638042792
+        },
+        "stdev_tau_b": 0.009295679468609338
+      }
+    },
+    "bert_prompt_schema": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.6193827870781734,
+          0.692443268665021
+        ],
+        "mean_tau_b": 0.6467898729817119,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.6572604495389083,
+          "42": 0.6355012826309845,
+          "73": 0.6476078867752428
+        },
+        "stdev_tau_b": 0.01090262335662966
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.5820216421925607,
+          0.6751523717371247
+        ],
+        "mean_tau_b": 0.6393347610971706,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.6314488320922547,
+          "42": 0.6476682044781324,
+          "73": 0.6388872467211248
+        },
+        "stdev_tau_b": 0.008118941555739853
+      },
+      "all": {
+        "ci95_seed17": [
+          0.6133070365341885,
+          0.6682624250173786
+        ],
+        "mean_tau_b": 0.6302143238361523,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.6423292767533998,
+          "42": 0.6252333892572862,
+          "73": 0.623080305497771
+        },
+        "stdev_tau_b": 0.010546942948514212
+      }
+    },
+    "lightgbm_grid": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.3518120130177405,
+          0.4429723204974275
+        ],
+        "mean_tau_b": 0.39869649368305043,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.3986964936830505,
+          "42": 0.3986964936830505,
+          "73": 0.3986964936830505
+        },
+        "stdev_tau_b": 0.0
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.443520002092407,
+          0.5538255591551424
+        ],
+        "mean_tau_b": 0.5007546781523777,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.5007546781523777,
+          "42": 0.5007546781523777,
+          "73": 0.5007546781523777
+        },
+        "stdev_tau_b": 0.0
+      },
+      "all": {
+        "ci95_seed17": [
+          0.4066426479941378,
+          0.47180527089021557
+        ],
+        "mean_tau_b": 0.4395085596825918,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4395085596825918,
+          "42": 0.4395085596825918,
+          "73": 0.4395085596825918
+        },
+        "stdev_tau_b": 0.0
+      }
+    },
+    "lightgbm_scalar": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.33078516651698514,
+          0.436119248125929
+        ],
+        "mean_tau_b": 0.3854344659485672,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.38543446594856723,
+          "42": 0.38543446594856723,
+          "73": 0.38543446594856723
+        },
+        "stdev_tau_b": 0.0
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.43066374280742103,
+          0.5382797794900507
+        ],
+        "mean_tau_b": 0.4841544592546887,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.4841544592546887,
+          "42": 0.4841544592546887,
+          "73": 0.4841544592546887
+        },
+        "stdev_tau_b": 0.0
+      },
+      "all": {
+        "ci95_seed17": [
+          0.39070814727721526,
+          0.46106424684588915
+        ],
+        "mean_tau_b": 0.4267985278708031,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4267985278708031,
+          "42": 0.4267985278708031,
+          "73": 0.4267985278708031
+        },
+        "stdev_tau_b": 0.0
+      }
+    },
+    "schema_hash_categorical": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.33078516651698514,
+          0.436119248125929
+        ],
+        "mean_tau_b": 0.3854344659485672,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.38543446594856723,
+          "42": 0.38543446594856723,
+          "73": 0.38543446594856723
+        },
+        "stdev_tau_b": 0.0
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.43066374280742103,
+          0.5382797794900507
+        ],
+        "mean_tau_b": 0.4841544592546887,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.4841544592546887,
+          "42": 0.4841544592546887,
+          "73": 0.4841544592546887
+        },
+        "stdev_tau_b": 0.0
+      },
+      "all": {
+        "ci95_seed17": [
+          0.39070814727721526,
+          0.46106424684588915
+        ],
+        "mean_tau_b": 0.4267985278708031,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4267985278708031,
+          "42": 0.4267985278708031,
+          "73": 0.4267985278708031
+        },
+        "stdev_tau_b": 0.0
+      }
+    },
+    "schema_hash_lookup": {
+      "S1": {
+        "n": 45,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S2": {
+        "n": 78,
+        "tau_withheld": "n<100; ticket requires size only, no tau"
+      },
+      "S3": {
+        "ci95_seed17": [
+          0.3354933296090349,
+          0.43383276460178066
+        ],
+        "mean_tau_b": 0.39654394613862437,
+        "n": 543,
+        "per_seed_tau_b": {
+          "17": 0.3844635852167468,
+          "42": 0.399425216180368,
+          "73": 0.40574303701875836
+        },
+        "stdev_tau_b": 0.010928405878197444
+      },
+      "S4": {
+        "ci95_seed17": [
+          0.4310806733489093,
+          0.5393328500122803
+        ],
+        "mean_tau_b": 0.48722040264902416,
+        "n": 333,
+        "per_seed_tau_b": {
+          "17": 0.4861364041803254,
+          "42": 0.48537440645778107,
+          "73": 0.4901503973089661
+        },
+        "stdev_tau_b": 0.002565893930535078
+      },
+      "all": {
+        "ci95_seed17": [
+          0.39394036348323125,
+          0.46151431309729024
+        ],
+        "mean_tau_b": 0.4348005990731334,
+        "n": 999,
+        "per_seed_tau_b": {
+          "17": 0.4274272047941808,
+          "42": 0.43587417621471075,
+          "73": 0.4411004162105087
+        },
+        "stdev_tau_b": 0.006899536471248497
+      }
+    }
+  },
+  "schema_version": "t1-strata-v1",
+  "scores_reused": "/Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25/e2-bert-test-scores.jsonl",
+  "split_sizes": {
+    "test": 999,
+    "train": 3997,
+    "validation": 998
+  },
+  "status": "done",
+  "stratum_definition": {
+    "identity_key": "sha256 over sorted top-level tool names (E1 multi-template parser); the raw tool_schema string is never hashed - 2383 rows embed a per-row timestamp",
+    "partition_check_S1_S2_S3_S4_plus_unstratified": 999,
+    "rows_unstratified_no_tools_new_combination": 0,
+    "sizes": {
+      "S1": 45,
+      "S2": 78,
+      "S3": 543,
+      "S4": 333,
+      "all": 999
+    },
+    "source": "CONTEXT.md glossary, Cold-Start Transfer",
+    "tau_reporting_threshold": 100,
+    "toolless_rows_by_stratum": {
+      "S1": 20,
+      "S2": 0,
+      "S3": 0,
+      "S4": 0,
+      "all": 0
+    },
+    "train_unique_fingerprints": 3162,
+    "train_unique_tool_names": 7690
+  },
+  "ticket": "issue #5 (T1); spec issue #4",
+  "wall_clock_seconds": 36.72291803359985
+}

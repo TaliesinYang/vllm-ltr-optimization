@@ -107,3 +107,139 @@ CPU with zero new inference.
 
 Note: the venv `.worktrees/final-training-artifacts/.venv` gained scipy, lightgbm,
 scikit-learn (installed 07-25).
+
+---
+
+# T1 — S1–S4 re-stratification + grid-searched baseline (2026-07-26)
+
+Ticket: issue #5. Spec: issue #4. Script `t1_strata.py`, artifact `t1-strata.json`,
+log `t1.log`. Wall clock 36.7 s. Zero new BERT inference — model scores are read back
+from `e2-bert-test-scores.jsonl`; only the grid-searched LightGBM was trained here.
+
+## Stratum sizes (reported first, per the tracer bullet)
+
+Strata follow the CONTEXT.md *Cold-Start Transfer* glossary entry. S1 is defined by
+fingerprint alone; S2–S4 partition the remainder by tool-name novelty.
+
+| Stratum | Definition | n |
+|---|---|---:|
+| S1 | seen-combination (fingerprint appears in train) | **45** |
+| S2 | new combination, every tool name seen in train | **78** |
+| S3 | partial-new tools (some seen, some not) | **543** |
+| S4 | all-new tools (no tool name seen in train) | **333** |
+| all | — | 999 |
+
+Partition verified exhaustive and disjoint: 45 + 78 + 543 + 333 = 999, with zero rows
+left unstratified. 20 of the 45 S1 rows advertise no tools at all; their empty-tool-list
+fingerprint does appear in train, so S1 is where they legitimately land. Identity key is
+SHA-256 over the sorted top-level tool-name list via the E1 multi-template parser — the
+raw `tool_schema` string is never hashed, because 2383 rows embed a per-row timestamp
+that would make almost every row its own unique identity.
+
+**S1 (45) and S2 (78) are both below the ticket's n<100 bar, so their τ is withheld.**
+Only S3 and S4 carry reportable τ. See the open question at the end — this collides with
+one of the pre-registered criteria.
+
+## The table — test Kendall τ-b, mean ± std over seeds 17/42/73, [95% CI]
+
+CIs are session-clustered bootstrap, 1000 iterations, computed on the seed-17 predictions.
+
+| Model | S1 (45) | S2 (78) | S3 (543) | S4 (333) | all (999) |
+|---|---|---|---|---|---|
+| **BERT prompt_schema** (schema TEXT) | withheld | withheld | **0.6468** ±.0109 [.619,.692] | **0.6393** ±.0081 [.582,.675] | **0.6302** ±.0105 [.613,.668] |
+| BERT prompt_only (control) | withheld | withheld | 0.6247 ±.0118 [.587,.662] | 0.6230 ±.0085 [.587,.675] | 0.5865 ±.0093 [.561,.624] |
+| **LightGBM grid-searched** (baseline of record) | withheld | withheld | 0.3987 ±.0000 [.352,.443] | 0.5008 ±.0000 [.444,.554] | **0.4395** ±.0000 [.407,.472] |
+| LightGBM fixed (E3) | withheld | withheld | 0.3854 ±.0000 [.331,.436] | 0.4842 ±.0000 [.431,.538] | 0.4268 ±.0000 [.391,.461] |
+| schema-hash lookup (E1b) | withheld | withheld | 0.3965 ±.0109 [.335,.434] | 0.4872 ±.0026 [.431,.539] | 0.4348 ±.0069 [.394,.462] |
+| schema-hash categorical (E1a) | withheld | withheld | 0.3854 ±.0000 [.331,.436] | 0.4842 ±.0000 [.431,.538] | 0.4268 ±.0000 [.391,.461] |
+
+Do **not** compare τ across strata — they differ in intrinsic difficulty and label
+distribution. Only within-stratum, between-model comparisons are sound.
+
+## Grid-searched LightGBM
+
+`offline_baselines.run_lightgbm_grid`, same five scalar features, same fixed split,
+selection on validation, one test evaluation per seed.
+
+- **The grid is 20 configs, not the 40 stated in the ticket.** `lightgbm_grid()` yields
+  2 × 2 × 2 × 2 = 16 combinations plus 4 hand-added ones. The ticket's "40 configs" is
+  wrong; 20 is what exists and what ran.
+- All three seeds selected the identical best config — `max_depth=3, num_leaves=7,
+  learning_rate=0.1, n_estimators=300` — with validation τ-b 0.4586 and test τ-b 0.4395.
+  Std is again exactly 0.0000, for the same structural reason as E3: no stochastic
+  sampling consumes `random_state`.
+- Grid (0.4395) beats fixed (0.4268) by +0.0127, so **the grid-searched model is the
+  scalar baseline of record**. The "under-tuned baseline" objection is closed.
+
+### Consequence for the headline number
+
+| Comparison | Δτ |
+|---|---:|
+| prompt_schema − LightGBM fixed | +0.2034 |
+| **prompt_schema − LightGBM grid (baseline of record)** | **+0.1907** |
+
+The ratified spine claim says "+0.20 τ". Against the tuned baseline it is **+0.19**.
+That is a wording fix, not a survival problem — but the sentence should say +0.19, or
+say "+0.20 against the deployed fixed-hyperparameter baseline, +0.19 against a tuned one".
+
+The 79/21 decomposition also shifts slightly against the tuned baseline:
+
+| Step | vs fixed | vs grid |
+|---|---:|---:|
+| encoder (LightGBM → BERT prompt_only) | +0.1597 (79%) | +0.1470 (77%) |
+| schema text (prompt_only → prompt_schema) | +0.0437 (21%) | +0.0437 (23%) |
+
+So the honest decomposition is now **~77% encoder / ~23% schema text**.
+
+## Pre-registered criteria, re-evaluated verbatim
+
+Criteria as frozen in `docs/DIRECTION-DECISION-2026-07-25.md`, claim model =
+BERT prompt_schema, baseline = LightGBM grid-searched:
+
+| Stratum | n | Claim τ | Baseline τ | Δτ | Primary: CIs separated | Secondary: Δτ ≥ 0.05 |
+|---|---:|---:|---:|---:|:--:|:--:|
+| S1 | 45 | — | — | — | not evaluated (n<100) | not evaluated |
+| S2 | 78 | — | — | — | not evaluated (n<100) | not evaluated |
+| S3 | 543 | 0.6468 | 0.3987 | **+0.2481** | **PASS** [.619,.692] vs [.352,.443] | **PASS** |
+| S4 | 333 | 0.6393 | 0.5008 | **+0.1386** | **PASS** [.582,.675] vs [.444,.554] | **PASS** |
+
+**Both reportable unseen strata pass both criteria against the tuned baseline.** The
+primary criterion (CI separation on unseen strata) is met with a wide margin on S3 and a
+clear one on S4.
+
+## Open question for the session lead — two ratified rules collide
+
+The pre-registered **seen-stratum tie bar** (`Δτ < 0.02` on the seen stratum) cannot be
+evaluated, because the ticket's **n<100 rule** withholds τ on S1 (n=45) — and S1 *is* the
+seen stratum. Both rules are ratified; they are mutually exclusive here.
+
+This is left unresolved rather than silently decided. The options:
+
+1. Keep the n<100 rule; record the S1 tie bar as **not evaluable** at this sample size.
+   Costs nothing — the tie bar was pre-registered as "does not kill" either way.
+2. Grant S1 an explicit exemption and report its τ with a loud suggestive-only caveat.
+   The E2 numbers already exist (prompt_schema 0.6012, prompt_only 0.2385, scalar 0.6533,
+   CIs ±0.15 wide and heavily overlapping).
+
+Recommendation: **option 1**. The tie bar was declared non-killing in advance, n=45 gives
+CIs too wide to adjudicate a 0.02 threshold, and the existing "seen-combination n=45 is
+suggestive-only" honesty caveat already covers the ground. Option 2 reports a number that
+cannot support the test being asked of it.
+
+Note also that S2 (n=78) falls below the bar, so the "new combination, all tools seen"
+regime — arguably the most deployment-relevant cold-start case — has **no reportable τ**
+in this test split. If that stratum matters to the story, it needs a larger test split,
+not a re-analysis.
+
+## Reproduction
+
+```bash
+V=/Users/alex/develop/vllm-ltr-optimization/.worktrees/final-training-artifacts/.venv/bin/python
+cd /Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25
+$V t1_strata.py            # 37 s, writes t1-strata.json
+```
+
+Implementation note: `t1_strata.py` imports `lightgbm` **before** anything that pulls in
+torch. Importing it afterwards loads a second OpenMP runtime and segfaults (SIGSEGV,
+exit 139) on the first `fit`. E3 only worked because its import order happened to be
+correct; this is now a load-bearing comment at the top of the file.
