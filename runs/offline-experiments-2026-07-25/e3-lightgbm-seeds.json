@@ -1,0 +1,126 @@
+{
+  "censor_exclusion_counts": {
+    "test": {
+      "censored": 1,
+      "eligible": 999,
+      "failed_or_missing": 0,
+      "pool": 1000
+    },
+    "train": {
+      "censored": 2,
+      "eligible": 3997,
+      "failed_or_missing": 1,
+      "pool": 4000
+    },
+    "validation": {
+      "censored": 0,
+      "eligible": 998,
+      "failed_or_missing": 2,
+      "pool": 1000
+    }
+  },
+  "determinism_note": "subsample=1.0, subsample_freq=0, colsample_bytree=1.0 in this recipe, so no stochastic sampling consumes random_state and the fit is deterministic; zero seed variance is expected by construction",
+  "experiment": "E3",
+  "features": [
+    "prompt_char_count",
+    "prompt_word_count",
+    "tool_schema_char_count",
+    "tool_name_token_count",
+    "history_turn_count"
+  ],
+  "hyperparameters": {
+    "learning_rate": 0.05,
+    "n_estimators": 300,
+    "num_leaves": 31
+  },
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "model": "lightgbm-structural (scalar tool features)",
+  "predictions_path": "/Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25/e3-lightgbm-test-predictions.jsonl",
+  "recipe_source": "ltr_training.tier2_training.train_lightgbm_tier2",
+  "runs": [
+    {
+      "seed": 17,
+      "tau_implementations_agree": true,
+      "test_bootstrap": {
+        "bootstrap_seed": 42,
+        "ci95_percentile": [
+          0.39070814727721526,
+          0.46106424684588915
+        ],
+        "cluster_count": 809,
+        "cluster_key": "session_id",
+        "iterations": 1000
+      },
+      "test_examples": 999,
+      "test_pvalue_scipy": 3.452126271804749e-90,
+      "test_tau_b_repo": 0.4267985278708031,
+      "test_tau_scipy": 0.4267985278708031,
+      "validation_examples": 998,
+      "validation_pvalue_scipy": 1.3435847510483204e-98,
+      "validation_tau_b_repo": 0.4469370478799084,
+      "validation_tau_scipy": 0.44693704787990834
+    },
+    {
+      "seed": 42,
+      "tau_implementations_agree": true,
+      "test_bootstrap": {
+        "bootstrap_seed": 42,
+        "ci95_percentile": [
+          0.39070814727721526,
+          0.46106424684588915
+        ],
+        "cluster_count": 809,
+        "cluster_key": "session_id",
+        "iterations": 1000
+      },
+      "test_examples": 999,
+      "test_pvalue_scipy": 3.452126271804749e-90,
+      "test_tau_b_repo": 0.4267985278708031,
+      "test_tau_scipy": 0.4267985278708031,
+      "validation_examples": 998,
+      "validation_pvalue_scipy": 1.3435847510483204e-98,
+      "validation_tau_b_repo": 0.4469370478799084,
+      "validation_tau_scipy": 0.44693704787990834
+    },
+    {
+      "seed": 73,
+      "tau_implementations_agree": true,
+      "test_bootstrap": {
+        "bootstrap_seed": 42,
+        "ci95_percentile": [
+          0.39070814727721526,
+          0.46106424684588915
+        ],
+        "cluster_count": 809,
+        "cluster_key": "session_id",
+        "iterations": 1000
+      },
+      "test_examples": 999,
+      "test_pvalue_scipy": 3.452126271804749e-90,
+      "test_tau_b_repo": 0.4267985278708031,
+      "test_tau_scipy": 0.4267985278708031,
+      "validation_examples": 998,
+      "validation_pvalue_scipy": 1.3435847510483204e-98,
+      "validation_tau_b_repo": 0.4469370478799084,
+      "validation_tau_scipy": 0.44693704787990834
+    }
+  ],
+  "schema_version": "e3-lightgbm-seeds-v1",
+  "seed_controls": "LGBMRegressor.random_state only; tier-2 splits are fixed by the sample file's tier2_split column and do not depend on seed",
+  "split_sizes": {
+    "test": 999,
+    "train": 3997,
+    "validation": 998
+  },
+  "status": "done",
+  "test_tau_b_mean": 0.4267985278708031,
+  "test_tau_b_stdev": 0.0,
+  "validation_tau_b_mean": 0.4469370478799084,
+  "validation_tau_b_stdev": 0.0,
+  "wall_clock_seconds": 4.1486289501190186
+}
