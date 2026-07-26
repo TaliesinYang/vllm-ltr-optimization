@@ -15,7 +15,12 @@ from scheduler_benchmark.decision_service import (
     DecisionApplication,
     create_decision_server,
 )
-from scheduler_benchmark.predictor import BertPredictor, ConstantPredictor, Predictor
+from scheduler_benchmark.predictor import (
+    BertPredictor,
+    ConstantPredictor,
+    Prediction,
+    Predictor,
+)
 from scheduler_benchmark.rank_quantiles import RankQuantileMapper
 
 
@@ -71,18 +76,54 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="How long the batcher waits to fill a batch (prototype: 3ms). "
         "Ignored when --batch-max is 1.",
     )
+    parser.add_argument(
+        "--no-gate",
+        action="store_true",
+        help="Disable the Cold-Start gate: every request runs the model and "
+        "reports a constant confidence, so no request short-circuits. Isolates "
+        "model cost from gating in the overhead decomposition; NOT a serving "
+        "configuration.",
+    )
     return parser.parse_args(argv)
+
+
+class _UngatedPredictor:
+    """Wraps a predictor so the Decision Service cannot short-circuit it.
+
+    It deliberately does NOT expose ``gate_vocabulary``, which is what the
+    service autowires from; every request therefore reaches the model. The
+    confidence it reports is a fixed placeholder, not a measured value, and it
+    exists only to isolate model cost in the G2 overhead arm.
+    """
+
+    UNGATED_CONFIDENCE = 0.9
+
+    def __init__(self, inner) -> None:
+        self._inner = inner
+
+    def predict(self, predictor_input):
+        prediction = self._inner.predict(predictor_input)
+        return Prediction(
+            prediction.score,
+            self.UNGATED_CONFIDENCE,
+            prediction.ood,
+            prediction.latency_ms,
+        )
 
 
 def build_predictor(args: argparse.Namespace) -> Predictor:
     if args.predictor == "stub":
         return ConstantPredictor(args.score, args.confidence, args.ood)
-    return BertPredictor(
+    predictor = BertPredictor(
         args.checkpoint,
         device=args.device,
         batch_max=args.batch_max,
         batch_window_ms=args.batch_window_ms,
     )
+    if args.no_gate:
+        print("[decision] gate DISABLED: every request runs the model", flush=True)
+        return _UngatedPredictor(predictor)
+    return predictor
 
 
 def effective_feature_variant(args: argparse.Namespace) -> str:
