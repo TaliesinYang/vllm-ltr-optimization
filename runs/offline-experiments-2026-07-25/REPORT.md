@@ -400,3 +400,112 @@ $V e4_embed.py      # ~24 min, writes e4-embeddings.pt (gitignored)
 $V e4_fusion.py     # ~15 s
 $V e4_latency.py    # ~90 s
 ```
+
+---
+
+# T5 — evidence-based Reliability Gate confidence (2026-07-26)
+
+Ticket: issue #9. Scripts `t5_score_validation.py`, `t5_gate.py`; artifacts
+`t5-gate.json`, `t5-validation-scoring.json`. Compute: 241 s validation scoring + 3 s.
+`/v1/decision` contract unchanged — only the value written to the existing
+`Prediction.confidence` field changes.
+
+## Design
+
+Request-time signal, available at admission with no generation:
+
+```
+request -> tool-set fingerprint + tool names  ->  stratum (S1..S4)  ->  confidence
+              vs the Ranker's training vocabulary
+```
+
+Cross-Workload Transfer is not handled here; it remains a Fallback trigger, as specified.
+
+**Fit and evaluation are on different splits.** T1's per-stratum τ is measured on *test*.
+Deriving confidence from those numbers and then validating on test would be circular —
+the table would agree by construction and demonstrate nothing. So confidence is fit on
+**validation** and evaluated on **test**. This required scoring the validation split with
+the three prompt_schema checkpoints (241 s), which did not previously exist.
+
+**Confidence rule**: `max(0, lower bound of the 95% session-clustered bootstrap CI of
+validation τ)`. The lower bound rather than the point estimate, because a gate that
+overstates its own reliability is precisely the defect being replaced.
+
+## The stratum that breaks the obvious rule
+
+| Stratum | val n | test n | realized test τ |
+|---|---:|---:|---:|
+| S1 seen-combination | 74 | 45 | 0.6012 |
+| **S2 new combination, all tools seen** | 82 | 78 | **0.4392** |
+| S3 partial-new tools | 472 | 543 | 0.6468 |
+| S4 all-new tools | 370 | 333 | 0.6393 |
+
+**S2 is by far the hardest stratum for the Ranker — not S4.** Requests whose tools were
+all individually seen but whose *combination* is new score 0.44, roughly 0.20 below every
+other stratum. Novel tools are handled well; novel *compositions* of familiar tools are
+not. That is the opposite of the intuition the S1→S4 ordering suggests.
+
+Caveat, stated plainly: S2's τ rests on 78 test rows and is formally withheld under the
+n<100 rule. It is reported here because it is a **design input** — the gate cannot be
+designed responsibly while ignoring the one stratum where it would fail. This is the same
+rule-collision as T1's S1 tie bar and needs the same kind of ruling.
+
+## Rule comparison — every candidate scored on test
+
+`overstates_by = assigned − realized`; positive means the gate claimed more reliability
+than it delivered, which is the failure mode that matters.
+
+| Rule | S1 | S2 | S3 | S4 | never overstates | worst |
+|---|---:|---:|---:|---:|:--:|---:|
+| **placeholder 0.9** (ships today) | +0.299 | **+0.461** | +0.253 | +0.261 | no | **+0.461** |
+| A: pooled small-stratum value (0.659) | +0.058 | **+0.220** | −0.068 | −0.016 | no | +0.220 |
+| B: floor to lowest measured (0.579) | −0.023 | **+0.140** | −0.068 | −0.016 | no | +0.140 |
+| global control, no stratification (0.630) | +0.028 | **+0.190** | −0.017 | −0.010 | no | +0.190 |
+| **C: abstain on unmeasurable strata (0.0)** | −0.601 | −0.439 | −0.068 | −0.016 | **yes** | **−0.016** |
+
+**Rule C is selected.** It is the only rule that never overstates on the held-out split.
+S1 and S2 — the strata too small to estimate — receive confidence 0, which routes them to
+the existing Fallback path rather than having the gate vouch for them.
+
+Assigned confidences under Rule C: S1 0.0, S2 0.0, S3 0.5787, S4 0.6233.
+
+## What actually does the work — and what does not
+
+Two honest observations that should travel with this result:
+
+1. **The hardcoded 0.9 is wrong in every stratum**, overstating realized ranking quality
+   by +0.25 to +0.46. Replacing it with any measured value is a clear improvement. This
+   is the strongest and least contestable part of the ticket.
+
+2. **The graded part of stratification earns very little.** Among the two strata large
+   enough to estimate, realized τ differs by only 0.0075 (0.6468 vs 0.6393), and the
+   global no-stratification control (a single measured 0.630) is *also* conservative on
+   S1, S3 and S4. Stratification's entire advantage over one global number is that it
+   **abstains where it cannot measure** — and that matters only because S2 exists.
+
+So the defensible claim is: *the gate's value comes from knowing where it does not know,
+not from finely grading where it does.* Writing it up as "confidence tracks cold-start
+stratum" would overstate what the numbers support — realized τ is flat across S1/S3/S4
+and only S2 breaks ranks.
+
+## Limits
+
+- Confidence is a **measured ranking-quality floor, not a calibrated probability**. It is
+  a τ lower bound in [0,1]; it is not P(correct). The `Prediction.confidence` docstring's
+  "each predictor documents whether it is calibrated" obligation is met by saying so.
+- Fit on 998 validation rows from one workload family (ToolACE tier-2). Nothing here
+  licenses a claim about other workloads; that is Cross-Workload Transfer's job.
+- No serving-benchmark claim is made, per the ticket.
+- The reliability threshold that turns confidence into `prediction_reliable` is unchanged
+  and not tuned here. Note that under Rule C, S1/S2 traffic will fail any positive
+  threshold — that is intended, but it changes the fraction of requests taking the
+  Fallback path and should be sized before deployment.
+
+## Reproduction
+
+```bash
+V=/Users/alex/develop/vllm-ltr-optimization/.worktrees/final-training-artifacts/.venv/bin/python
+cd /Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25
+$V t5_score_validation.py   # ~4 min, writes t5-bert-validation-scores.jsonl (gitignored)
+$V t5_gate.py               # ~3 s, writes t5-gate.json
+```

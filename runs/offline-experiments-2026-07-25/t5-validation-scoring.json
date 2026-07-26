@@ -1,0 +1,24 @@
+{
+  "checkpoint_root": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-matrix",
+  "checkpoint_sha256": {
+    "seed17": "9755fd9f510dd39e85f2dfd8aefb0b6fc76725cdc43920e42df8304daa6b4740",
+    "seed42": "49b1df6ca54e71aadb5ace358d35b7f7a5993946ad7ddf0a0d098d74a29af77f",
+    "seed73": "43367a9123a47e6ffabfe6e6d5c9b5dccf8cb9cdfbcc62884c41249e5ea7b9b2"
+  },
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "rows": 998,
+  "schema_version": "t5-validation-scoring-v1",
+  "scores_path": "/Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25/t5-bert-validation-scores.jsonl",
+  "scoring": {
+    "batch_size": 32,
+    "device": "cpu",
+    "max_length": 512
+  },
+  "variant": "prompt_schema",
+  "wall_clock_seconds": 240.86691999435425
+}

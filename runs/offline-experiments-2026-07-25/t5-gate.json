@@ -1,0 +1,421 @@
+{
+  "assigned_confidence": {
+    "S1": 0.0,
+    "S2": 0.0,
+    "S3": 0.5786788998431738,
+    "S4": 0.6232874397453674
+  },
+  "confidence_basis": {
+    "S1": "rule C_abstain: the gate declines to vouch for strata it cannot measure; confidence 0 routes them to the Fallback path (own n=74 < 100)",
+    "S2": "rule C_abstain: the gate declines to vouch for strata it cannot measure; confidence 0 routes them to the Fallback path (own n=82 < 100)",
+    "S3": "own validation CI lower bound (n=472)",
+    "S4": "own validation CI lower bound (n=370)"
+  },
+  "contract_change": "none - only the value written to the existing Prediction.confidence field changes",
+  "findings": {
+    "all_strata_conservative_on_test": true,
+    "assigned_confidence_spread": 0.6232874397453674,
+    "placeholder_overstatement_max": 0.4608240230613215,
+    "placeholder_overstatement_min": 0.25321012701828816,
+    "realized_tau_spread": 0.20761389604303332,
+    "reportable_strata": [
+      "S3",
+      "S4"
+    ]
+  },
+  "global_control": {
+    "confidence": 0.629612656134617,
+    "validation_fit": {
+      "ci95_seed17": [
+        0.629612656134617,
+        0.6819778012063801
+      ],
+      "mean_tau_b": 0.6538352987756096,
+      "n": 998,
+      "per_seed_tau_b": {
+        "17": 0.657171865309925,
+        "42": 0.6557240481634876,
+        "73": 0.6486099828534165
+      },
+      "stdev_tau_b": 0.004582792651585244
+    }
+  },
+  "inputs": {
+    "ledger_path": "/Volumes/T7 Shield/vllm-ltr-results/extracted/tier2-toolace-6000-ledger.jsonl",
+    "ledger_sha256": "077eec4235a6244afce287948511c18c8c9b66e23e8cabf08d51326313e129ac",
+    "sample_path": "/Volumes/T7 Shield/vllm-ltr-results/rebuild/tier2-toolace-sample-6000.jsonl",
+    "sample_sha256": "ee5a5889ca3d9bbee7790e7a408bd1664a285b6410b4fee54e45786d3eecb709"
+  },
+  "method": {
+    "confidence_rule": "max(0, lower bound of 95% session-clustered bootstrap CI of validation tau) - the lower bound, not the point estimate, because an overconfident reliability gate is the defect being fixed",
+    "cross_workload_transfer": "out of scope here; remains a Fallback trigger",
+    "evaluation_split": "test",
+    "fit_split": "validation",
+    "own_estimate_strata": [
+      "S3",
+      "S4"
+    ],
+    "pooled_strata": [
+      "S1",
+      "S2"
+    ],
+    "selected_small_stratum_rule": "C_abstain",
+    "small_stratum_rule": "strata with fewer than 100 validation rows are pooled and share the pooled CI lower bound",
+    "why": "T1's per-stratum tau is measured on test; fitting confidence there and evaluating there would be circular"
+  },
+  "reliability_table": [
+    {
+      "assigned_confidence": 0.0,
+      "confidence_basis": "rule C_abstain: the gate declines to vouch for strata it cannot measure; confidence 0 routes them to the Fallback path (own n=74 < 100)",
+      "conservative": true,
+      "gap_realized_minus_assigned": 0.6012125658582185,
+      "placeholder_confidence": 0.9,
+      "placeholder_overstatement": 0.29878743414178155,
+      "realized_test_tau_b": 0.6012125658582185,
+      "stratum": "S1",
+      "tau_withheld": true,
+      "test_n": 45,
+      "validation_n": 74
+    },
+    {
+      "assigned_confidence": 0.0,
+      "confidence_basis": "rule C_abstain: the gate declines to vouch for strata it cannot measure; confidence 0 routes them to the Fallback path (own n=82 < 100)",
+      "conservative": true,
+      "gap_realized_minus_assigned": 0.43917597693867855,
+      "placeholder_confidence": 0.9,
+      "placeholder_overstatement": 0.4608240230613215,
+      "realized_test_tau_b": 0.43917597693867855,
+      "stratum": "S2",
+      "tau_withheld": true,
+      "test_n": 78,
+      "validation_n": 82
+    },
+    {
+      "assigned_confidence": 0.5786788998431738,
+      "confidence_basis": "own validation CI lower bound (n=472)",
+      "conservative": true,
+      "gap_realized_minus_assigned": 0.06811097313853809,
+      "placeholder_confidence": 0.9,
+      "placeholder_overstatement": 0.25321012701828816,
+      "realized_test_tau_b": 0.6467898729817119,
+      "stratum": "S3",
+      "tau_withheld": false,
+      "test_n": 543,
+      "validation_n": 472
+    },
+    {
+      "assigned_confidence": 0.6232874397453674,
+      "confidence_basis": "own validation CI lower bound (n=370)",
+      "conservative": true,
+      "gap_realized_minus_assigned": 0.0160473213518032,
+      "placeholder_confidence": 0.9,
+      "placeholder_overstatement": 0.26066523890282944,
+      "realized_test_tau_b": 0.6393347610971706,
+      "stratum": "S4",
+      "tau_withheld": false,
+      "test_n": 333,
+      "validation_n": 370
+    }
+  ],
+  "request_time_signal": "tool-set fingerprint + tool names vs the Ranker's training vocabulary; both are available at admission, neither needs generation",
+  "rule_comparison": {
+    "A_pooled": {
+      "description": "small strata share the pooled small-stratum CI lower bound",
+      "max_overstatement": 0.21982760425195896,
+      "never_overstates": false,
+      "per_stratum": [
+        {
+          "assigned": 0.6590035811906375,
+          "overstates_by": 0.05779101533241904,
+          "realized": 0.6012125658582185,
+          "stratum": "S1"
+        },
+        {
+          "assigned": 0.6590035811906375,
+          "overstates_by": 0.21982760425195896,
+          "realized": 0.43917597693867855,
+          "stratum": "S2"
+        },
+        {
+          "assigned": 0.5786788998431738,
+          "overstates_by": -0.06811097313853809,
+          "realized": 0.6467898729817119,
+          "stratum": "S3"
+        },
+        {
+          "assigned": 0.6232874397453674,
+          "overstates_by": -0.0160473213518032,
+          "realized": 0.6393347610971706,
+          "stratum": "S4"
+        }
+      ],
+      "small_strata_value": 0.6590035811906375
+    },
+    "B_floor": {
+      "description": "small strata inherit the lowest measured stratum's CI lower bound",
+      "max_overstatement": 0.13950292290449523,
+      "never_overstates": false,
+      "per_stratum": [
+        {
+          "assigned": 0.5786788998431738,
+          "overstates_by": -0.022533666015044695,
+          "realized": 0.6012125658582185,
+          "stratum": "S1"
+        },
+        {
+          "assigned": 0.5786788998431738,
+          "overstates_by": 0.13950292290449523,
+          "realized": 0.43917597693867855,
+          "stratum": "S2"
+        },
+        {
+          "assigned": 0.5786788998431738,
+          "overstates_by": -0.06811097313853809,
+          "realized": 0.6467898729817119,
+          "stratum": "S3"
+        },
+        {
+          "assigned": 0.6232874397453674,
+          "overstates_by": -0.0160473213518032,
+          "realized": 0.6393347610971706,
+          "stratum": "S4"
+        }
+      ],
+      "small_strata_value": 0.5786788998431738
+    },
+    "C_abstain": {
+      "description": "the gate declines to vouch for strata it cannot measure; confidence 0 routes them to the Fallback path",
+      "max_overstatement": -0.0160473213518032,
+      "never_overstates": true,
+      "per_stratum": [
+        {
+          "assigned": 0.0,
+          "overstates_by": -0.6012125658582185,
+          "realized": 0.6012125658582185,
+          "stratum": "S1"
+        },
+        {
+          "assigned": 0.0,
+          "overstates_by": -0.43917597693867855,
+          "realized": 0.43917597693867855,
+          "stratum": "S2"
+        },
+        {
+          "assigned": 0.5786788998431738,
+          "overstates_by": -0.06811097313853809,
+          "realized": 0.6467898729817119,
+          "stratum": "S3"
+        },
+        {
+          "assigned": 0.6232874397453674,
+          "overstates_by": -0.0160473213518032,
+          "realized": 0.6393347610971706,
+          "stratum": "S4"
+        }
+      ],
+      "small_strata_value": 0.0
+    },
+    "global_control_no_stratification": {
+      "description": "single measured confidence for every request; the control that says whether stratification earns its complexity",
+      "max_overstatement": 0.19043667919593849,
+      "never_overstates": false,
+      "per_stratum": [
+        {
+          "assigned": 0.629612656134617,
+          "overstates_by": 0.02840009027639856,
+          "realized": 0.6012125658582185,
+          "stratum": "S1"
+        },
+        {
+          "assigned": 0.629612656134617,
+          "overstates_by": 0.19043667919593849,
+          "realized": 0.43917597693867855,
+          "stratum": "S2"
+        },
+        {
+          "assigned": 0.629612656134617,
+          "overstates_by": -0.017177216847094834,
+          "realized": 0.6467898729817119,
+          "stratum": "S3"
+        },
+        {
+          "assigned": 0.629612656134617,
+          "overstates_by": -0.009722104962553546,
+          "realized": 0.6393347610971706,
+          "stratum": "S4"
+        }
+      ],
+      "small_strata_value": 0.629612656134617
+    },
+    "placeholder_0.9": {
+      "description": "what BertPredictor ships today",
+      "max_overstatement": 0.4608240230613215,
+      "never_overstates": false,
+      "per_stratum": [
+        {
+          "assigned": 0.9,
+          "overstates_by": 0.29878743414178155,
+          "realized": 0.6012125658582185,
+          "stratum": "S1"
+        },
+        {
+          "assigned": 0.9,
+          "overstates_by": 0.4608240230613215,
+          "realized": 0.43917597693867855,
+          "stratum": "S2"
+        },
+        {
+          "assigned": 0.9,
+          "overstates_by": 0.25321012701828816,
+          "realized": 0.6467898729817119,
+          "stratum": "S3"
+        },
+        {
+          "assigned": 0.9,
+          "overstates_by": 0.26066523890282944,
+          "realized": 0.6393347610971706,
+          "stratum": "S4"
+        }
+      ],
+      "small_strata_value": 0.9
+    }
+  },
+  "schema_version": "t5-gate-v1",
+  "status": "done",
+  "test_realized": {
+    "S1": {
+      "ci95_seed17": [
+        0.4827563784034201,
+        0.777404812901649
+      ],
+      "mean_tau_b": 0.6012125658582185,
+      "n": 45,
+      "per_seed_tau_b": {
+        "17": 0.6422288629903771,
+        "42": 0.5774662885711793,
+        "73": 0.5839425460130991
+      },
+      "stdev_tau_b": 0.035668444743759777
+    },
+    "S2": {
+      "ci95_seed17": [
+        0.33320192162029094,
+        0.6270694401368686
+      ],
+      "mean_tau_b": 0.43917597693867855,
+      "n": 78,
+      "per_seed_tau_b": {
+        "17": 0.49373891525002556,
+        "42": 0.43494456539616594,
+        "73": 0.3888444501698442
+      },
+      "stdev_tau_b": 0.05257509708831671
+    },
+    "S3": {
+      "ci95_seed17": [
+        0.6193827870781734,
+        0.692443268665021
+      ],
+      "mean_tau_b": 0.6467898729817119,
+      "n": 543,
+      "per_seed_tau_b": {
+        "17": 0.6572604495389083,
+        "42": 0.6355012826309845,
+        "73": 0.6476078867752428
+      },
+      "stdev_tau_b": 0.01090262335662966
+    },
+    "S4": {
+      "ci95_seed17": [
+        0.5820216421925607,
+        0.6751523717371247
+      ],
+      "mean_tau_b": 0.6393347610971706,
+      "n": 333,
+      "per_seed_tau_b": {
+        "17": 0.6314488320922547,
+        "42": 0.6476682044781324,
+        "73": 0.6388872467211248
+      },
+      "stdev_tau_b": 0.008118941555739853
+    }
+  },
+  "ticket": "issue #9 (T5); spec issue #4",
+  "train_vocabulary": {
+    "unique_fingerprints": 3162,
+    "unique_tool_names": 7690
+  },
+  "validation_fit": {
+    "S1": {
+      "ci95_seed17": [
+        0.6411720037944085,
+        0.826066169078985
+      ],
+      "mean_tau_b": 0.7090897737308387,
+      "n": 74,
+      "per_seed_tau_b": {
+        "17": 0.7452612324017506,
+        "42": 0.6995301739392407,
+        "73": 0.6824779148515251
+      },
+      "stdev_tau_b": 0.03246499194185569
+    },
+    "S2": {
+      "ci95_seed17": [
+        0.5157556232025223,
+        0.7571933613799829
+      ],
+      "mean_tau_b": 0.6418169431332625,
+      "n": 82,
+      "per_seed_tau_b": {
+        "17": 0.642621855430655,
+        "42": 0.6239076445162817,
+        "73": 0.658921329452851
+      },
+      "stdev_tau_b": 0.017520714770356983
+    },
+    "S3": {
+      "ci95_seed17": [
+        0.5786788998431738,
+        0.656366942636559
+      ],
+      "mean_tau_b": 0.6322306956242273,
+      "n": 472,
+      "per_seed_tau_b": {
+        "17": 0.618425914419474,
+        "42": 0.6432311925912233,
+        "73": 0.6350349798619845
+      },
+      "stdev_tau_b": 0.012638174862655822
+    },
+    "S4": {
+      "ci95_seed17": [
+        0.6232874397453674,
+        0.7088073792221465
+      ],
+      "mean_tau_b": 0.6524633794426036,
+      "n": 370,
+      "per_seed_tau_b": {
+        "17": 0.6646273782307619,
+        "42": 0.6535798817468307,
+        "73": 0.6391828783502181
+      },
+      "stdev_tau_b": 0.012758941044979249
+    }
+  },
+  "validation_pooled_small_strata": {
+    "ci95_seed17": [
+      0.6590035811906375,
+      0.7848818551539041
+    ],
+    "mean_tau_b": 0.6912567255008032,
+    "n": 156,
+    "per_seed_tau_b": {
+      "17": 0.7242255125541038,
+      "42": 0.6847299097897437,
+      "73": 0.6648147541585621
+    },
+    "stdev_tau_b": 0.03023837042199793
+  },
+  "wall_clock_seconds": 2.7135281562805176
+}
