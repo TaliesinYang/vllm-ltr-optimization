@@ -355,13 +355,19 @@ PY
 
 run_policy() {
   local scheduler="$1" profile="$2" workload="$3" repeats="$4" output_dir="$5"
-  local policy run_id output manifest attempt_tag runner_status
+  local policy run_id output manifest attempt_tag runner_status runner_profile
   policy="$(policy_name "$scheduler")"
   run_id="${profile}-${policy}"
+  # The runner only accepts id|ood|mixed for --profile; run labels like
+  # "sentinel-1" or "mixed-round-a" are naming, not runner profiles.
+  case "$profile" in
+    id|ood|mixed) runner_profile="$profile" ;;
+    *) runner_profile="mixed" ;;
+  esac
   output="$output_dir/$policy.json"
   manifest="$RUN_ROOT/manifests/$run_id.json"
-  if policy_output_complete "$output" "$scheduler" "$profile" "$repeats" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"; then
-    require_completed_evidence "$manifest" "$scheduler" "$profile" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"
+  if policy_output_complete "$output" "$scheduler" "$runner_profile" "$repeats" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"; then
+    require_completed_evidence "$manifest" "$scheduler" "$runner_profile" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"
     echo "resume: complete policy with archived evidence, skipping launch: $run_id"
     return 0
   fi
@@ -379,7 +385,7 @@ run_policy() {
       --endpoint "$ENDPOINT" --model "$MODEL" --workload "$workload" \
       --capacity-rps "$capacity_rps" --scheduler-cls "$scheduler" \
       --output "$output" --api-key vx-dev --scenario steady --load 90 \
-      --profile "$profile" --repeats "$repeats" --resume; then
+      --profile "$runner_profile" --repeats "$repeats" --resume; then
     runner_status=0
   else
     runner_status=$?
