@@ -18,6 +18,23 @@ citation-identity re-verification. PDFs archived in the course repo under
 > tests. The Cold-Start stratification also gives the Reliability Gate its first
 > evidence-based confidence signal, replacing the hardcoded 0.9 placeholder.**
 
+**FINAL third-sentence wording (07-26, supersedes the truncation clause above — E4 killed
+it):** The schema's specific contribution concentrates where schemas repeat — the regime
+real deployments live in (probe-verified constancy). E4 eliminated two surface
+explanations: reading the schema untruncated does not change τ (Δτ ≈ 0, though 71% of
+schemas exceed the 512 cap), and caching the schema encoding buys 1.9× but remains 4×
+(serial) to 25× (concurrency 8) over the 15 ms contract. Design conclusion: **the learned
+Ranker deploys on an asynchronous side path; the critical path is guarded by a
+Reliability Gate whose confidence is the lower CI bound of measured per-stratum
+validation τ, abstaining where it cannot measure** (Rule C; S1+S2 → Fallback, ~12% of
+traffic). The real weak spot is S2 — new combinations of familiar tools, realized τ 0.44
+vs 0.60–0.65 elsewhere — novel compositions, not novel tools, break the Ranker. The
+gate's value is knowing what it does not know.
+
+**Standing interpretation of the n<100 rule (ruled 07-26):** it binds headline reporting
+only — undersized-stratum τ never appears as a claimed result, but MAY inform design
+decisions when disclosed with its n and uncertainty (T5's use of S2 is the model case).
+
 Honest decomposition (E2 control, must accompany the headline): of the +0.2034 gap,
 ~79% (+0.160) comes from the text encoder itself (BERT prompt_only over LightGBM scalars)
 and ~21% (+0.044) from adding schema text; on cold-start strata schema adds only ~+0.015.
@@ -64,7 +81,8 @@ whether ranking helps mean/goodput under *mixed agent traffic* — that is E5, l
 | E3 | LightGBM same-recipe 3-seed rerun | **DONE** (`d0ca541`) | Baseline is deterministic w.r.t. seed (std = 0.0000 by construction — no stochastic sampling in recipe); 0.4268 reproduced bit-exact; CI [0.391, 0.461]. "Single-seed" objection void. |
 | E1 | Schema-hash / identity baseline | **DONE** (`064f9ed`) | Identity adds +0.008 (inside noise). Only 45/999 test fingerprints seen in train (1.26 rows/fingerprint) — lookup has nothing to look up. Forced categorical use → τ falls to 0.4131 (memorisation). Identity route dead. |
 | E2 | Cold-start evaluation (two-subset; S1–S4 re-stratification pending, few sec CPU from saved scores) | **DONE** (`f3067ec`) | Text holds on unseen strata: 0.627 (unseen-combo, n=954) / 0.639 (strict unseen-tools, n=333) vs hash/scalar 0.40–0.49, CIs separated. Pre-registered survival criterion PASSED. Control finding: 79/21 decomposition (see spine claim). Checkpoint provenance reproduced to delta 0. |
-| E4 | **Cached two-tower encoder** — now dual-purpose: (i) per-request latency with schema precomputed, at the Decision Service contract; (ii) tests whether un-truncating the schema (median prompt+schema = 781 tok vs 512 cap) recovers schema-specific τ | pending | Kill for deployability leg: per-request cost still ≥ heuristic budget by orders of magnitude (JITServe's 7 ms QRF is the published bar) |
+| E4 | Cached two-tower encoder (dual-purpose) | **DONE** (`e834891`) | **Double negative.** (ii) Un-truncating schema does NOT recover τ (Δτ +0.0008 S3 / −0.0112 S4, CIs overlap). (i) Cache buys 1.9× p99 but 25.1× over 15 ms at conc 8 (4.3× serial — rest is CPU contention). **Kill condition FIRED**: BERT-class Ranker stays off the critical path → async side path + Gate. |
+| T5 | Evidence-based Gate confidence (Rule C) | **DONE** (`1883b7d`) | Confidence = lower 95% CI bound of per-stratum validation τ; abstain on S1/S2 (n<100) → Fallback ~12%. **S2 is the hard stratum (τ 0.4392)** — novel combinations, not novel tools. Placeholder 0.9 overstated +0.25..+0.46 everywhere. Fit on validation, evaluated on test (not circular). |
 | E5 | Serving-level validation under a REAL agent trace (mean E2E / goodput, NOT P99 supremacy), replaying OpenCode-through-gateway traces | pending — **GPU rental only after E4 + live-chain trace collection** | ranking gain doesn't move mean/goodput even in heterogeneous queue |
 
 Pre-registered criteria used for E1/E2 (ruled before results were known): primary =
