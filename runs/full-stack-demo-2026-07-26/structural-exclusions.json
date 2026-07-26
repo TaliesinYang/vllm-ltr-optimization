@@ -1,0 +1,20 @@
+[
+  {
+    "sample_id": "toolace-000180:0005",
+    "reason": "ledger failure row; demo manifest build does not replay (rental-day replay pending)",
+    "http_status": null,
+    "error_snippet": ""
+  },
+  {
+    "sample_id": "toolace-000483:0004",
+    "reason": "ledger failure row; demo manifest build does not replay (rental-day replay pending)",
+    "http_status": null,
+    "error_snippet": ""
+  },
+  {
+    "sample_id": "toolace-000483:0005",
+    "reason": "ledger failure row; demo manifest build does not replay (rental-day replay pending)",
+    "http_status": null,
+    "error_snippet": ""
+  }
+]
