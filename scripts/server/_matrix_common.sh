@@ -397,7 +397,7 @@ run_policy() {
     ACTIVE_ATTEMPT_TAG=""; ACTIVE_ATTEMPT_MANIFEST=""; ACTIVE_ATTEMPT_SCHEDULER=""
     return "$runner_status"
   fi
-  policy_output_complete "$output" "$scheduler" "$profile" "$repeats" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION" || {
+  policy_output_complete "$output" "$scheduler" "$runner_profile" "$repeats" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION" || {
     mark_attempt_status "$manifest" "$attempt_tag" failed
     ACTIVE_ATTEMPT_TAG=""; ACTIVE_ATTEMPT_MANIFEST=""; ACTIVE_ATTEMPT_SCHEDULER=""
     echo "runner returned success without an exact complete output: $run_id" >&2
