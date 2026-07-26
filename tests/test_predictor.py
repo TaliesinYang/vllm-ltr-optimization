@@ -1,5 +1,6 @@
 import json
 import math
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +14,47 @@ from scheduler_benchmark.predictor import (
     PredictorInput,
     RandomPredictor,
 )
+from scheduler_benchmark.tool_vocabulary import (
+    DEFAULT_ARTIFACT,
+    GateVocabulary,
+    toolset_fingerprint,
+)
+
+
+def schema_with(*names: str) -> str:
+    """A ToolACE-shaped system prompt advertising the given tools."""
+    tools = ", ".join(f'{{"name": "{name}", "description": "d"}}' for name in names)
+    return (
+        "You are an expert in composing functions.\n"
+        "Here is a list of functions in JSON format that you can invoke:\n"
+        f"[{tools}]. \n"
+    )
+
+
+@pytest.fixture
+def gate_artifact(tmp_path) -> Path:
+    """Small stand-in vocabulary: tools alpha+beta seen, combination alpha+beta seen."""
+    path = tmp_path / "gate_confidence.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "gate-confidence-v1",
+                "confidence_by_stratum": {
+                    "S1": 0.0,
+                    "S2": 0.0,
+                    "S3": 0.25,
+                    "S4": 0.5,
+                },
+                "unknown_confidence": 0.0,
+                "fingerprint_prefix_length": 32,
+                "train_fingerprints": [
+                    toolset_fingerprint(schema_with("alpha", "beta"))[:32]
+                ],
+                "train_tool_names": ["alpha", "beta"],
+            }
+        )
+    )
+    return path
 
 
 class FakeBatchEncoding(dict):
@@ -54,7 +96,7 @@ class ScalarLogitModel:
         return SimpleNamespace(logits=torch.tensor([[self.logit]]))
 
 
-def make_bert_predictor(monkeypatch, tmp_path, *, logit: float = 2.0):
+def make_bert_predictor(monkeypatch, tmp_path, *, logit: float = 2.0, vocabulary=None):
     tokenizer = RecordingTokenizer()
     model = ScalarLogitModel(logit)
     loaded = {}
@@ -74,8 +116,18 @@ def make_bert_predictor(monkeypatch, tmp_path, *, logit: float = 2.0):
     )
     checkpoint = tmp_path / "checkpoint"
     checkpoint.mkdir()
-    predictor = BertPredictor(checkpoint)
+    predictor = BertPredictor(checkpoint, vocabulary=vocabulary)
     return predictor, tokenizer, model, loaded
+
+
+def predict_with_schema(predictor, tool_schema: str):
+    return predictor.predict(
+        PredictorInput(
+            request_id="toolace-000000:0000",
+            prompt_token_ids=(1, 2, 3),
+            metadata={"prompt_text": "prompt", "tool_schema_text": tool_schema},
+        )
+    )
 
 
 def make_input(request_id: str = "req-1") -> PredictorInput:
@@ -181,7 +233,8 @@ def test_bert_predictor_replays_exact_prompt_schema_tokenization(
     assert model.is_eval is True
     assert str(tokenizer.encoding.device) == "cpu"
     assert prediction.score == pytest.approx(1.0 / (1.0 + math.exp(-2.0)))
-    assert prediction.confidence == 0.9
+    # "raw schema" advertises no readable tool set, so the gate abstains.
+    assert prediction.confidence == 0.0
     assert prediction.ood is False
     assert prediction.latency_ms >= 0.0
 
@@ -203,6 +256,100 @@ def test_bert_predictor_maps_higher_longer_logit_to_higher_scheduler_cost(
     assert shorter_score == pytest.approx(1.0 / (1.0 + math.exp(2.0)))
     assert longer_score == pytest.approx(1.0 / (1.0 + math.exp(-2.0)))
     assert shorter_score < longer_score
+
+
+def test_bert_predictor_does_not_report_the_hardcoded_placeholder_confidence(
+    monkeypatch, tmp_path, gate_artifact
+) -> None:
+    """A request with entirely novel tools must not be vouched for at 0.9."""
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch, tmp_path, vocabulary=GateVocabulary.from_artifact(gate_artifact)
+    )
+
+    prediction = predict_with_schema(predictor, schema_with("gamma", "delta"))
+
+    assert prediction.confidence != 0.9
+    assert prediction.confidence == 0.5
+    assert not hasattr(BertPredictor, "PLACEHOLDER_CONFIDENCE")
+
+
+@pytest.mark.parametrize(
+    ("names", "stratum", "expected"),
+    (
+        (("alpha", "beta"), "S1", 0.0),
+        (("alpha",), "S2", 0.0),
+        (("alpha", "gamma"), "S3", 0.25),
+        (("gamma", "delta"), "S4", 0.5),
+    ),
+)
+def test_bert_predictor_confidence_follows_cold_start_stratum(
+    monkeypatch, tmp_path, gate_artifact, names, stratum, expected
+) -> None:
+    vocabulary = GateVocabulary.from_artifact(gate_artifact)
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch, tmp_path, vocabulary=vocabulary
+    )
+    schema = schema_with(*names)
+
+    assert vocabulary.stratum(schema) == stratum
+    assert predict_with_schema(predictor, schema).confidence == expected
+
+
+@pytest.mark.parametrize(
+    "tool_schema",
+    (
+        pytest.param(schema_with(), id="empty_tool_list"),
+        pytest.param("raw schema", id="unparseable_schema"),
+        pytest.param("", id="blank_schema_text_is_rejected_upstream"),
+    ),
+)
+def test_bert_predictor_is_conservative_when_the_tool_set_is_unreadable(
+    monkeypatch, tmp_path, gate_artifact, tool_schema
+) -> None:
+    """No readable tool set means no vouching - the gate abstains."""
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch, tmp_path, vocabulary=GateVocabulary.from_artifact(gate_artifact)
+    )
+    if not tool_schema:
+        with pytest.raises(ValueError, match="tool_schema_text"):
+            predict_with_schema(predictor, tool_schema)
+        return
+
+    assert predict_with_schema(predictor, tool_schema).confidence == 0.0
+
+
+def test_constant_confidence_env_override_remains_an_escape_hatch(
+    monkeypatch, tmp_path, gate_artifact
+) -> None:
+    monkeypatch.setenv("LTR_CONSTANT_CONFIDENCE", "0.75")
+    predictor, _, _, _ = make_bert_predictor(
+        monkeypatch, tmp_path, vocabulary=GateVocabulary.from_artifact(gate_artifact)
+    )
+
+    prediction = predict_with_schema(predictor, schema_with("gamma", "delta"))
+
+    assert prediction.confidence == 0.75
+
+
+def test_committed_gate_artifact_matches_the_offline_evaluation() -> None:
+    """The served numbers are the T5 numbers, not a hand-copied approximation."""
+    gate = json.loads(
+        (
+            Path(__file__).resolve().parents[1]
+            / "runs"
+            / "offline-experiments-2026-07-25"
+            / "t5-gate.json"
+        ).read_text()
+    )
+    vocabulary = GateVocabulary.from_artifact(DEFAULT_ARTIFACT)
+
+    assert vocabulary.confidence_by_stratum == {
+        stratum: pytest.approx(float(value))
+        for stratum, value in gate["assigned_confidence"].items()
+    }
+    # The abstain value must never exceed what any stratum earned.
+    assert vocabulary.unknown_confidence <= min(vocabulary.confidence_by_stratum.values())
+    assert vocabulary.provenance["rule"] == "C_abstain"
 
 
 def test_bert_predictor_fails_closed_without_raw_training_features(

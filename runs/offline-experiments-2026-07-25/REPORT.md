@@ -509,3 +509,75 @@ cd /Users/alex/develop/vllm-ltr-optimization/runs/offline-experiments-2026-07-25
 $V t5_score_validation.py   # ~4 min, writes t5-bert-validation-scores.jsonl (gitignored)
 $V t5_gate.py               # ~3 s, writes t5-gate.json
 ```
+
+---
+
+# T6 — Rule C wired into the Decision Service (2026-07-26)
+
+Ticket: issue #10. `scheduler_benchmark/predictor.py` no longer carries
+`PLACEHOLDER_CONFIDENCE = 0.9`; `BertPredictor` now reports the confidence measured for
+the request's Cold-Start stratum. `/v1/decision` contract unchanged — same fields, same
+shapes, only the value in `confidence` differs.
+
+## What changed
+
+| Piece | Role |
+|---|---|
+| `scheduler_benchmark/tool_vocabulary.py` | schema parser, fingerprint, stratum rule, `GateVocabulary` |
+| `scheduler_benchmark/artifacts/gate_confidence.json` | committed values + training vocabulary (345 KB) |
+| `runs/offline-experiments-2026-07-25/build_gate_artifact.py` | derives that artifact from `t5-gate.json` |
+| `scheduler_benchmark/predictor.py` | loads the artifact, classifies at request time |
+
+Served values, read from the artifact rather than written in code: **S1 0.0, S2 0.0,
+S3 0.5786788998431738, S4 0.6232874397453674**, and `unknown` 0.0 for requests whose tool
+set cannot be read. `unknown` is computed as the minimum of the four, so it can never
+exceed what any stratum earned even if the values are later refit.
+
+The `LTR_CONSTANT_CONFIDENCE` env override is retained as an escape hatch (read once at
+construction) for A/B runs and gate-disabled baselines.
+
+## Two deliberate design choices
+
+**The parser moved into the library.** Stratum classification needs the same
+multi-template tool-name parser the offline experiments use. Duplicating it would let the
+serving path and the evidence drift apart silently — the gate would then vouch using a
+different definition of "seen" than the one it was measured under. It now lives in
+`scheduler_benchmark/tool_vocabulary.py`. `build_gate_artifact.py` asserts the library
+parser and the experiment parser agree on all **5994 rows** before writing the artifact,
+and that guard passed.
+
+**Unreadable tool sets abstain rather than default.** An empty tool list or a schema the
+parser cannot read returns `unknown_confidence`, not a stratum guess. Under Rule C that is
+0.0 either way, but the code does not rely on that coincidence.
+
+## Tests
+
+TDD: the first test asserted a novel-tools request must not report 0.9 and that
+`PLACEHOLDER_CONFIDENCE` no longer exists. It went red as required (12 failures across the
+new and existing predictor tests), then green after the implementation.
+
+Coverage added: all four strata via a synthetic vocabulary fixture, empty tool list,
+unparseable schema, blank schema text (still rejected upstream), the env escape hatch, and
+a test that the committed artifact's values equal `t5-gate.json`'s — so a hand-edited
+artifact fails CI.
+
+```
+tests/test_predictor.py            19 passed
+tests/test_decision_service*.py    31 passed
+full suite                        259 passed, 1 skipped, 1 failed
+```
+
+The single failure is `test_final_report_figures.py::test_latex_review_contracts_are_recorded`,
+which asserts `tier2-learning-curve.json` appears in the LaTeX Evaluation section. It is
+**pre-existing and unrelated** to this ticket — verified by running it in a clean worktree
+at HEAD, where it fails identically. It belongs to the report track, not the serving path.
+
+## Limits
+
+- Confidence remains a measured τ lower bound, not a calibrated probability.
+- The vocabulary is the ToolACE tier-2 training split. A deployment on other traffic would
+  classify most requests S3/S4 by construction; that is correct behaviour for this
+  artifact, but the values themselves are only evidenced for this workload family.
+- No serving-benchmark claim is made. Under Rule C, S1+S2 traffic fails any positive
+  reliability threshold and takes the Fallback path (~12% of the offline test split);
+  Fallback load should be sized before deployment.

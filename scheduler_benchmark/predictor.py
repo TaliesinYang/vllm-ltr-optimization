@@ -8,9 +8,12 @@ import random
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Mapping, Protocol
+from typing import TYPE_CHECKING, Mapping, Protocol
 
 from .contracts import MAX_ESTIMATED_TOKENS, RELIABLE
+
+if TYPE_CHECKING:
+    from .tool_vocabulary import GateVocabulary
 
 
 @dataclass(frozen=True)
@@ -54,12 +57,25 @@ class BertPredictor:
     """CPU predictor for the trained ToolACE prompt-schema ranker."""
 
     MAX_LENGTH = 512
-    PLACEHOLDER_CONFIDENCE = 0.9
 
-    def __init__(self, checkpoint: Path) -> None:
+    def __init__(
+        self, checkpoint: Path, *, vocabulary: "GateVocabulary | None" = None
+    ) -> None:
         import os
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        from .tool_vocabulary import GateVocabulary as _GateVocabulary
+
+        # Confidence comes from the Cold-Start stratum the request falls into,
+        # measured offline (T5, issue #9) and loaded from a committed artifact
+        # so the served values cannot drift from the evaluated ones.
+        self._vocabulary = (
+            vocabulary if vocabulary is not None else _GateVocabulary.from_artifact()
+        )
+        # Escape hatch: pin confidence for A/B runs and gate-disabled baselines.
+        override = os.environ.get("LTR_CONSTANT_CONFIDENCE")
+        self._confidence_override = float(override) if override is not None else None
 
         # CPU thread cap: with the default intra-op pool = all cores, N
         # concurrent HTTP handlers each launch a full-core forward and
@@ -97,9 +113,14 @@ class BertPredictor:
             raise ValueError("BERT predictor must return exactly one logit")
         score = float(self._torch.sigmoid(logits[0]).item())
         latency_ms = (time.perf_counter() - started) * 1000.0
-        # Placeholder only; not a calibrated probability. Ensemble-based
-        # confidence is future work.
-        confidence = self.PLACEHOLDER_CONFIDENCE
+        # A measured Kendall tau-b lower bound for this request's Cold-Start
+        # stratum, NOT a calibrated probability. Requests whose tool set cannot
+        # be read get the artifact's conservative value rather than a guess.
+        confidence = (
+            self._confidence_override
+            if self._confidence_override is not None
+            else self._vocabulary.confidence(tool_schema)
+        )
         # No evaluated OOD detector is implemented yet.
         ood = False
         return Prediction(score, confidence, ood, latency_ms)
