@@ -85,11 +85,18 @@ def tool_names(tool_schema: str) -> tuple[str, ...]:
     """Sorted top-level tool names; empty when no tool set can be read."""
     parsed = _extract_schema_json(tool_schema)
     if parsed:
-        names = [
-            str(item["name"])
-            for item in parsed
-            if isinstance(item, dict) and "name" in item
-        ]
+        names = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            if "name" in item:
+                names.append(str(item["name"]))
+            else:
+                # OpenAI tools-array format: {"type": "function",
+                # "function": {"name": ...}} - what gateways forward.
+                function = item.get("function")
+                if isinstance(function, dict) and "name" in function:
+                    names.append(str(function["name"]))
         if names:
             return tuple(sorted(names))
     for pattern in _NAME_PATTERNS:

@@ -370,3 +370,20 @@ def test_bert_predictor_fails_closed_without_raw_training_features(
                     metadata=metadata,
                 )
             )
+
+
+def test_tool_names_parses_openai_tools_array_format() -> None:
+    # Gateways forward the OpenAI array: name nested under "function".
+    import json as _json
+
+    from scheduler_benchmark.tool_vocabulary import tool_names
+
+    schema = _json.dumps(
+        [
+            {"type": "function", "function": {"name": "glob", "parameters": {}}},
+            {"type": "function", "function": {"name": "read", "parameters": {}}},
+        ],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    assert tool_names(schema) == ("glob", "read")
