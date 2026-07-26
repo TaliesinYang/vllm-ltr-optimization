@@ -43,6 +43,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--quantile-manifest", type=Path, required=True)
     parser.add_argument("--max-body-bytes", type=int, default=2 * 1024 * 1024)
     parser.add_argument("--max-concurrency", type=int, default=8)
+    parser.add_argument(
+        "--reliability-threshold",
+        type=float,
+        default=None,
+        help="Override DEFAULT_RELIABILITY_THRESHOLD (0.8). Rule C confidences "
+        "top out at 0.6233, so a functional gate needs <= 0.5787.",
+    )
     return parser.parse_args(argv)
 
 
@@ -97,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 2
-    application = DecisionApplication(
+    application_kwargs = dict(
         predictor=build_predictor(args),
         predictor_revision=effective_predictor_revision(args),
         feature_variant=effective_feature_variant(args),
@@ -105,6 +112,9 @@ def main(argv: list[str] | None = None) -> int:
         quantile_mapper=quantile_mapper,
         quantile_manifest_sha256=quantile_manifest_sha256,
     )
+    if args.reliability_threshold is not None:
+        application_kwargs["reliability_threshold"] = args.reliability_threshold
+    application = DecisionApplication(**application_kwargs)
     server = create_decision_server(
         application,
         host=args.host,
