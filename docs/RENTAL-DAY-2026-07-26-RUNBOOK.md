@@ -125,7 +125,7 @@ keep whole sessions. Also show per-run effects (≥2 launches is thin — displa
 ## 6. Assets checklist (before paying)
 
 - [ ] main green: #12 T8 ✅, #13 T9 ✅, #14 T10 ✅, #15 gated_rule_c + policy_fcfs (in flight)
-- [ ] frozen-75 stratum classification recorded (pre-rental, 5-min script)
+- [x] frozen-75 stratum classification DONE (runs/block1-2026-07-26/frozen75-stratum-classification.json): **S4=50, zero_tool=25, S1/S2/unknown=0** — natural OpenCode traffic is ALL-S4 vs the ToolACE vocabulary; real-traffic BERT-skip rate = 33.3% (zero-tool only). **Kill condition 7 pre-fired**: on natural traffic Rule C degenerates to ZeroToolGate ⇒ ZeroToolGate is a MANDATORY diagnostic arm, and the Rule C claim for natural traffic must be narrowed to "abstains on zero-tool + would abstain on S1/S2 if present". The synthetic workload's balanced strata (test-labeled NOT trace-derived) is where the gate's differential behavior is actually exercised.
 - [ ] decision stub mode for Block 1A (ConstantPredictor / frozen-score file — verify CLI)
 - [ ] oracle-file predictor path smoke-tested locally
 - [ ] checkpoints + tier2 sample/ledger + quantile inputs + probes/agent-traces local
