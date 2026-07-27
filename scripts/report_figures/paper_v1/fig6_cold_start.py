@@ -28,13 +28,26 @@ Layout rules this figure holds to, each the fix for a specific review finding:
 * Both contrasts the figure exposes are reported, not just the flattering one:
   the claim against the baseline of record, and the schema ablation against
   prompt-only. The ablation interval reaches or spans zero in all three strata,
-  so each ablation block carries the reserved degraded-marking rule.
-* Every interval is labelled with its confidence level, its method and its
-  resample count in the footnote, and the withheld strata are named together
-  with the fact that their rows are inside the pooled Overall estimate.
+  so each ablation cell carries the reserved degraded-marking rule.
+* The contrasts live in one full-width band under the panels, two rows deep -
+  one row per contrast, one cell per stratum aligned under the panel it belongs
+  to - rather than in seven text rows inside each panel's own header strip. The
+  strips are back to what a strip is for: a label. The band reads across, which
+  is the direction the contrast is actually compared in, and it costs a third
+  of the height the three stacked strips did.
+* The stratum definitions and their sizes are not repeated here. Figure 2 draws
+  the stratification itself - all four strata, their n, which of them are
+  under-powered and what the gate does with each - and a second copy of that
+  table inside this footnote was six lines of height buying nothing. What is
+  local to this figure and not derivable from Figure 2 (that panel (a) is one
+  pooled estimate over every test request, withheld strata included, and so is
+  not the mean of (b) and (c)) is stated in the caption.
+* The footnote keeps only what labels a mark on this plate: the interval level,
+  the meaning of the orange rule, and the axis truncation. Method, resample
+  count and seed handling are in the caption.
 
 A bar, a blank slot or a point at zero would each be read as a value; a named
-row with a withheld footnote cannot be.
+row with an explicit withheld marker cannot be.
 """
 
 from __future__ import annotations
@@ -63,49 +76,69 @@ T1 = OFFLINE / "t1-strata.json"
 plt.rcParams.update({"savefig.bbox": None, "savefig.pad_inches": 0.0})
 
 FIG_W = IEEE_DOUBLE_WIDTH
-# The plate is 0.24 in taller than it was: the strip gained a line per
-# contrast (see STRIP_H) and the six-line footnote is fixed - at 8 pt in
-# DejaVu its longest line already runs to 6.6 in of the 7.02 in text width,
-# so it cannot be re-flowed into fewer lines. Height is the only slot left.
-FIG_H = 4.36
+# Double-column plate cap, from FIGURE-SPEC section 1. The plate used to run
+# 4.36 in because the contrasts were set as seven text rows inside each of the
+# three header strips (1.16 in) and the strata were re-tabulated in a six-line
+# footnote (1.17 in): 2.33 in of the 4.36 was text that either belonged in one
+# band read across, or already existed as Figure 2. Both are gone; the type
+# ladder is untouched.
+FIG_H = 2.76
+HEIGHT_CAP = 2.80        # FIGURE-SPEC section 1, double-column plate
 MARGIN = 0.07            # identical on all four sides
 # Every column below was re-measured after the set moved to one family
 # (DejaVu Sans) on the 10/9/8 ladder. DejaVu sets wider than Helvetica at the
 # same point size, so the slots grew rather than the type shrinking:
-#   row names   widest is "BERT prompt+schema", 1.408 in at 9 pt -> 1.50 in
-#               column leaves the 6 px the audit demands before the panel.
+#   row names   widest is "BERT prompt+schema", 1.410 in at 9 pt.
+#   band labels widest is "delta tau_b vs tuned LightGBM", 1.452 in at 9 pt
+#               starting one PAD inside the band frame - this, not the row
+#               names, is what sets LABEL_W now, and it leaves the 6 px the
+#               audit demands before the first panel.
 #   tau_b cell  "0.43" is 0.279 in at 9 pt; the cell must also clear the
 #               hairline that rules it off, so VALUE_W >= 0.279 + RULE_GAP.
 # The gutter pays for part of it: the numeric column already separates two
 # stratum blocks, so 0.10 in of white between them is enough.
-LABEL_W = 1.50           # row-name column
+LABEL_W = 1.62           # row-name column, and the band's label column
 GUTTER = 0.10            # between stratum blocks
 VALUE_W = 0.36           # tau_b numeric column
 STRAT_W = (FIG_W - 2 * MARGIN - LABEL_W - 2 * GUTTER) / 3
 PANEL_W = STRAT_W - VALUE_W
 RULE_GAP = 0.05          # panel edge -> numeric-column hairline
+PAD = 0.05               # text inset inside any framed box
 
-# The strip carries seven text rows now (title, then name/value/interval per
-# contrast). At 9/10/8 pt in DejaVu a contrast's point estimate and its
-# interval no longer fit side by side inside a panel-wide frame, so the
-# interval sits on its own line under the number it belongs to and the strip
-# grew to hold it. The height comes out of the slack that sat between the
-# axis title and the footnote, so the plate keeps its page height.
-STRIP_H = 1.16
+# The strip is a label again: one line, one row of text.
+STRIP_H = 0.22
 GAP_HEAD = 0.24          # holds the numeric column's head
-PLOT_H = 1.32
-XTICK_H = 0.16
-XLABEL_H = 0.17
+PLOT_H = 1.15
+# The x tick labels and the axis title share one row: the title is right
+# aligned in the label column, at the height of the ticks it names, instead of
+# owning a centred row of its own under the panels. Same reading order, 0.17 in
+# less plate.
+XTICK_H = 0.22
+GAP_BAND = 0.08
+BAND_H = 0.48            # two contrast rows, PAD top and bottom
+GAP_NOTE = 0.07
+NOTE_H = 0.16            # one 8 pt line
 
 Y_STRIP = MARGIN
 Y_PLOT = Y_STRIP + STRIP_H + GAP_HEAD
-Y_XLABEL = Y_PLOT + PLOT_H + XTICK_H
+Y_XTICK = Y_PLOT + PLOT_H
+Y_BAND = Y_XTICK + XTICK_H + GAP_BAND
+Y_NOTE = Y_BAND + BAND_H + GAP_NOTE
 
-# Strip rows, as fractions of the strip height; spacing is set from the
-# measured glyph heights (mathtext runs taller than plain text), not guessed.
-S_TITLE, S_HAIR = 0.914, 0.828
-S_NAME, S_VALUE, S_CI, S_STEP = 0.741, 0.603, 0.478, 0.401
-TEXT_X, RIGHT_X = 0.040, 0.960
+TEXT_X = 0.040           # strip title inset, as a fraction of the strip
+# Band geometry, in inches. The cell's number is left aligned on the panel it
+# belongs to and its interval is right aligned on that panel block's right
+# edge, so the band's columns line up with the panels above without either
+# element being centred on a string whose width changes with the data.
+BAND_LABEL_X = MARGIN + PAD
+# Tighter than PAD vertically, and measured rather than chosen: the band's
+# tallest glyph box is the 9 pt mathtext label at 0.170 in, so a 0.21 in row
+# pitch leaves the 0.04 in channel the overlap sweep demands. At the 0.05 in
+# inset the pitch fell to 0.19 in and the sweep failed by 0.08 px.
+BAND_PAD_Y = 0.03
+CELL_VALUE_PAD = 0.06    # cell left edge -> point estimate (clears the rule)
+CELL_CI_PAD = 0.08       # interval right edge -> cell right edge
+MARK_W = 0.014           # width of the reserved degraded rule
 
 # Top-to-bottom: the three scalar/identity baselines take the shared structure
 # greys lightest-first, then the method family ramp light-to-dark, so grey/blue
@@ -167,25 +200,18 @@ BOOTSTRAP_RESAMPLES = 1000           # t1_strata.bootstrap_ci(iterations=...)
 SEED_OF_RECORD = 17
 N_TRAIN_SEEDS = 3
 
-def footnote(sizes: dict, threshold: int, withheld_n: int) -> str:
-    """Sample sizes live here, not in the header strip: a header is a label.
+def footnote() -> str:
+    """One line: only what names a mark that is actually drawn on this plate.
 
-    Every count is read from the artifact, so a rebuilt stratification changes
-    the sentence rather than silently disagreeing with it.
+    The stratum definitions and their sizes used to be re-tabulated here. They
+    are Figure 2's whole subject, drawn there with the reporting rule and the
+    gate's decision alongside, so the copy was four lines of duplicated height.
+    Method, resample count, seed handling and the pooling qualifier for panel
+    (a) moved into the caption, which is where FIGURE-SPEC section 3 puts the
+    qualifier that stops a reader over-reading a figure.
     """
     return (
-        "Strata by tool vocabulary vs. training — S1 seen combination "
-        f"($n$ = {sizes['S1']}) · S2 new combination of seen tools "
-        f"($n$ = {sizes['S2']}) ·\n"
-        f"S3 some tools unseen ($n$ = {sizes['S3']}) · S4 all tools unseen "
-        f"($n$ = {sizes['S4']}).  Overall is one pooled $\\tau_b$ over all "
-        f"{sizes['all']} test\n"
-        f"requests, not a mean of strata; it includes the {withheld_n} requests "
-        "of withheld S1 and S2, whose $\\tau_b$ is suppressed at\n"
-        f"$n$ < {threshold}.  Markers are the mean over 3 seeds; every interval "
-        "is a 95% CI (session-clustered bootstrap, seed-17 scores,\n"
-        "1000 resamples, percentile); the $\\Delta\\tau_b$ interval adds the "
-        "two as independent, conservative here.  Orange rule:\n"
+        "Whiskers and brackets are 95% CIs.  Orange rule: $\\Delta\\tau_b$ "
         "interval reaches or spans 0.  x-axis truncated; $\\tau_b$ spans "
         "[−1, 1]."
     )
@@ -260,6 +286,20 @@ def strip_text(strip, x, y, text, size, weight="normal"):
                       color=OKABE_ITO["black"], zorder=4)
 
 
+def fx(inches: float) -> float:
+    return inches / FIG_W
+
+
+def fy(inches_from_top: float) -> float:
+    return 1.0 - inches_from_top / FIG_H
+
+
+def band_row_y(slot: int) -> float:
+    """Figure-fraction y of a contrast row inside the band."""
+    inner = BAND_H - 2 * BAND_PAD_Y
+    return fy(Y_BAND + BAND_PAD_Y + (slot + 0.5) * inner / len(CONTRASTS))
+
+
 def main() -> None:
     payload = load_json(T1)
     results = payload["results"]
@@ -314,14 +354,16 @@ def main() -> None:
 
         # --- numeric column: headed, and ruled off from the plotting area ----
         rule_x = (left + PANEL_W + RULE_GAP) / FIG_W
-        head_y = 1.0 - (Y_PLOT - 0.035) / FIG_H
+        head_y = fy(Y_PLOT - 0.035)
         fig.add_artist(Line2D([rule_x, rule_x],
-                              [1.0 - (Y_PLOT + PLOT_H) / FIG_H, head_y],
+                              [fy(Y_PLOT + PLOT_H), head_y],
                               transform=fig.transFigure, color=FRAME, lw=0.6))
         fig.add_artist(Line2D([rule_x, (left + STRAT_W) / FIG_W],
                               [head_y, head_y], transform=fig.transFigure,
                               color=FRAME, lw=0.6))
-        head = fig.text((left + STRAT_W) / FIG_W, head_y + 0.012,
+        # The offset is stated in inches, not in figure fraction: the plate
+        # shrank by a third and a fractional offset would have shrunk with it.
+        head = fig.text((left + STRAT_W) / FIG_W, head_y + 0.05 / FIG_H,
                         "$\\tau_b$", ha="right", va="bottom", fontsize=9,
                         color=OKABE_ITO["black"])
 
@@ -334,34 +376,14 @@ def main() -> None:
             spine.set_color(FRAME)
             spine.set_linewidth(0.6)
 
-        # The strip carries a label and the contrasts it frames; the sample
-        # sizes it used to repeat sit in the footnote.
-        head_lines = [strip_text(strip, TEXT_X, S_TITLE, title, 9, "bold")]
-        strip.plot([TEXT_X, RIGHT_X], [S_HAIR, S_HAIR],
-                   transform=strip.transAxes, color=FRAME, lw=0.5, zorder=4)
+        # The strip carries a label and nothing else. The contrasts it used to
+        # hold are one band under the panels; the sizes it used to repeat are
+        # Figure 2's subject.
+        head_lines = [strip_text(strip, TEXT_X, 0.5, title, 9, "bold")]
 
-        deltas = []
-        for slot, (other, phrase) in enumerate(CONTRASTS):
-            delta, low, high = delta_with_ci(results[CLAIM][stratum],
-                                             results[other][stratum])
-            y_name = S_NAME - slot * S_STEP
-            y_value = S_VALUE - slot * S_STEP
-            y_ci = S_CI - slot * S_STEP
-            head_lines.append(strip_text(
-                strip, TEXT_X, y_name, f"$\\Delta\\tau_b$ {phrase}", 8))
-            head_lines.append(strip_text(
-                strip, TEXT_X, y_value, signed(delta), 10, "bold"))
-            head_lines.append(strip_text(
-                strip, TEXT_X, y_ci, f"[{signed(low)}, {signed(high)}]", 8))
-            if unresolved(low, high):
-                # Hugs the frame rather than the type: the first glyph of the
-                # block now starts at 0.040 of a narrower panel, so the rule
-                # moved left to keep a visible channel between the two.
-                strip.add_patch(Rectangle(
-                    (0.010, y_ci - 0.050), 0.011,
-                    y_name - y_ci + 0.100, transform=strip.transAxes,
-                    facecolor=DEGRADED, edgecolor="none", zorder=4))
-            deltas.append((phrase, delta, low, high))
+        deltas = [(phrase,) + delta_with_ci(results[CLAIM][stratum],
+                                            results[other][stratum])
+                  for other, phrase in CONTRASTS]
 
         tracked.append({"ax": ax, "strip": strip, "values": values,
                         "head": head_lines, "column_head": head,
@@ -375,13 +397,52 @@ def main() -> None:
               for index, name in enumerate(ROWS)]
 
     panel_left = (MARGIN + LABEL_W) / FIG_W
-    panel_right = (MARGIN + LABEL_W + 2 * (STRAT_W + GUTTER) + PANEL_W) / FIG_W
-    xlabel = fig.text((panel_left + panel_right) / 2,
-                      1.0 - (Y_XLABEL + XLABEL_H / 2) / FIG_H,
-                      "Kendall $\\tau_b$", ha="center", va="center",
+
+    # The axis title sits in the label column at the height of the tick labels
+    # it names, so it costs no row of its own. It is the bottom entry of the
+    # same column the row names occupy, which is where a reader scanning the
+    # left edge downwards arrives at the axis anyway.
+    xlabel = fig.text(fx(MARGIN + LABEL_W - 0.10), fy(Y_XTICK + XTICK_H / 2),
+                      "Kendall $\\tau_b$", ha="right", va="center",
                       fontsize=10, color=OKABE_ITO["black"])
-    note = fig.text(MARGIN / FIG_W, MARGIN / FIG_H,
-                    footnote(sizes, threshold, withheld_n),
+
+    # --- contrast band: both contrasts, one row each, read across strata -----
+    band = Rectangle((fx(MARGIN), fy(Y_BAND + BAND_H)),
+                     fx(FIG_W - 2 * MARGIN), BAND_H / FIG_H,
+                     transform=fig.transFigure, facecolor=HEADER_FACE,
+                     edgecolor=FRAME, linewidth=0.6, zorder=2)
+    fig.add_artist(band)
+
+    band_texts: list = []
+    band_cells: list[tuple[int, object, object]] = []
+    for slot, (_, phrase) in enumerate(CONTRASTS):
+        y = band_row_y(slot)
+        band_texts.append(fig.text(
+            fx(BAND_LABEL_X), y, f"$\\Delta\\tau_b$ {phrase}", ha="left",
+            va="center", fontsize=9, color=OKABE_ITO["black"], zorder=3))
+        for column, entry in enumerate(tracked):
+            _, delta, low, high = entry["deltas"][slot]
+            cell_x = entry["left"]
+            if unresolved(low, high):
+                # One condition, one colour, marked once per cell: the reserved
+                # vermillion rule hugs the cell's left edge, clear of the type.
+                mark_h = 0.115 / FIG_H
+                fig.add_artist(Rectangle(
+                    (fx(cell_x), y - mark_h / 2), fx(MARK_W), mark_h,
+                    transform=fig.transFigure, facecolor=DEGRADED,
+                    edgecolor="none", zorder=3))
+            value = fig.text(
+                fx(cell_x + CELL_VALUE_PAD), y, signed(delta), ha="left",
+                va="center", fontsize=10, fontweight="bold",
+                color=OKABE_ITO["black"], zorder=3)
+            interval = fig.text(
+                fx(cell_x + STRAT_W - CELL_CI_PAD), y,
+                f"[{signed(low)}, {signed(high)}]", ha="right", va="center",
+                fontsize=8, color=OKABE_ITO["black"], zorder=3)
+            band_texts += [value, interval]
+            band_cells.append((column, value, interval))
+
+    note = fig.text(MARGIN / FIG_W, MARGIN / FIG_H, footnote(),
                     ha="left", va="bottom", fontsize=8, linespacing=1.42,
                     color=EXION["structure"][3])
 
@@ -496,24 +557,76 @@ def main() -> None:
         checks.append((f"row name {label.get_text()!r} clears the panel",
                        box.x1 <= first_panel.x0 - 6.0))
 
-    # 9. axis title and footnote are centred / aligned on the panel block
-    block_x0 = tracked[0]["ax"].get_window_extent(renderer).x0
-    block_x1 = tracked[-1]["ax"].get_window_extent(renderer).x1
+    # 9. the axis title lives in the label column, at the tick row, and clears
+    #    both the panel it names and the last row name above it
     label_box = xlabel.get_window_extent(renderer)
-    checks.append(("x-axis title centred on the tick-labelled span",
-                   abs((label_box.x0 + label_box.x1) / 2
-                       - (block_x0 + block_x1) / 2) <= 1.0))
+    checks.append(("axis title inside the label column",
+                   label_box.x0 >= MARGIN * dpi - 0.5
+                   and label_box.x1 <= first_panel.x0 - 6.0))
+    checks.append(("axis title level with the tick labels",
+                   label_box.y1 <= first_panel.y0 + 1.0))
+    checks.append(("axis title clears the last row name",
+                   label_box.y1 <= min(l.get_window_extent(renderer).y0
+                                       for l in labels) - 2.0))
+
+    # 10. the contrast band: inside its frame, aligned on the panels above,
+    #     nothing touching anything, and clear of the plate above and below
+    band_box = band.get_window_extent(renderer)
+    checks.append(("band spans the text width",
+                   abs(band_box.x0 - MARGIN * dpi) <= 1.0
+                   and abs(band_box.x1 - (FIG_W - MARGIN) * dpi) <= 1.0))
+    checks.append(("band clears the tick labels above it",
+                   band_box.y1 <= min(t.get_window_extent(renderer).y0
+                                      for e in tracked
+                                      for t in e["ax"].get_xticklabels())
+                   - 2.0))
+    for text in band_texts:
+        box = text.get_window_extent(renderer)
+        name = f"band {text.get_text()[:18]!r}"
+        checks.append((f"{name} inside the band frame",
+                       box.x0 >= band_box.x0 + 2.0
+                       and box.x1 <= band_box.x1 - 2.0
+                       and box.y0 >= band_box.y0 + 1.0
+                       and box.y1 <= band_box.y1 - 1.0))
+    for i in range(len(band_texts)):
+        for j in range(i + 1, len(band_texts)):
+            checks.append((
+                f"band text {i} vs {j}",
+                not _overlap(band_texts[i].get_window_extent(renderer),
+                             band_texts[j].get_window_extent(renderer),
+                             clear)))
+    for column, value, interval in band_cells:
+        panel = tracked[column]["ax"].get_window_extent(renderer)
+        value_box = value.get_window_extent(renderer)
+        interval_box = interval.get_window_extent(renderer)
+        # The cell reads as a column of the panel above it: its number starts
+        # inside that panel's own left edge and its interval ends before the
+        # next stratum block begins.
+        checks.append((f"band cell {column} starts on its panel",
+                       value_box.x0 >= panel.x0 - 0.5
+                       and value_box.x0 <= panel.x0 + CELL_VALUE_PAD * dpi
+                       + 2.0))
+        checks.append((f"band cell {column} interval inside the block",
+                       interval_box.x1 <= (tracked[column]["left"] + STRAT_W)
+                       * dpi + 0.5))
+
     note_box = note.get_window_extent(renderer)
     checks.append(("footnote shares the row-name left edge",
                    abs(note_box.x0 - min(l.get_window_extent(renderer).x0
                                          for l in labels)) <= 1.0))
     checks.append(("footnote inside the right margin",
                    note_box.x1 <= FIG_W * dpi - MARGIN * dpi + 0.5))
-    checks.append(("footnote clears the axis title",
-                   note_box.y1 <= label_box.y0 - 6.0))
+    checks.append(("footnote is one line",
+                   note.get_text().count("\n") == 0))
+    checks.append(("footnote clears the band",
+                   note_box.y1 <= band_box.y0 - 2.0))
 
-    # 10. margins: the same on all four sides, within half a pixel
-    ink = [note_box, label_box]
+    # 11. the plate is inside the double-column height cap
+    checks.append((f"plate height {FIG_H:.2f} in within the "
+                   f"{HEIGHT_CAP:.2f} in cap", FIG_H <= HEIGHT_CAP + 1e-9))
+
+    # 12. margins: the same on all four sides, within half a pixel
+    ink = [note_box, label_box, band_box]
     ink += [t.get_window_extent(renderer) for t in labels]
     ink += [e["strip"].get_window_extent(renderer) for e in tracked]
     ink += [t.get_window_extent(renderer)

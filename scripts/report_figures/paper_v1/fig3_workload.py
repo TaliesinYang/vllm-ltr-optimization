@@ -158,7 +158,7 @@ def p50_pooled(values: np.ndarray) -> float:
 def main() -> None:
     # A little more than the set default, so the outermost framed edge keeps
     # a visible margin instead of touching the bounding box.
-    plt.rcParams["savefig.pad_inches"] = 0.06
+    plt.rcParams["savefig.pad_inches"] = 0.045
 
     trace = load_jsonl(TRACE)
 
@@ -354,7 +354,10 @@ def main() -> None:
         handles,
         labels,
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.995),
+        # Sits one strip-gap above the header strips rather than at the top of
+        # the canvas: the band and the strips it keys are read together, and
+        # the plate does not carry a quarter inch of empty paper above them.
+        bbox_to_anchor=(0.5, 0.948),
         ncol=len(handles),
         fontsize=FS_NOTE,
         frameon=True,

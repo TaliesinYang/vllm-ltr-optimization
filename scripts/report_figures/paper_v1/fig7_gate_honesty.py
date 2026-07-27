@@ -20,9 +20,20 @@ sets are unequal and the panel says so rather than hiding it behind the word
 "largest".
 
 Every number the panels assert is printed once, in the row-label column on the
-left of its own panel. Nothing numeric is set loose inside the data area, so no
-value label can amputate a gridline and no two labels can drift into different
-placement conventions.
+left of its own panel. Nothing numeric is set loose inside the data area except
+the one bound of (b) that two decimals would round away, so no value label can
+amputate a gridline and no two labels can drift into different placement
+conventions.
+
+The plate is held to the 2.8 in double-column cap. What used to buy its height
+was prose: a four-line method footnote under the panels, a five-line gloss
+defining S1-S4 in the corner of (a), a three-line gloss describing the three
+gate rules in (b), and a claim value repeated in three places. The footnote and
+the rule descriptions moved into the LaTeX caption, the stratum definitions
+moved onto the rows they define, and the repeated values were cut back to one
+printing each. Both caption sentences are still assembled here from the same
+artifacts and printed with the build output, so neither becomes a typed literal
+that can drift away from the file it describes.
 """
 
 from __future__ import annotations
@@ -86,11 +97,23 @@ MINUS = "−"  # U+2212, so a minus matches the width and height of a plus
 
 # The one piece of loose text left inside a data area: the bound that decides
 # whether "entirely above zero" is a comfortable statement or a hair's breadth.
-VALUE_BBOX = dict(boxstyle="square,pad=0.15", facecolor="white", edgecolor="none")
+VALUE_BBOX = dict(boxstyle="square,pad=0.05", facecolor="white", edgecolor="none")
 # House frame for the vocabulary glosses and the finding callouts.
 CALLOUT_BBOX = dict(
     boxstyle="square,pad=0.25", facecolor="white", edgecolor=FRAME, linewidth=0.6
 )
+
+# What each stratum name means, as a phrase short enough to sit on the row it
+# names. This used to be a five-line framed gloss in the bottom-left corner of
+# (a) - a whole row slot of plate height spent restating four row names a few
+# millimetres from the rows themselves. Definitions belong on the thing they
+# define, so each row now carries its own.
+STRATUM_GLOSS = {
+    "S1": "seen in training",
+    "S2": "new set, all known",
+    "S3": "known + new mixed",
+    "S4": "none seen before",
+}
 
 RULES = (
     ("placeholder_0.9", "Placeholder"),
@@ -101,8 +124,10 @@ RULE_C = 2  # index into RULES; asserted against the key below
 
 # Both panels use the same four row slots and the same limits, so a row in (a)
 # and a row in (b) are the same height and the same distance apart: one scan
-# rhythm across the pair. (b) fills three of the four slots with rules and
-# spends the fourth on its vocabulary gloss.
+# rhythm across the pair. (a) uses all four slots, one per stratum; (b) has
+# three rules to compare, so its fourth slot is deliberately left empty rather
+# than stretching three rows over a panel sized for four.
+FIG_HEIGHT = 2.85  # double-column plate cap is 2.8 in incl. the tight-bbox pad
 Y_TOP, Y_BOTTOM = -0.62, 3.62
 LANE = 0.115  # half the distance between the claim lane and the delivered lane
 BAND_H = 0.38  # row band height, tall enough to hold both lanes of (a)
@@ -223,29 +248,6 @@ def _gloss(ax, text: str, x: float = 0.028, y: float = 0.05, va: str = "bottom")
     )
 
 
-def _wrap_to_width(artist, words: list[str], max_px: float, renderer) -> None:
-    """Greedy word wrap measured in rendered pixels, not in characters.
-
-    The footnote is the one block of text as wide as the whole panel block, so
-    its line breaks cannot be hand-placed: the family the set renders in fixes
-    how many words fit, and a break tuned for one metric is wrong for another.
-    Measuring each candidate line with the live renderer keeps every word of the
-    wording and lets the break points follow the font.
-    """
-    lines: list[str] = []
-    current: list[str] = []
-    for word in words:
-        candidate = current + [word]
-        artist.set_text(" ".join(candidate))
-        if current and artist.get_window_extent(renderer).width > max_px:
-            lines.append(" ".join(current))
-            current = [word]
-        else:
-            current = candidate
-    lines.append(" ".join(current))
-    artist.set_text("\n".join(lines))
-
-
 def _contiguous_label(items: list[str], order: list[str]) -> str:
     indices = [order.index(item) for item in items]
     if len(items) > 2 and indices == list(range(indices[0], indices[-1] + 1)):
@@ -290,6 +292,21 @@ def _worst_claim(comparison: dict, key: str, test_realized: dict) -> dict:
     }
 
 
+def _constant_claim(comparison: dict, key: str) -> float:
+    """The single value a stratum-blind rule assigns everywhere.
+
+    Panel (b)'s row labels no longer print the claim behind each worst case, so
+    the two constants are named once in the panel's gloss instead. They are
+    read back out of the artifact here rather than written as literals, and a
+    rule that stopped being constant fails the build instead of being
+    summarised by a number it no longer assigns.
+    """
+    assigned = {float(row["assigned"]) for row in comparison[key]["per_stratum"]}
+    if len(assigned) != 1:
+        raise SystemExit(f"{key} is not a constant rule: it assigns {sorted(assigned)}")
+    return assigned.pop()
+
+
 def _symmetric_limits(lo_data: float, hi_data: float, step: float, pad: float):
     """Limits that clear the data and sit an equal distance outside the outermost
     tick on each side, so the axis is not visibly heavier at one end."""
@@ -299,11 +316,6 @@ def _symmetric_limits(lo_data: float, hi_data: float, step: float, pad: float):
 
 
 def main() -> None:
-    # A little more breathing room than the set default: this figure's last
-    # footnote line would otherwise sit ~0.03 in from the PDF bounding box and
-    # collide with the LaTeX caption.
-    mpl.rcParams["savefig.pad_inches"] = 0.06
-
     payload = load_json(T5)
     comparison = payload["rule_comparison"]
     if RULES[RULE_C][0] != "C_abstain":
@@ -315,8 +327,12 @@ def main() -> None:
     fig, (ax, ax_bar) = plt.subplots(
         1,
         2,
-        figsize=(IEEE_DOUBLE_WIDTH, 4.2),
-        gridspec_kw={"width_ratios": [1.0, 1.0]},
+        figsize=(IEEE_DOUBLE_WIDTH, FIG_HEIGHT),
+        # Not 1:1. (a) now carries what each stratum name means in its row
+        # labels, which widens its label column and, at equal ratios, takes the
+        # width out of (b)'s data area - where the tightest-bound label has to
+        # fit inside one tick lane. (b) gets the difference back.
+        gridspec_kw={"width_ratios": [1.0, 1.12]},
         constrained_layout=True,
     )
     # Both panels carry a multi-line row-label column; without an explicit
@@ -376,7 +392,7 @@ def main() -> None:
         # tau_b axis would assert a confidence of zero, so the abstaining rows
         # simply carry no claim mark; the row label says so in words.
         if claimed == 0.0:
-            claim_line = "Rule C abstains"
+            claim_line = "abstains"
         else:
             # (a)'s callout asserts this for every claiming row; a rebuild where
             # it stops holding must fail the build, not keep the statement.
@@ -395,16 +411,22 @@ def main() -> None:
                 linestyle="none",
                 zorder=5,
             )
+        # Two lines, not three: the delivered value used to be printed here as
+        # well, and it is already the grey mark of this row with its CI band
+        # around it. A row that draws a number and also spells it out spends a
+        # line of plate height on saying the same thing twice. The line it frees
+        # carries what the stratum name means, which used to be a framed gloss.
+        if stratum not in STRATUM_GLOSS:
+            raise SystemExit(f"no row gloss for stratum {stratum}")
         labels_a.append(
-            f"{stratum}   test $n$={table[stratum]['test_n']}\n"
-            f"{claim_line}\n"
-            f"delivered {fmt2(point)}"
+            f"{stratum}  {STRATUM_GLOSS[stratum]}\n"
+            f"test $n$={table[stratum]['test_n']}, {claim_line}"
         )
 
     abstained = [row["stratum"] for row in rows_c if float(row["assigned"]) == 0.0]
     if len(abstained) != 2:
         raise SystemExit(
-            "the gloss and the callout of (a) assume exactly two abstaining strata; "
+            "(a) assumes exactly two abstaining strata; "
             f"the artifact now has {len(abstained)}"
         )
     # The finding the header used to carry, moved to where its marks are: it is
@@ -416,18 +438,6 @@ def main() -> None:
         y=0.955,
         va="top",
     )
-    # The four row names are the figure's own vocabulary and nothing else in the
-    # figure defines them; this is the only place a standalone reader can learn
-    # what S1-S4 mean. It sits in the corner the wide S1/S2 intervals leave empty.
-    gloss_a = _gloss(
-        ax,
-        "Strata (tool set):\n"
-        "S1 seen in training\n"
-        "S2 new set, all known\n"
-        "S3 known + new mixed\n"
-        "S4 none seen before",
-    )
-
     ax.set_yticks(np.arange(len(strata)))
     ax.set_yticklabels(labels_a, fontsize=9)
     ax.set_ylim(Y_BOTTOM, Y_TOP)
@@ -435,7 +445,7 @@ def main() -> None:
     ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(TICK_A))
     ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda value, _: fmt2(value)))
     ax.tick_params(axis="x", labelsize=9)
-    ax.set_xlabel("$\\tau_b$: claimed and delivered", fontsize=9, labelpad=6)
+    ax.set_xlabel("$\\tau_b$: claimed and delivered", fontsize=9, labelpad=2)
     ax.tick_params(axis="y", length=0)
     ax.spines["left"].set_visible(False)
     ax.xaxis.grid(True, color=GRID, alpha=1.0)
@@ -455,11 +465,15 @@ def main() -> None:
         # The three worst cases are maxima over different numbers of strata,
         # because Rule C abstains on two of them. The row label carries that
         # count, so the comparison is never read as like-for-like.
+        # Three lines, not four: the claimed value that produced the worst gap
+        # used to have a line of its own here. Both stratum-blind rules claim
+        # one constant, which the panel's own gloss now names, and Rule C's
+        # worst-stratum claim is a mark and a printed number in (a), so the
+        # line was a third copy of a number the plate already carries.
         labels_b.append(
             f"{base_label}\n"
-            f"claims on {case['n_claiming']} of {case['n_strata']} strata\n"
-            f"worst {case['stratum']}, claim {fmt2(case['claimed'])}\n"
-            f"gap {fmt2(case['point'], signed=True)}"
+            f"claims {case['n_claiming']} of {case['n_strata']} strata\n"
+            f"worst {case['stratum']}, gap {fmt2(case['point'], signed=True)}"
         )
         points.append(case["point"])
         lows.append(case["low"])
@@ -531,7 +545,7 @@ def main() -> None:
     span_b = xmax_b - xmin_b
     # The label lives in the lane between the zero reference and the first
     # gridline to its right, and it is centred in that lane rather than set at a
-    # hand-tuned offset from zero: the lane is ~54 px wide and the label is ~41,
+    # hand-tuned offset from zero: the lane is ~52 px wide and the label is ~41,
     # so the two clearances the guards below check - 4 px off the zero reference,
     # 3 px off the gridline - are only both satisfied near the middle. Centring
     # lets the tick geometry place it instead of a constant tuned to one metric.
@@ -563,21 +577,27 @@ def main() -> None:
         bbox=VALUE_BBOX,
     )
 
-    # The three rule names are the figure's own vocabulary; this is the only
-    # place a standalone reader can learn what they do. It fills the fourth row
-    # slot, which the three-rule comparison leaves empty.
-    gloss_b = _gloss(
-        ax_bar,
-        "Gate rules — Placeholder: 0.90 for\n"
-        "every request; Global: one measured\n"
-        "value for all; Rule C: per-stratum,\n"
-        "abstains below 100 validation rows.",
+    # What the three rules do used to be a three-line framed box in the empty
+    # fourth row slot. Three lines of prose inside the artwork is the failure
+    # mode the figure standard names first, and a description of a rule is
+    # caption material: the panel identifies which row is which rule in its row
+    # labels, so nothing the panel asserts depended on the box. The two
+    # constants it named are still read out of the artifact here, and printed
+    # with the build output, so the caption sentence that replaces it stays
+    # checkable against the same file rather than becoming a typed literal.
+    placeholder_claim = _constant_claim(comparison, "placeholder_0.9")
+    global_claim = _constant_claim(comparison, "global_control_no_stratification")
+    caption_rules = (
+        f"Placeholder assigns {fmt2(placeholder_claim)} to every request, Global "
+        f"{fmt2(global_claim)} to every request, and Rule C a per-stratum "
+        "confidence, abstaining below 100 validation rows."
     )
+
     # The finding the header used to carry, moved onto the row it is about and
     # into the empty half of that row, so it reads against the mark it describes.
     callout_b = _gloss(
         ax_bar,
-        "Only Rule C stays below 0",
+        "Only Rule C\nstays below 0",
         x=(0.055 - xmin_b) / span_b,
         y=(Y_BOTTOM - RULE_C) / (Y_BOTTOM - Y_TOP),
         va="center",
@@ -594,7 +614,7 @@ def main() -> None:
     ax_bar.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda value, _: fmt2(value)))
     ax_bar.tick_params(axis="x", labelsize=9)
     ax_bar.set_xlabel(
-        "gap = claimed " + MINUS + " delivered $\\tau_b$", fontsize=9, labelpad=6
+        "gap = claimed " + MINUS + " delivered $\\tau_b$", fontsize=9, labelpad=2
     )
     ax_bar.tick_params(axis="y", length=0)
     ax_bar.spines["left"].set_visible(False)
@@ -625,63 +645,39 @@ def main() -> None:
         facecolor="white",
         edgecolor=FRAME,
         fancybox=False,  # square frame, same as the header strips
-        borderpad=0.5,
+        borderpad=0.35,
         handlelength=1.6,
         handletextpad=0.5,
         columnspacing=1.2,
     )
     legend.get_frame().set_linewidth(0.6)
 
-    # --- figure footnote: method and live-traffic coverage -------------------
-    # Where the delivered numbers come from, and what the live capture is and is
-    # not. The live trace never fed a delivered value; saying so here is the
-    # only way the two facts stop looking like a contradiction.
+    # --- method and live-traffic provenance, no longer drawn ------------------
+    # This used to be a four-line footnote strip under the panels: where the
+    # delivered numbers come from, and what the live capture is and is not. It
+    # was 0.49 in of plate height - a fifth of the whole figure - spent on prose
+    # that reads the same in the caption, so it moved into the LaTeX caption.
+    # The wording is still assembled here, from the same artifacts, and printed
+    # with the rest of the build output, so the sentence in the .tex stays
+    # checkable against the trace rather than becoming a hand-typed literal.
     exercised = [stratum for stratum in strata if live_counts.get(stratum)]
     if not exercised:
         raise SystemExit("live trace classified no request into any stratum")
     reach = ", ".join(f"{stratum} ({live_counts[stratum]} requests)" for stratum in exercised)
     unexercised = [stratum for stratum in strata if stratum not in exercised]
-    reach_note = (
-        f"any number here: it reached {reach} only"
-        if unexercised
-        else f"any number here: it reached {reach}"
-    )
-    footnote_words = (
-        "Delivered $\\tau_b$: offline replay of the held-out test split, "
-        "3-seed mean; band = 95% session-clustered bootstrap CI (seed 17), "
-        "mirrored onto the gap in (b). Live gateway capture is a separate "
-        f"reachability check, not a source of {reach_note}; {live_zero_tool} "
-        "further requests advertised no tools, so no stratum applies to them."
-    ).split()
-    footnote = fig.supxlabel(
-        " ".join(footnote_words),
-        x=0.004,
-        ha="left",
-        fontsize=8,
-        color=GRAY_NOTE,
+    caption_note = (
+        "Delivered $\\tau_b$ is an offline replay of the held-out test split "
+        "(3-seed mean; band = 95\\% session-clustered bootstrap CI, seed 17, "
+        "mirrored onto the gap in (b)); the live gateway capture is a separate "
+        "reachability check and fed no number here, reaching "
+        f"{reach}{' only' if unexercised else ''}, with {live_zero_tool} further "
+        "requests advertising no tools so that no stratum applies to them."
     )
 
     # Constrained layout centres an outside legend on the whole canvas, which
-    # includes the y-label gutter, and leaves the footnote hanging left of the
-    # panel block. Settle the layout once, freeze it, then align both to the
-    # axes block they belong to.
+    # includes the y-label gutter. Settle the layout once, freeze it, then
+    # align the legend to the axes block it belongs to.
     fig.canvas.draw()
-    # The footnote may only be as wide as the panel block it annotates, and the
-    # block width is not known until the layout has settled once. Wrap to the
-    # measured width and settle again so the extra line is reserved rather than
-    # pushed into the panels; re-wrapping changes the block a little, so repeat
-    # until the width the wrap was cut to is the width the layout ends up with.
-    block_px = None
-    for _ in range(4):
-        box_a, box_b = ax.get_position(), ax_bar.get_position()
-        settled = (box_b.x1 - box_a.x0) * fig.get_figwidth() * fig.dpi
-        if block_px is not None and abs(settled - block_px) <= 1.0:
-            break
-        block_px = settled
-        # Cut 2 px inside the block: the guard below allows 1 px of slack, and a
-        # line wrapped to the block exactly would rest on that tolerance.
-        _wrap_to_width(footnote, footnote_words, block_px - 2.0, fig.canvas.get_renderer())
-        fig.canvas.draw()
     fig.set_layout_engine("none")
     box_a, box_b = ax.get_position(), ax_bar.get_position()
     block_center = 0.5 * (box_a.x0 + box_b.x1)
@@ -690,7 +686,6 @@ def main() -> None:
         (block_center - 0.5 * legend_box.width, legend_box.y0,
          legend_box.width, legend_box.height)
     )
-    footnote.set_x(box_a.x0)
 
     # The legend frame and the two header strips are separate levels of the
     # hierarchy and must not read as one block. Every other framed clearance in
@@ -718,7 +713,7 @@ def main() -> None:
     # build instead: the fix is shorter wording, never a smaller font.
     block = (box_a.x0 * fig.get_figwidth() * fig.dpi,
              box_b.x1 * fig.get_figwidth() * fig.dpi)
-    for artist, name in ((footnote, "footnote"), (legend, "legend")):
+    for artist, name in ((legend, "legend"),):
         extent = artist.get_window_extent()
         if extent.x0 < block[0] - 1.0 or extent.x1 > block[1] + 1.0:
             raise SystemExit(
@@ -730,8 +725,6 @@ def main() -> None:
     for artist, host, name in (
         (header_a, ax, "(a) header"),
         (header_b, ax_bar, "(b) header"),
-        (gloss_a, ax, "(a) gloss"),
-        (gloss_b, ax_bar, "(b) gloss"),
         (callout_a, ax, "(a) callout"),
         (callout_b, ax_bar, "(b) callout"),
     ):
@@ -761,8 +754,8 @@ def main() -> None:
     # pad on a gridline leaves a stub abutting a glyph, which reads as a broken
     # rule. The framed glosses and callouts are deliberate occluders and exempt.
     for host, name, exempt in (
-        (ax, "(a)", {gloss_a, callout_a}),
-        (ax_bar, "(b)", {gloss_b, callout_b}),
+        (ax, "(a)", {callout_a}),
+        (ax_bar, "(b)", {callout_b}),
     ):
         grid_x = [
             host.transData.transform((tick, 0.0))[0]
@@ -796,8 +789,6 @@ def main() -> None:
     # No framed box may cover a data mark of its own panel: a finding written on
     # top of the mark that supports it is not evidence.
     for host, box, name in (
-        (ax, gloss_a, "(a) gloss"),
-        (ax_bar, gloss_b, "(b) gloss"),
         (ax, callout_a, "(a) callout"),
         (ax_bar, callout_b, "(b) callout"),
     ):
@@ -808,22 +799,11 @@ def main() -> None:
                 if extent.x0 - 6 <= px <= extent.x1 + 6 and extent.y0 - 6 <= py <= extent.y1 + 6:
                     raise SystemExit(f"{name}: the box covers a data mark; move it")
 
-    # A gloss box must keep the same ~0.1 in clearance from the axis spine that
-    # every other framed element in this figure keeps, so the two never read as
-    # one block.
-    for host, gloss, name in ((ax, gloss_a, "(a)"), (ax_bar, gloss_b, "(b)")):
-        extent = gloss.get_window_extent()
-        spine_gap = extent.y0 - host.get_window_extent().y0
-        if spine_gap < 0.09 * fig.dpi:
-            raise SystemExit(
-                f"{name}: the gloss box clears the axis by {spine_gap:.0f} px; "
-                f"{0.09 * fig.dpi:.0f} px required"
-            )
-    # The zero reference must stop clear of (b)'s gloss frame rather than run
-    # into it: the one line the panel is read against never touches a box.
+    # The zero reference must end inside the panel it rules, clear of the axis
+    # spine: the one line (b) is read against never runs off its own frame.
     zero_end = ax_bar.transData.transform((0.0, zero_span[1]))[1]
-    if zero_end - gloss_b.get_window_extent().y1 < 0.05 * fig.dpi:
-        raise SystemExit("(b): the zero reference runs into the gloss frame; shorten it")
+    if zero_end - ax_bar.get_window_extent().y0 < 0.09 * fig.dpi:
+        raise SystemExit("(b): the zero reference runs into the axis spine; shorten it")
 
     # Neighbouring tick labels must not touch: the fix is fewer ticks or a
     # narrower tick format, never a smaller tick font.
@@ -857,6 +837,8 @@ def main() -> None:
     print(
         json.dumps(
             {
+                "caption_note": caption_note,
+                "caption_rules": caption_rules,
                 "live_capture": {
                     "per_stratum": live_counts,
                     "zero_tool": live_zero_tool,

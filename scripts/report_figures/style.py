@@ -8,8 +8,20 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FixedFormatter, FixedLocator, NullFormatter
 
 
-IEEE_SINGLE_WIDTH = 3.5
-IEEE_DOUBLE_WIDTH = 7.16
+# savefig writes a tight bounding box plus SAVE_PAD on each side, so the canvas
+# is authored that much narrower and the saved PDF lands on the column width
+# exactly. Placing at \linewidth then neither scales the plate nor clips it.
+# 0.01 in is about twice the half-line-width that sits outside a tight bbox,
+# which is all that was being clipped. Larger values start tripping the
+# generators' own layout guards -- the canvas they lose has to come from
+# somewhere, and their slot widths are already exact.
+SAVE_PAD = 0.01
+# Height is unconstrained -- LaTeX takes the plate at whatever height it is --
+# so the vertical margin can be generous enough to clear any stroke or label
+# that a tight bounding box under-measures.
+VERTICAL_PAD = 0.04
+IEEE_SINGLE_WIDTH = 3.5 - 2 * SAVE_PAD
+IEEE_DOUBLE_WIDTH = 7.16 - 2 * SAVE_PAD
 
 OKABE_ITO = {
     "blue": "#0072B2",

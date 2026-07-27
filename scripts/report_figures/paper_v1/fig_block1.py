@@ -13,45 +13,43 @@ existed:
     independent draws and a request-level bootstrap would understate the
     interval;
   * safety against PolicyFCFS is judged against a pre-declared 3%
-    non-inferiority margin, drawn here two-sided (0.97-1.03) because it is
-    presented as an equivalence region and four of the six ratios sit below
-    1.0. A one-sided band would shade only the half that flatters us.
+    non-inferiority margin.
+
+WHAT THIS PLATE NO LONGER DRAWS. The five paired ordering contrasts used to be
+a third panel here, on their own ratio axis inside a two-sided equivalence
+band. fig:regime now draws those contrasts -- through this module's loader,
+bootstrap and seed, so the two cannot disagree -- beside their reduced-batch-cap
+counterparts and with the queue evidence that is what makes a null ordering
+result readable at all. One contrast belongs to one figure, and it belongs to
+the figure that says more about it. What is left here is what this figure is
+cited for: the attribution control, and whether ordering was applied at all.
+Every ratio is still computed and still printed to stdout for the prose.
 
 Rendering rules, which are load-bearing for what the reader is allowed to
 conclude:
 
-  * ONE AXIS PER PANEL. Panel (a) carries the five ordering contrasts on a
-    single ratio axis. The implementation contrast (PolicyFCFS vs stock) is a
-    different order of magnitude, so it is not squeezed onto that axis nor
-    given a second competing tick strip underneath it; it is reported with its
-    interval in panel (b)'s header, over the two absolute rows it compares.
-  * NO BAR-IFIED ESTIMATES. Every estimate in all three panels is a dot with
-    its interval. Nothing is a bar grown from zero with a CI on the tip.
+  * NO BAR-IFIED ESTIMATES. Every estimate in both panels is a dot with its
+    interval. Nothing is a bar grown from zero with a CI on the tip.
   * AXES ARE FITTED TO THEIR DATA, padded symmetrically about their first and
     last tick. A dot-and-interval panel has no zero baseline to honour, so an
     axis that starts far below every interval only buys dead white.
   * EVERY INFERENTIAL MARK IS VALUE-LABELLED, in one right-aligned column per
-    panel, in the same "point [lo, hi]" form in all three panels. A row that
-    has no measurement says so in that same column instead of carrying a
-    floating note through the panel's data channel.
-  * THE MARGIN IS ADJUDICATED BY A NUMBER THAT CANNOT SIT ON A KNIFE EDGE.
-    Panel (a) reports the WIDEST excursion of any interval and compares that
-    with the margin, rather than counting how many intervals cross a line they
-    can be four ten-thousandths away from. A per-row verdict at that
-    resolution would print a word the rendering cannot support.
+    panel, in the same "point [lo, hi]" form in both panels. A row that has no
+    measurement says so in that same column instead of carrying a floating
+    note through the panel's data channel.
+  * THE IMPLEMENTATION CONTRAST (PolicyFCFS vs stock) is a different order of
+    magnitude from anything an ordering ratio reaches, so it is not given an
+    axis of its own; it is reported with its interval in a framed callout
+    inside the panel that carries the two absolute rows it divides.
   * ORANGE MEANS DEGRADED OR OVERSTATED and is used exactly once: the double
-    dagger on panel (c), whose binomial interval assumes independence between
+    dagger on panel (b), whose binomial interval assumes independence between
     scheduling steps that a session does not provide.
-  * PANEL (a) ROWS ARE COMPARISONS, so they carry no arm colour. A ratio has
-    two arms and one mark; colouring it by its numerator would make the swatch
-    key describe something the panel does not encode. The blue/grey ramps key
-    panels (b) and (c), whose rows are arms.
-  * ONE LABELLING SYSTEM: every row in every panel is named in a left column,
-    right-aligned to its own axis with the same gutter, and every left-most
-    text element in the figure shares one margin with the header strips.
+  * ONE LABELLING SYSTEM: the two panels share one row grid and one name
+    column, right-aligned to the left panel's axis, and every left-most text
+    element in the figure shares one margin with the header strips.
   * LEADERS ARE MEASURED IN INCHES, not in axis fractions, so the clearance
     between a leader's last dot and an interval cap is the same visible gap in
-    every panel, and a leader is drawn only where the mark is far enough from
+    both panels, and a leader is drawn only where the mark is far enough from
     its name to need one.
   * NO VERTICAL GRIDLINES. With a value column in every panel the grid buys
     nothing, and it is what puts a rule underneath an interval cap.
@@ -94,7 +92,7 @@ ARMS: dict[str, tuple[str, bool]] = {
     "GatedRuleCScheduler": ("GatedRuleC", True),
 }
 
-# Panel (b) reading order, top to bottom. The shim arm is deliberately not a
+# Panel (a) reading order, top to bottom. The shim arm is deliberately not a
 # row and is deliberately not a clause on any axis label either: it lands
 # within 0.01 s of native stock, which is a statement about two numbers being
 # equal, and an axis label is not the place to put a result. It is loaded (so
@@ -108,10 +106,9 @@ LEVEL_STEMS = [
 ]
 SHIM_STEM = "StockFCFSShim"
 
-# The five ordering contrasts panel (a) draws. Each is named by its two arms,
-# which is the whole of what the row asserts; the earlier one-word "role"
-# column was a private taxonomy the figure never defined, so it is gone. The
-# pre-registered test is kept because stdout reports its verdict for the prose.
+# The five ordering contrasts. They are drawn by fig:regime, not here, but they
+# are computed here because fig:regime reads them from this module and because
+# stdout reports each one's pre-registered verdict for the prose.
 COMPARISONS: list[tuple[str, str, str, str]] = [
     ("GatedRuleCScheduler", "PromptLengthSJFScheduler", "primary", "superiority"),
     ("GatedRuleCScheduler", "PolicyFCFS", "safety", "non-inferiority"),
@@ -125,8 +122,8 @@ COMPARISONS: list[tuple[str, str, str, str]] = [
 
 # The one contrast whose two arms both serve FCFS order, so nothing it shows
 # can be credited to ranking. It is not an ordering row: it is the headline of
-# panel (b), stated there with its interval, directly above the two absolute
-# rows it divides.
+# panel (a), stated there with its interval, inside the panel that carries the
+# two absolute rows it divides.
 ATTRIBUTION = ("PolicyFCFS", "stock_fcfs")
 
 # One EXION family ramp for the four arms that carry a policy hook, light ->
@@ -146,9 +143,8 @@ ARM_COLOR: dict[str, str] = {
 RANKER_RAMP = ["PromptLengthSJFScheduler", "PureLTRScheduler", "GatedRuleCScheduler"]
 FCFS_RAMP = ["stock_fcfs", "PolicyFCFS"]
 
-TEXT = "#333333"            # ink: every label, value and panel (a) mark
+TEXT = "#333333"            # ink: every label and every value column
 MUTED = EXION["structure"][3]
-BAND = EXION["structure"][3]
 WARN = COLOR["overstate"]   # reserved: degraded or overstated quantities only
 LEADER = EXION["structure"][1]
 FRAME = EXION["structure"][3]
@@ -160,7 +156,10 @@ CALLOUT_FILL = EXION["structure"][2]
 # the header strips, the row-label column and the value columns all have to sit
 # on shared margins, which needs positions that do not move.
 FIG_W = IEEE_DOUBLE_WIDTH
-FIG_H = 4.95
+# Two panels side by side on one row grid, so the plate is as tall as one axis
+# plus its strip, its label and the legend band -- not a stacked page-eater.
+# Every term below is a real element; there is no slack constant here.
+FIG_H = 2.47
 MARGIN = 0.10
 CONTENT_L = MARGIN
 CONTENT_R = FIG_W - MARGIN
@@ -176,7 +175,7 @@ CALLOUT_LINE = 0.115
 
 # Interval glyph, in inches, so the same shape is drawn on every axis whatever
 # each axis's units are. The caps are taller than the marker on purpose: the
-# zero-count control in panel (c) has an interval narrower than any legible
+# zero-count control in panel (b) has an interval narrower than any legible
 # dot, and caps that protrude above and below the dot are what keep that row
 # readable as an interval rather than as a bare point.
 MARKER_PT = 3.6
@@ -184,54 +183,35 @@ CAP_HALF_IN = 0.050
 LEADER_CLEAR_IN = 0.055   # gap between a leader's last dot and the interval cap
 LEADER_MIN_IN = 0.18      # shorter than this and a leader reads as dirt
 
-# --- panel (a) -------------------------------------------------------------
-ORDER_XLIM = (0.955, 1.045)
-ORDER_TICKS = [0.96, 0.98, 1.00, 1.02, 1.04]
-YLIM_ORDER = (-0.6, 6.0)   # headroom above row 4 for the band tag and callout
-ANNOT_ROW = 5.1            # the band tag and the framed result share one line
+# --- panels (a) and (b) ----------------------------------------------------
+STRIP_TOP = FIG_H - MARGIN
+ROW_AX_T = STRIP_TOP - STRIP_H - STRIP_GAP
+ROW_AX_H = 1.06
+ROW_AX_B = ROW_AX_T - ROW_AX_H
+XLABEL_Y = ROW_AX_B - 0.20
 
-STRIP_TOP_A = FIG_H - MARGIN
-# The name column carries the longest string in the figure -- a contrast is
-# named by BOTH its arms -- so it is sized from that string's rendered width in
-# the set's one family, not from a number that happened to fit a narrower one.
-A_LABEL_R = 1.92                    # right edge of the comparison-name column
-A_AX_L = A_LABEL_R + LABEL_GUTTER
-A_AX_R = 5.74
-A_AX_W = A_AX_R - A_AX_L
-A_VALUE_R = CONTENT_R - 0.04   # every value column sits 0.04in inside its block
-A_AX_H = 1.55
-A_AX_T = STRIP_TOP_A - STRIP_H - STRIP_GAP
-A_AX_B = A_AX_T - A_AX_H
-A_XLABEL_Y = A_AX_B - 0.20
+BLOCK_LEVEL = (CONTENT_L, 4.06)
+BLOCK_QUEUE = (4.30, CONTENT_R)
 
-AX_ORDER = (A_AX_L, A_AX_B, A_AX_W, A_AX_H)
-
-# --- panels (b) and (c) ----------------------------------------------------
-STRIP_TOP_BC = 2.37
-BC_AX_T = STRIP_TOP_BC - STRIP_H - STRIP_GAP
-BC_AX_H = 1.06
-BC_AX_B = BC_AX_T - BC_AX_H
-BC_XLABEL_Y = BC_AX_B - 0.20
-
-BLOCK_A = (CONTENT_L, CONTENT_R)
-BLOCK_B = (CONTENT_L, 4.06)
-BLOCK_C = (4.30, CONTENT_R)
-
-# (c) plots a SUBSET of (b)'s arms, so the two panels share one row grid and
-# one name column: same rows, same pitch, named once. The arm (b) shows but (c)
+# (b) plots a SUBSET of (a)'s arms, so the two panels share one row grid and
+# one name column: same rows, same pitch, named once. The arm (a) shows but (b)
 # cannot instrument is then an empty row whose value column says why, rather
 # than a note floating across the panel.
-B_AX_L, B_AX_W = 1.22, 1.70
-C_AX_L, C_AX_W = 4.40, 1.55
-B_VALUE_R = BLOCK_B[1] - 0.04
-C_VALUE_R = CONTENT_R - 0.04
-AX_LEVEL = (B_AX_L, BC_AX_B, B_AX_W, BC_AX_H)
-AX_QUEUE = (C_AX_L, BC_AX_B, C_AX_W, BC_AX_H)
-YLIM_BC = (-0.6, 4.6)
+LEVEL_AX_L, LEVEL_AX_W = 1.22, 1.70
+QUEUE_AX_L, QUEUE_AX_W = 4.40, 1.55
+LEVEL_VALUE_R = BLOCK_LEVEL[1] - 0.04
+QUEUE_VALUE_R = CONTENT_R - 0.04
+AX_LEVEL = (LEVEL_AX_L, ROW_AX_B, LEVEL_AX_W, ROW_AX_H)
+AX_QUEUE = (QUEUE_AX_L, ROW_AX_B, QUEUE_AX_W, ROW_AX_H)
+YLIM_ROWS = (-0.6, 4.6)
 QUEUE_XLIM = (-2.0, 102.0)
 QUEUE_TICKS = [0, 50, 100]
 
-LEGEND_BOX = (CONTENT_L, MARGIN, CONTENT_R - CONTENT_L, 0.40)
+# Panel (b)'s axis label wraps to two lines, so the legend sits below the
+# deeper of the two labels rather than below a nominal one-line label.
+LEGEND_H = 0.40
+LEGEND_BOX = (CONTENT_L, MARGIN, CONTENT_R - CONTENT_L, LEGEND_H)
+LABEL_BLOCK_LINES = 2
 
 # The set is one family. DejaVu Sans is the only one requested anywhere in this
 # figure because it is the only one that ships regular, bold, oblique AND math
@@ -247,6 +227,23 @@ BOLD_FAMILY = ["DejaVu Sans"]
 SIZE_ANNOT = 9
 SIZE_DENSE = 8
 AXIS_LABEL_LINE = 0.135   # baseline pitch of a wrapped axis label, in inches
+
+# The canvas height is not a free parameter, and the cap on it is not either.
+# Both are asserted here so that growing a panel fails the build rather than
+# quietly overprinting the legend or pushing the plate back over half a page.
+PLATE_CAP_IN = 2.80       # FIGURE-SPEC.md sec.1, double-column plate
+SAVEFIG_PAD_IN = 0.025    # style.py writes a tight bbox with this pad each side
+_LABEL_BOTTOM = XLABEL_Y - LABEL_BLOCK_LINES * AXIS_LABEL_LINE
+if _LABEL_BOTTOM < MARGIN + LEGEND_H:
+    raise SystemExit(
+        f"axis labels reach {_LABEL_BOTTOM:.2f}in but the legend band tops out "
+        f"at {MARGIN + LEGEND_H:.2f}in; cut content rather than overprinting."
+    )
+if FIG_H + 2 * SAVEFIG_PAD_IN > PLATE_CAP_IN:
+    raise SystemExit(
+        f"plate would export at {FIG_H + 2 * SAVEFIG_PAD_IN:.2f}in against a "
+        f"{PLATE_CAP_IN:.2f}in cap; cut content, do not raise the cap here."
+    )
 
 
 def rect(spec: tuple[float, float, float, float]) -> list[float]:
@@ -429,11 +426,11 @@ def load_reorder() -> dict[str, tuple[int, int]]:
         raise SystemExit(
             f"{FCFS_CONTROL} logged {out[FCFS_CONTROL][0]} reorderings; it "
             "serves arrival order by construction, so the counter is suspect "
-            "and panel (c) must not be drawn."
+            "and panel (b) must not be drawn."
         )
     if any(out[stem][0] == 0 for stem in POLICY_STEMS if stem != FCFS_CONTROL):
         raise SystemExit(
-            "a ranked arm reordered nothing; panel (c)'s claim that ordering "
+            "a ranked arm reordered nothing; panel (b)'s claim that ordering "
             "was applied at all no longer holds."
         )
     return out
@@ -442,7 +439,7 @@ def load_reorder() -> dict[str, tuple[int, int]]:
 def wilson_pct(count: int, n: int) -> tuple[float, float, float]:
     """Point estimate and 95% Wilson interval, as percentages.
 
-    Panels (a) and (b) resample sessions inside launches; panel (c) counts
+    Panel (a) resamples sessions inside launches; panel (b) counts
     scheduling steps, which the run logs individually and which no session
     bootstrap covers. The interval is therefore binomial -- and binomial
     intervals assume independent trials, which consecutive scheduling steps
@@ -536,7 +533,7 @@ def draw_estimate(ax, x: float, low: float, high: float, row: float,
 
     The marker is laid down FIRST with a white rim and the interval's caps go
     over it, so on a row whose interval is narrower than any legible dot --
-    panel (c)'s zero-count control -- the caps still protrude above and below
+    panel (b)'s zero-count control -- the caps still protrude above and below
     the marker instead of vanishing underneath it.
     """
     ax.plot([x], [row], "o", color=colour, ms=MARKER_PT, zorder=4,
@@ -596,15 +593,17 @@ def legend_band(fig) -> None:
     columns = 2
     col_w = (width - 2 * inset) / columns
     rows = [
-        # The ramps are scoped to (b) and (c) on purpose: panel (a)'s rows are
-        # comparisons, so no single arm colour can describe one of them.
+        # Every row in both panels is an arm, so a ramp swatch needs no panel
+        # scoping to say what it keys; the scoping clause the keys used to
+        # carry existed only to exclude a comparison panel that is now
+        # fig:regime's.
         (bottom + height * 0.70, [
-            ("ramp", RANKER_RAMP, "Ranker-ordered arms in (b), (c)"),
-            ("ramp", FCFS_RAMP, "FCFS-ordered arms in (b), (c)"),
+            ("ramp", RANKER_RAMP, "Ranker-ordered arms"),
+            ("ramp", FCFS_RAMP, "FCFS-ordered arms"),
         ]),
         (bottom + height * 0.30, [
             ("ci", None, "95% CI: paired session bootstrap"),
-            ("flag", None, "‡ (c) is a binomial CI: steps are not independent"),
+            ("flag", None, "‡ (b) is a binomial CI: steps are not independent"),
         ]),
     ]
 
@@ -636,68 +635,13 @@ def legend_band(fig) -> None:
                      va="center", fontsize=8, color=TEXT, zorder=6)
 
 
-def draw_panel_a(fig, ax, ratio):
-    """Five ordering contrasts, one ratio axis, one shaded equivalence band.
-
-    The band is named where it is drawn, so nothing about the single most
-    load-bearing shape in the panel depends on a swatch in the legend that
-    prints as near-white on white.
-    """
-    band = (2.0 - SAFETY_MARGIN, SAFETY_MARGIN)
-    ax.axvspan(*band, color=BAND, alpha=0.15, lw=0, zorder=0)
-    ax.axvline(1.0, color=FRAME, lw=0.9, zorder=1)
-
-    scale = x_per_inch(AX_ORDER, ORDER_XLIM)
-    cap = cap_units(AX_ORDER, YLIM_ORDER)
-    label_budget = A_LABEL_R - (CONTENT_L + TEXT_INSET)
-    value_budget = A_VALUE_R - (A_AX_R + VALUE_GUTTER)
-
-    ordering = []
-    for index, (num, den, _role, _test) in enumerate(COMPARISONS):
-        est, low, high = ratio[(num, den)]
-        row = len(COMPARISONS) - 1 - index
-        y_fig = row_y(AX_ORDER, YLIM_ORDER, row)
-        if not ORDER_XLIM[0] <= low <= high <= ORDER_XLIM[1]:
-            raise SystemExit(
-                f"{ARMS[num][0]} / {ARMS[den][0]}: [{low:.4f}, {high:.4f}] falls "
-                f"outside {ORDER_XLIM}; widen panel (a) rather than clip."
-            )
-        leader(ax, ORDER_XLIM, low, row, scale)
-        draw_estimate(ax, est, low, high, row, TEXT, cap)
-
-        pair = f"{ARMS[num][0]} / {ARMS[den][0]}"
-        check_fits(fig, pair, 8, label_budget, "panel (a) row label")
-        row_label(fig, A_LABEL_R, y_fig, pair)
-        value = f"{est:.3f} [{low:.3f}, {high:.3f}]"
-        check_fits(fig, value, 8, value_budget, "panel (a) value column")
-        value_column(fig, A_VALUE_R, y_fig, value)
-        ordering.append((est, low, high))
-
-    bare_axis(ax, ORDER_XLIM, YLIM_ORDER, ORDER_TICKS,
-              [f"{t:.2f}" for t in ORDER_TICKS])
-    # The band carries its own name, inside itself, clear of the 1.00 rule and
-    # clear of every data row.
-    # Named inside the half of the band left of the 1.00 rule -- the only part
-    # of it no interval and no callout occupies -- so the wording is budgeted
-    # against 0.03 of ratio, not against the whole band. "band" is dropped from
-    # the wording because the shading already is one.
-    tag = f"±{(SAFETY_MARGIN - 1) * 100:g}% equivalence"
-    tag_units = text_width(fig, tag, SIZE_DENSE) / scale
-    centre = (band[0] + 1.0) / 2
-    if centre - tag_units / 2 < band[0] or centre + tag_units / 2 > 1.0:
-        raise SystemExit(f"panel (a) band label does not fit inside the band: {tag!r}")
-    ax.text(centre, ANNOT_ROW, tag, ha="center", va="center",
-            fontsize=8, color=MUTED, zorder=3)
-    return ordering
-
-
-def bc_row(stem: str) -> int:
-    """Row index shared by panels (b) and (c) for an arm."""
+def grid_row(stem: str) -> int:
+    """Row index shared by both panels for an arm."""
     return len(LEVEL_STEMS) - 1 - LEVEL_STEMS.index(stem)
 
 
 def level_axis(bounds: list[tuple[float, float]]) -> tuple[tuple[float, float], list[float]]:
-    """Ticks and symmetric limits for panel (b), fitted to what it plots.
+    """Ticks and symmetric limits for panel (a), fitted to what it plots.
 
     Nothing in a dot-and-interval panel is grown from zero, so the axis owes
     zero nothing: it is fitted to the intervals it carries, then padded by the
@@ -713,13 +657,13 @@ def level_axis(bounds: list[tuple[float, float]]) -> tuple[tuple[float, float], 
             ticks = [round(first + i * step, 6) for i in range(count)]
             pad = max(first - low, high - last) + 0.02 * (high - low)
             return (round(first - pad, 6), round(last + pad, 6)), ticks
-    raise SystemExit(f"no readable tick step for panel (b) over [{low}, {high}]")
+    raise SystemExit(f"no readable tick step for panel (a) over [{low}, {high}]")
 
 
-def draw_panel_b(fig, ax, point, draws):
+def draw_level_panel(fig, ax, point, draws):
     """Absolute pooled mean TTLT, as dots with intervals -- not bars.
 
-    This panel owns the name column that (c) also reads from, so its labels are
+    This panel owns the name column that (b) also reads from, so its labels are
     drawn here for both.
     """
     bounds = []
@@ -728,55 +672,55 @@ def draw_panel_b(fig, ax, point, draws):
         bounds.append((low / 1000, high / 1000))
     xlim, ticks = level_axis(bounds)
     scale = x_per_inch(AX_LEVEL, xlim)
-    cap = cap_units(AX_LEVEL, YLIM_BC)
-    label_r = B_AX_L - LABEL_GUTTER
-    budget = label_r - (BLOCK_B[0] + TEXT_INSET)
-    value_budget = B_VALUE_R - (B_AX_L + B_AX_W + VALUE_GUTTER)
+    cap = cap_units(AX_LEVEL, YLIM_ROWS)
+    label_r = LEVEL_AX_L - LABEL_GUTTER
+    budget = label_r - (BLOCK_LEVEL[0] + TEXT_INSET)
+    value_budget = LEVEL_VALUE_R - (LEVEL_AX_L + LEVEL_AX_W + VALUE_GUTTER)
 
     for stem, (low, high) in zip(LEVEL_STEMS, bounds):
-        row = bc_row(stem)
+        row = grid_row(stem)
         est = point[stem] / 1000
-        y_fig = row_y(AX_LEVEL, YLIM_BC, row)
+        y_fig = row_y(AX_LEVEL, YLIM_ROWS, row)
         leader(ax, xlim, low, row, scale)
         draw_estimate(ax, est, low, high, row, ARM_COLOR[stem], cap)
         check_fits(fig, ARMS[stem][0], 8, budget, "row name column")
         row_label(fig, label_r, y_fig, ARMS[stem][0])
         value = f"{est:.2f} [{low:.2f}, {high:.2f}]"
-        check_fits(fig, value, 8, value_budget, "panel (b) value column")
-        value_column(fig, B_VALUE_R, y_fig, value)
-    bare_axis(ax, xlim, YLIM_BC, ticks, [f"{t:.1f}" for t in ticks])
+        check_fits(fig, value, 8, value_budget, "panel (a) value column")
+        value_column(fig, LEVEL_VALUE_R, y_fig, value)
+    bare_axis(ax, xlim, YLIM_ROWS, ticks, [f"{t:.1f}" for t in ticks])
     return xlim
 
 
-def draw_panel_c(fig, ax, reorder):
+def draw_queue_panel(fig, ax, reorder):
     """Of the steps that could express an order, the share that did.
 
-    PolicyFCFS is the control inside the panel, so (c) has an FCFS baseline to
+    PolicyFCFS is the control inside the panel, so (b) has an FCFS baseline to
     be read against without the stock arm, which carries no policy hook and
     therefore logs no emitted order. That arm's row keeps its place in the
     shared grid and says what is missing in the same value column every other
     row uses, so nothing is written across the panel's data channel.
     """
     scale = x_per_inch(AX_QUEUE, QUEUE_XLIM)
-    cap = cap_units(AX_QUEUE, YLIM_BC)
-    value_budget = C_VALUE_R - (C_AX_L + C_AX_W + VALUE_GUTTER)
+    cap = cap_units(AX_QUEUE, YLIM_ROWS)
+    value_budget = QUEUE_VALUE_R - (QUEUE_AX_L + QUEUE_AX_W + VALUE_GUTTER)
     for stem in POLICY_STEMS:
-        row = bc_row(stem)
+        row = grid_row(stem)
         count, total = reorder[stem]
         est, low, high = wilson_pct(count, total)
         leader(ax, QUEUE_XLIM, low, row, scale)
         draw_estimate(ax, est, low, high, row, ARM_COLOR[stem], cap)
         value = f"{est:.1f} [{low:.1f}, {high:.1f}]"
-        check_fits(fig, value, 8, value_budget, "panel (c) value column")
-        value_column(fig, C_VALUE_R, row_y(AX_QUEUE, YLIM_BC, row), value)
+        check_fits(fig, value, 8, value_budget, "panel (b) value column")
+        value_column(fig, QUEUE_VALUE_R, row_y(AX_QUEUE, YLIM_ROWS, row), value)
     for stem in LEVEL_STEMS:
         if stem in reorder:
             continue
         missing = "not order-logged"
-        check_fits(fig, missing, 8, value_budget, "panel (c) missing-value column")
-        value_column(fig, C_VALUE_R, row_y(AX_QUEUE, YLIM_BC, bc_row(stem)),
+        check_fits(fig, missing, 8, value_budget, "panel (b) missing-value column")
+        value_column(fig, QUEUE_VALUE_R, row_y(AX_QUEUE, YLIM_ROWS, grid_row(stem)),
                      missing, colour=MUTED)
-    bare_axis(ax, QUEUE_XLIM, YLIM_BC, QUEUE_TICKS, [str(t) for t in QUEUE_TICKS])
+    bare_axis(ax, QUEUE_XLIM, YLIM_ROWS, QUEUE_TICKS, [str(t) for t in QUEUE_TICKS])
 
 
 def axis_label(fig, centre: float, y: float, block: tuple[float, float],
@@ -789,10 +733,10 @@ def axis_label(fig, centre: float, y: float, block: tuple[float, float],
 
     A label may be given as several lines. They share one left edge, which is
     what keeps a wrapped label reading as one block rather than as two stray
-    notes, and the whole block is centred on the axis. Panel (c) needs this:
+    notes, and the whole block is centred on the axis. Panel (b) needs this:
     its label carries the eligible-step range, which is a number the paper
     re-derives and therefore cannot be dropped, and no single line holding it
-    fits between (b)'s value column and the page edge.
+    fits between (a)'s value column and the page edge.
 
     When a label carries the reserved warning mark, the mark rides on the last
     line and is part of what gets centred, so the composite sits on the axis's
@@ -828,57 +772,41 @@ def build_figure(arms, draws, shared_sessions, reorder):
 
     fig = plt.figure(figsize=(FIG_W, FIG_H))
     full_canvas_spacer(fig)
-    ax_order = fig.add_axes(rect(AX_ORDER))
     ax_level = fig.add_axes(rect(AX_LEVEL))
     ax_queue = fig.add_axes(rect(AX_QUEUE))
 
-    ordering = draw_panel_a(fig, ax_order, ratio)
-    xlim_level = draw_panel_b(fig, ax_level, point, draws)
-    draw_panel_c(fig, ax_queue, reorder)
+    xlim_level = draw_level_panel(fig, ax_level, point, draws)
+    draw_queue_panel(fig, ax_queue, reorder)
 
     eligible = sorted(total for _count, total in reorder.values())
-    axis_label(fig, A_AX_L + A_AX_W / 2, A_XLABEL_Y, BLOCK_A,
-               ["Paired ratio of mean TTLT (<1: numerator faster)"])
-    axis_label(fig, B_AX_L + B_AX_W / 2, BC_XLABEL_Y, BLOCK_B,
+    axis_label(fig, LEVEL_AX_L + LEVEL_AX_W / 2, XLABEL_Y, BLOCK_LEVEL,
                ["Pooled mean TTLT (s)"])
-    axis_label(fig, C_AX_L + C_AX_W / 2, BC_XLABEL_Y, BLOCK_C,
-               ["Reordered (%),", f"{eligible[0]}–{eligible[-1]} eligible steps"],
-               flag="‡")
+    queue_label = ["Reordered (%),", f"{eligible[0]}–{eligible[-1]} eligible steps"]
+    if len(queue_label) != LABEL_BLOCK_LINES:
+        raise SystemExit(
+            f"the deepest axis label is {len(queue_label)} lines but the canvas "
+            f"reserves {LABEL_BLOCK_LINES}; fix the reservation, not the label."
+        )
+    axis_label(fig, QUEUE_AX_L + QUEUE_AX_W / 2, XLABEL_Y, BLOCK_QUEUE,
+               queue_label, flag="‡")
     legend_band(fig)
 
     # ---- header strips are labels; the findings sit in framed callouts -----
-    header_strip(fig, BLOCK_A, STRIP_TOP_A, "(a) Paired ordering ratios")
-    header_strip(fig, BLOCK_B, STRIP_TOP_BC, "(b) Absolute TTLT")
-    header_strip(fig, BLOCK_C, STRIP_TOP_BC, "(c) Ordering applied")
+    header_strip(fig, BLOCK_LEVEL, STRIP_TOP, "(a) Absolute TTLT")
+    header_strip(fig, BLOCK_QUEUE, STRIP_TOP, "(b) Ordering applied")
 
-    # Panel (a)'s finding, on the row the band tag shares, right of the 1.00
-    # rule where no interval reaches. Every number is recomputed from the
-    # values the panel drew.
-    margin_pct = (SAFETY_MARGIN - 1) * 100
-    widest = max(max(abs(low - 1.0), abs(high - 1.0))
-                 for _est, low, high in ordering) * 100
-    n_one = sum(1 for _est, low, high in ordering if low <= 1.0 <= high)
-    lead = (f"All {len(ordering)} CIs contain 1.00" if n_one == len(ordering)
-            else f"{n_one} of {len(ordering)} CIs contain 1.00")
-    relation = ">" if widest > margin_pct else "<"
-    order_scale = x_per_inch(AX_ORDER, ORDER_XLIM)
-    rule_x = A_AX_L + (1.0 - ORDER_XLIM[0]) * order_scale
-    callout(fig, A_AX_R, inches_y(AX_ORDER, YLIM_ORDER, ANNOT_ROW),
-            [lead, f"widest ±{widest:.1f}% {relation} ±{margin_pct:g}% margin"],
-            A_AX_R - rule_x, "panel (a) callout")
-
-    # Panel (b)'s finding: the one contrast whose two arms both serve arrival
+    # Panel (a)'s finding: the one contrast whose two arms both serve arrival
     # order, so it is the shim-plus-hook cost, not a ranking result. It sits
-    # over the two absolute rows it divides.
+    # inside the panel that carries the two absolute rows it divides.
     attr_est, attr_low, attr_high = ratio[ATTRIBUTION]
-    level_scale = B_AX_W / (xlim_level[1] - xlim_level[0])
+    level_scale = LEVEL_AX_W / (xlim_level[1] - xlim_level[0])
     clear_from = max(interval(draws[stem])[1] / 1000
                      for stem in LEVEL_STEMS if stem != "stock_fcfs") + 0.08
-    left_in = B_AX_L + (clear_from - xlim_level[0]) * level_scale
-    callout(fig, B_AX_L + B_AX_W, inches_y(AX_LEVEL, YLIM_BC, 1.5),
+    left_in = LEVEL_AX_L + (clear_from - xlim_level[0]) * level_scale
+    callout(fig, LEVEL_AX_L + LEVEL_AX_W, inches_y(AX_LEVEL, YLIM_ROWS, 1.5),
             ["Stock / PolicyFCFS",
              f"{1 / attr_est:.2f}× [{1 / attr_high:.2f}, {1 / attr_low:.2f}]"],
-            B_AX_L + B_AX_W - left_in, "panel (b) callout")
+            LEVEL_AX_L + LEVEL_AX_W - left_in, "panel (a) callout")
     return fig, point
 
 

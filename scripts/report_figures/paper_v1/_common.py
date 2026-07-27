@@ -23,7 +23,14 @@ matplotlib.use("Agg")
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "scripts" / "report_figures"))
 
-from style import IEEE_DOUBLE_WIDTH, IEEE_SINGLE_WIDTH, OKABE_ITO  # noqa: E402,F401
+from matplotlib.transforms import Bbox  # noqa: E402
+from style import (  # noqa: E402,F401
+    IEEE_DOUBLE_WIDTH,
+    IEEE_SINGLE_WIDTH,
+    OKABE_ITO,
+    SAVE_PAD,
+    VERTICAL_PAD,
+)
 
 FIGS = Path("/Users/alex/develop/capstone-final-report/figs")
 OFFLINE = REPO / "runs" / "offline-experiments-2026-07-25"
@@ -92,8 +99,30 @@ def record_provenance(figure: str, sources: list[Path]) -> None:
 
 
 def save(fig, name: str) -> Path:
+    """Write the plate at exactly the column width, with nothing clipped.
+
+    Two constraints pull against each other. The assignment sets a hard 10 pt
+    floor on figure text, so a plate wider than the column gets scaled down by
+    LaTeX and 10 pt renders at 9.9 pt. But a tight bounding box measures artist
+    extents, and half a line width sits outside them, so trimming to it shears
+    the top border off every header strip.
+
+    The padding is therefore asymmetric. Horizontally it is small, and the
+    canvas is authored that much narrower (see SAVE_PAD), so the saved width
+    lands on the column width and nothing is scaled. Vertically it is generous,
+    because height is not constrained -- LaTeX places the plate at whatever
+    height it comes out.
+    """
     FIGS.mkdir(parents=True, exist_ok=True)
     out = FIGS / name
-    fig.savefig(out)
+    fig.canvas.draw()
+    tight = fig.get_tightbbox(fig.canvas.get_renderer())
+    box = Bbox.from_extents(
+        tight.x0 - SAVE_PAD,
+        tight.y0 - VERTICAL_PAD,
+        tight.x1 + SAVE_PAD,
+        tight.y1 + VERTICAL_PAD,
+    )
+    fig.savefig(out, bbox_inches=box)
     print(f"wrote {out}")
     return out

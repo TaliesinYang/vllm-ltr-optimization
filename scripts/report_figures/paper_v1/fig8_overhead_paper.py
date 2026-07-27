@@ -25,6 +25,18 @@ hairlines saturate into a flat slab that out-inks the density bodies and breaks
 the gridlines it crosses, and the pairing they were there to show is what the
 difference axis already reports.
 
+Height: FIGURE-SPEC section 1 caps a double-column plate at 2.8 in. The band
+budget below is written in inches and asserted against that cap, and the cut
+that paid for it is the bootstrap ridge that used to sit under the difference
+interval. That ridge was not a measurement: it is the resampling distribution
+whose 2.5th and 97.5th percentiles ARE the caps drawn on top of it, so it
+restated the interval in a second encoding whose height carried no units, and
+it cost a legend key, a second legend row and most of the difference axis's
+vertical extent. The resampling itself is still run -- it sets the difference
+window and it still has to reproduce style.bootstrap_ci or the build fails --
+it is simply no longer redrawn. Nothing else about the claim moved: both point
+estimates, both intervals and the exclusion caveat are on the canvas as before.
+
 Both arms panels are drawn on the same log scale. A duration axis extended to
 its physical zero is honest but not comparable: it pins the cheap arm into the
 floor of its own panel and leaves the panel's upper half empty, and it makes
@@ -44,9 +56,11 @@ ordinary footnote text in the house's caveat colour, so the caveat no longer
 out-ranks the finding.
 
 Every number drawn or printed is computed from the loaded pairs. Nothing
-distributional is written here as a literal. The p5-p95 body/axis trim is
-stated on the canvas; the full observed range of every arm is printed to stdout
-for the LaTeX caption rather than spent as canvas prose.
+distributional is written here as a literal. The canvas keeps the one footnote
+that limits the finding -- the pairs dropped for unequal output tokens, in the
+house's caveat colour. The counts, the p5-p95 trim rule and the full observed
+range of every arm are printed to stdout for the LaTeX caption rather than
+spent as canvas height.
 """
 
 from __future__ import annotations
@@ -68,13 +82,6 @@ sys.path.insert(0, str(REPO / "scripts" / "report_figures"))
 
 from fig8_overhead import DATA_PATH, load_overhead_pairs  # noqa: E402
 from style import EXION, bootstrap_ci, set_log_axis_plain  # noqa: E402
-
-# The default 0.025 in crop leaves the left y-label effectively flush with the
-# column trim, while the inner y-label sits far off the neighbouring spine. A
-# wider uniform pad gives the outer label the same order of clearance as the
-# inner one, so no element is trimmed tighter than the rest of the page.
-plt.rcParams["savefig.pad_inches"] = 0.09
-
 
 # --- one frame language for every boxed element on the page -----------------
 # Every non-data mark on the page is drawn from EXION["structure"]: spines,
@@ -100,17 +107,14 @@ ARM_LABEL = {"direct": "Direct", "gateway": "Gateway"}
 
 # The paired-difference mark is the darkest ink on the page -- the deepest tone
 # of the same family the Gateway arm is drawn from, since the estimate it
-# carries is a statement about that arm. Its bootstrap body is the lightest
-# object anywhere in the figure, so the structure greys alone separate a
-# contextual body from a primary data body. What that body *is* is stated in
-# its own legend key rather than left to the axis caption.
+# carries is a statement about that arm.
 MARK_COLOR = EXION["family"][3]
-DELTA_BODY_FACE = STRUCTURE[0]
-DELTA_BODY_EDGE = STRUCTURE[3]
 CI_LW = 1.6
 CAP_HALF = 0.32  # in delta-axes y units
-DELTA_BODY_HALF = 0.50
-DELTA_YLIM = (-0.85, 3.20)
+# Asymmetric because the interval sits low in its axes and the framed result
+# sits above it; the span is what separates the two by more than any interline
+# gap on the page.
+DELTA_YLIM = (-0.55, 2.30)
 CAVEAT_COLOR = OKABE_ITO["vermillion"]
 
 # Two estimators in two quantity spaces get two glyphs: a circle for a per-arm
@@ -123,9 +127,14 @@ VIOLIN_WIDTH = 0.72
 MEAN_DODGE = 0.44  # x units; clears the widest half-violin (0.36) by 0.08
 ARM_XLIM = (-0.52, 1.52)
 MEDIAN_LW = 1.0
+# The three sizes FIGURE-SPEC section 2 allows, and nothing between them: 10 pt
+# for axis labels and the headline difference, 9 pt for tick labels and header
+# strips, 8 pt for the footnote and the legend. The headline is separated from
+# the rest by weight and by its frame, not by a fourth size.
 NOTE_PT = 8.0
 LABEL_PT = 9.0
-RESULT_PT = 12.0  # the headline difference: the largest type in the figure
+AXIS_PT = 10.0
+RESULT_PT = 10.0
 
 # Violin support. A kernel evaluated over the full min..max support collapses
 # to a sub-point sliver wherever the density is a few percent of its mode; on
@@ -141,38 +150,90 @@ BOOTSTRAP_SEED = 1234
 MEASURE_DPI = 320
 INK_THRESHOLD = 190  # darker than any structure grey used as a fill or rule
 
-# Log ticks. A labelled 1-2-3-5-7 ladder plus an unlabelled 1..9 ladder, both
+# Log ticks. A labelled 1-2-5 ladder plus an unlabelled 1..9 ladder, both
 # complete in every decade the axis covers, so reference density is a property
 # of the scale rather than of which decade an arm happens to land in and the
-# two panels the reader must compare carry comparable numbers of labels.
-LOG_MAJOR_MANTISSA = (1, 2, 3, 5, 7)
+# two panels the reader must compare carry comparable numbers of labels. The
+# labelled ladder was 1-2-3-5-7; on a panel this short that put seven numbers
+# in 0.8 in and the reader read a grey column rather than a scale. The rungs
+# themselves did not go anywhere -- 3 and 7 are still drawn, unlabelled, by the
+# minor ladder -- so what was cut is redundant text, not reference density.
+LOG_MAJOR_MANTISSA = (1, 2, 5)
 LOG_MINOR_MANTISSA = (1, 2, 3, 4, 5, 6, 7, 8, 9)
 LOG_DECADES = range(0, 6)
 
-# --- deterministic layout (figure fractions) --------------------------------
-FIG_HEIGHT = 5.25
-AX_LEFT, AX_RIGHT = 0.090, 0.985
-BLOCK_GAP = 0.088
+# --- deterministic layout ---------------------------------------------------
+# FIGURE-SPEC section 1 caps a double-column plate at 2.8 in tall, and the crop
+# is tight, so what the cap governs is the inked span plus one savefig pad at
+# each end. The page is therefore budgeted as a stack of bands measured in
+# inches and converted to fractions once, rather than as fractions someone has
+# to multiply by hand to find out what the figure actually costs the page.
+HEIGHT_CAP_IN = 2.80
+# The default 0.025 in crop leaves the left y-label effectively flush with the
+# column trim, while the inner y-label sits far off the neighbouring spine. A
+# wider uniform pad gives the outer label the same order of clearance as the
+# inner one, so no element is trimmed tighter than the rest of the page.
+SAVEFIG_PAD_IN = 0.09
+plt.rcParams["savefig.pad_inches"] = SAVEFIG_PAD_IN
+
+TOP_MARGIN_IN = 0.012
+LEGEND_H_IN = 0.268  # one row: 1.2 em of key plus 0.6 em of borderpad at 8 pt
+LEGEND_GAP_IN = 0.035
+STRIP_H_IN = 0.135
+STRIP_GAP_IN = 0.025
+ARMS_H_IN = 0.795
+ARM_TICK_H_IN = 0.290  # two 9 pt lines of arm readout plus their tick pad
+ARMS_TO_DELTA_IN = 0.025
+DELTA_H_IN = 0.500  # the interval low in the axes, the framed result above it
+DELTA_TICK_H_IN = 0.190
+DELTA_LABEL_H_IN = 0.167
+LABEL_TO_NOTE_IN = 0.022
+NOTE_H_IN = 0.133
+NOTE_BOTTOM_IN = 0.012
+
+FIG_HEIGHT = (NOTE_BOTTOM_IN + NOTE_H_IN + LABEL_TO_NOTE_IN + DELTA_LABEL_H_IN
+              + DELTA_TICK_H_IN + DELTA_H_IN + ARMS_TO_DELTA_IN + ARM_TICK_H_IN
+              + ARMS_H_IN + STRIP_GAP_IN + STRIP_H_IN + LEGEND_GAP_IN
+              + LEGEND_H_IN + TOP_MARGIN_IN)
+# The cap is asserted at import, not checked afterwards by whoever remembers to
+# measure the PDF. Growing any band above without paying for it elsewhere is a
+# build failure rather than a figure that quietly eats half a page again.
+_EXPORT_H = FIG_HEIGHT - TOP_MARGIN_IN - NOTE_BOTTOM_IN + 2 * SAVEFIG_PAD_IN
+if _EXPORT_H > HEIGHT_CAP_IN:
+    raise ValueError(
+        f"exported height {_EXPORT_H:.2f} in exceeds the "
+        f"{HEIGHT_CAP_IN:.2f} in double-column cap")
+
+# Both margins carry the same thing -- two lines of rotated y-label, a column
+# of tick labels and their pads -- so the outer margin and the inter-block gap
+# are sized alike and the inner label gets the same clearance as the outer one.
+AX_LEFT, AX_RIGHT = 0.115, 0.985
+BLOCK_GAP = 0.114
 BLOCK_WIDTH = (AX_RIGHT - AX_LEFT - BLOCK_GAP) / 2.0
-ARM_BOTTOM, ARM_TOP = 0.422, 0.808
-DELTA_BOTTOM, DELTA_TOP = 0.154, 0.3445
 # The difference axis is broken: a stub for the null, a visible gap, then the
 # data. Both are cut from the block, so the block's own left and right edges --
 # the ones the legend, the header strips and the arms panels also use -- are
 # unchanged.
 NULL_FRAC = 0.085
-BREAK_FRAC = 0.065
-# Header strip, in axes fractions of the arms panel: ~7 pt of gap first, so its
-# bottom border reads as its own rule rather than doubling the axes top spine.
-STRIP_GAP = 0.048
-STRIP_HEIGHT = 0.103
-LEGEND_TOP = 0.984
-CAPTION_Y = 0.087
-NOTE_BOTTOM = 0.015
+# A fraction of a narrower block: widened with the block gap so the two break
+# slashes keep the same absolute clearance from the spines they sit between.
+BREAK_FRAC = 0.072
+
+NOTE_BOTTOM = NOTE_BOTTOM_IN / FIG_HEIGHT
+CAPTION_Y = (NOTE_BOTTOM_IN + NOTE_H_IN + LABEL_TO_NOTE_IN) / FIG_HEIGHT
+DELTA_BOTTOM = CAPTION_Y + (DELTA_LABEL_H_IN + DELTA_TICK_H_IN) / FIG_HEIGHT
+DELTA_TOP = DELTA_BOTTOM + DELTA_H_IN / FIG_HEIGHT
+ARM_BOTTOM = DELTA_TOP + (ARMS_TO_DELTA_IN + ARM_TICK_H_IN) / FIG_HEIGHT
+ARM_TOP = ARM_BOTTOM + ARMS_H_IN / FIG_HEIGHT
+LEGEND_TOP = 1.0 - TOP_MARGIN_IN / FIG_HEIGHT
+# Header strip, in axes fractions of the arms panel: a gap first, so its bottom
+# border reads as its own rule rather than doubling the axes top spine.
+STRIP_GAP = STRIP_GAP_IN / ARMS_H_IN
+STRIP_HEIGHT = STRIP_H_IN / ARMS_H_IN
 # Baseline of the framed result callout, in axes fractions of its strip: high
-# enough that the frame clears the bootstrap ridge by more than any interline
-# gap on the page, low enough to clear its own top spine.
-RESULT_Y = 0.60
+# enough that the frame clears the interval's end caps by more than any
+# interline gap on the page, low enough to clear its own top spine.
+RESULT_Y = 0.55
 
 # Both panels clear the drawn data by the same 6% of the drawn span at every
 # end; with no linear-to-zero clamp anywhere, that is the only limit rule in
@@ -198,11 +259,14 @@ def _log_ladder(mantissas) -> list[float]:
 def _bootstrap_mean_distribution(values: np.ndarray) -> np.ndarray:
     """The resampled means behind the interval, drawn from the same recipe.
 
-    style.bootstrap_ci returns only the two percentiles; the difference axis
-    also shows the distribution they are cut from, so the resampling is
-    repeated here with the identical generator and checked against the helper's
-    own output. If the two ever diverge the figure refuses to build rather than
-    drawing a body that does not belong to its interval.
+    style.bootstrap_ci returns only the two percentiles; the difference axis is
+    windowed on the support they are cut from, so the resampling is repeated
+    here with the identical generator and checked against the helper's own
+    output. If the two ever diverge the figure refuses to build rather than
+    framing an interval against a distribution it does not belong to.
+
+    The distribution is no longer drawn -- see the module docstring -- but the
+    check is what makes the printed interval reproducible, so it stays.
     """
     rng = np.random.default_rng(BOOTSTRAP_SEED)
     estimates = np.empty(BOOTSTRAP_N, dtype=float)
@@ -302,7 +366,7 @@ def _arms_panel(ax, subset: dict[str, np.ndarray], metric: str) -> dict:
     # The two x positions are named by their labels; an inward tick adds no
     # information and puts a stroke on the bottom spine directly beneath each
     # violin, which is where a body edge would otherwise run into it.
-    ax.tick_params(axis="x", length=0.0, pad=5.0)
+    ax.tick_params(axis="x", length=0.0, pad=3.0)
 
     drawn = [_violin_body(ax, values, position, VIOLIN_WIDTH, arm)
              for position, values, arm
@@ -331,7 +395,7 @@ def _arms_panel(ax, subset: dict[str, np.ndarray], metric: str) -> dict:
     ax.set_xticklabels(
         [f"{ARM_LABEL[arm]}\nmean {value:.0f} ms"
          for arm, value in zip(("direct", "gateway"), means)],
-        fontsize=LABEL_PT,
+        fontsize=LABEL_PT, linespacing=1.05,
     )
     ax.set_xlim(*ARM_XLIM)
 
@@ -423,11 +487,13 @@ def _break_marks(fig, x_center: float, y_bottom: float, y_top: float) -> None:
 def _delta_panel(ax, delta: np.ndarray) -> dict:
     """Draw the paired-difference axis: the estimate the figure claims.
 
-    One estimand, one interval. The interval is drawn with end caps and the
-    diamond carries no white casing, so the interval reads as one object with a
-    measurable extent rather than as three fragments separated by a halo. Its
-    numbers are not printed loose beside the ridge; they go in the one framed
-    callout the page carries.
+    One estimand, one interval, one encoding of it. The interval is drawn with
+    end caps and the diamond carries no white casing, so it reads as one object
+    with a measurable extent rather than as three fragments separated by a
+    halo. Its numbers are not printed loose beside it; they go in the one
+    framed callout the page carries. The axis window is the support of the
+    resampled means, so the caps are visibly inside the distribution they were
+    cut from without that distribution being redrawn as a second mark.
     """
     _frame(ax)
     ax.set_axisbelow(True)
@@ -439,12 +505,6 @@ def _delta_panel(ax, delta: np.ndarray) -> dict:
     estimates = _bootstrap_mean_distribution(delta)
     low, high = bootstrap_ci(delta, np.mean, n=BOOTSTRAP_N, seed=BOOTSTRAP_SEED)
     mean = float(delta.mean())
-
-    grid = np.linspace(estimates.min(), estimates.max(), 512)
-    half = GaussianKDE(estimates).evaluate(grid)
-    half = half / half.max() * DELTA_BODY_HALF
-    ax.fill_between(grid, -half, half, facecolor=DELTA_BODY_FACE,
-                    edgecolor=DELTA_BODY_EDGE, linewidth=0.7, zorder=2)
 
     ax.plot([low, high], [0.0, 0.0], color=MARK_COLOR, linewidth=CI_LW,
             solid_capstyle="butt", zorder=4)
@@ -491,12 +551,14 @@ def _ink_bbox(fig, region: tuple[float, float, float, float]) -> tuple[float, ..
 
 
 def _result_callout(fig, ax, summary: dict) -> None:
-    """The framed headline: the figure's finding, at the figure's largest size.
+    """The framed headline: the figure's finding, promoted by frame and weight.
 
-    The only framed, enlarged element on the page is the result. A caveat set
-    in a coloured box while the finding is set at tick-label size inverts the
-    hierarchy the reader is asked to take away, so the frame goes here and the
-    caveat is demoted to one line of footnote.
+    The only framed element inside a panel on this page is the result. A caveat
+    set in a coloured box while the finding is set at tick-label size inverts
+    the hierarchy the reader is asked to take away, so the frame goes here and
+    the caveat is demoted to one line of footnote. The promotion is the frame,
+    the bold face and the step up from the 8 pt and 9 pt around it -- not a
+    fourth type size, which FIGURE-SPEC section 2 does not have.
     """
     mean = summary["delta_mean"]
     low, high = summary["delta_mean_ci"]
@@ -565,6 +627,62 @@ def _header(ax, title: str):
                    zorder=4)
 
 
+LEGEND_HANDLE_EM = 2.4
+LEGEND_HANDLETEXT_EM = 0.6
+
+
+def _check_legend_fits(fig, legend) -> None:
+    """One row of keys, and the row has to actually be one row.
+
+    `mode="expand"` never wraps: asked for more keys than the width holds it
+    keeps the row and lets each key run into the handle of the next one. The
+    frame still looks right, so the failure is invisible in the source and
+    obvious only at print size, which is exactly the class of thing this file
+    asserts rather than trusts.
+    """
+    renderer = fig.canvas.get_renderer()
+    frame = legend.get_window_extent(renderer)
+    boxes = []
+    for text in legend.get_texts():
+        box = text.get_window_extent(renderer)
+        if box.x0 < frame.x0 or box.x1 > frame.x1:
+            raise ValueError(f"legend key overflows its frame: {text.get_text()!r}")
+        boxes.append(box)
+    boxes.sort(key=lambda box: box.x0)
+    # Every key after the first is preceded by its own handle, so the gap
+    # between consecutive labels can never honestly be smaller than that.
+    needed = (LEGEND_HANDLE_EM + LEGEND_HANDLETEXT_EM) * NOTE_PT * fig.dpi / 72.0
+    for left, right in zip(boxes, boxes[1:]):
+        if right.x0 - left.x1 < needed:
+            raise ValueError("legend keys are closer than one handle apart")
+
+
+def _check_ylabels_fit(fig, axes: list) -> None:
+    """A rotated axis label may not outgrow the axes it belongs to.
+
+    Shrinking the plate moves this from theory to the binding constraint: a
+    y-label longer than its panel silently runs into the header strip above and
+    the arm readout below, and nothing else in the build would catch it.
+    """
+    renderer = fig.canvas.get_renderer()
+    for ax in axes:
+        label = ax.yaxis.get_label()
+        box = label.get_window_extent(renderer)
+        if box.height > ax.get_window_extent().height:
+            raise ValueError(f"y-label taller than its panel: {label.get_text()!r}")
+        # The inner label lives in the gap between two blocks, so "fits" is
+        # also a statement about the block on its left -- and by the same inset
+        # every other framed element on the page keeps, not by a hair.
+        inset = FRAME_PAD_PT * fig.dpi / 72.0
+        for other in axes:
+            frame = other.get_window_extent()
+            if (other is not ax and box.x0 - inset < frame.x1
+                    and box.x1 + inset > frame.x0):
+                raise ValueError(
+                    f"y-label does not clear a neighbouring panel: "
+                    f"{label.get_text()!r}")
+
+
 def _check_headers_fit(fig, headers: list) -> None:
     """A header that outgrows its strip is shortened by hand, never shrunk."""
     renderer = fig.canvas.get_renderer()
@@ -611,17 +729,22 @@ def build_paper_figure(pairs: dict):
     ttft.update(_delta_panel(delta_axes[0], pairs["all"]["ttft_delta"]))
     ttlt.update(_delta_panel(delta_axes[1], pairs["matched"]["ttlt_delta"]))
     summaries = {"ttft": ttft, "ttlt": ttlt}
-    arms_axes[0].set_ylabel("TTFT (ms, log scale)")
-    arms_axes[1].set_ylabel("TTLT (ms, log scale)")
+    # Two lines, because rotated text is bounded by the axes it labels: at this
+    # panel height a single 20-character line would overrun the header strip
+    # above and the arm readout below. Broken rather than shortened, so the log
+    # treatment stays stated on the axis it governs.
+    arms_axes[0].set_ylabel("TTFT (ms)\nlog scale", fontsize=AXIS_PT,
+                            linespacing=1.05)
+    arms_axes[1].set_ylabel("TTLT (ms)\nlog scale", fontsize=AXIS_PT,
+                            linespacing=1.05)
 
     for index, metric in enumerate(("ttft", "ttlt")):
         left = AX_LEFT + index * (BLOCK_WIDTH + BLOCK_GAP)
         fig.text(left + BLOCK_WIDTH * 0.5, CAPTION_Y,
                  f"$\\Delta$mean {metric.upper()} (ms)", ha="center",
-                 va="bottom", fontsize=LABEL_PT)
+                 va="bottom", fontsize=AXIS_PT)
 
     paired_n = int(pairs["all"]["ttft_direct"].size)
-    matched_n = int(pairs["matched"]["ttlt_direct"].size)
     # A header is a label, not a sentence: it names the panel and the selection
     # rule behind it in as few words as that takes. The counts those rules
     # yielded are numbers, so they belong in the disclosure block below with
@@ -631,11 +754,11 @@ def build_paper_figure(pairs: dict):
         (arms_axes[1], _header(arms_axes[1], "(b) Matched TTLT")),
     ]
 
-    # Colour-to-condition mapping is stated, not implied: one swatch per arm,
-    # one swatch for the bootstrap body so no reader has to map that grey onto
-    # the Direct arm, and every mark key drawn with the same numbers as the
-    # mark it names. Three columns of two rows rather than one row of six, so
-    # the composite interval key has room to read as an interval.
+    # Colour-to-condition mapping is stated, not implied: one swatch per arm
+    # and every mark key drawn with the same numbers as the mark it names. One
+    # row of five rather than three columns of two -- the sixth key named the
+    # bootstrap body, and with that body gone the remaining five fit on the
+    # legend's own line and give the plate back a quarter inch.
     delta_handle = Line2D([], [], linestyle="none")
     handles = [
         Patch(facecolor=ARM_HUE["direct"],
@@ -647,14 +770,15 @@ def build_paper_figure(pairs: dict):
         Line2D([], [], linestyle="none", marker="o", markerfacecolor=MARK_COLOR,
                markeredgecolor=MARK_COLOR, markeredgewidth=0.0,
                markersize=MARKER_PT),
-        Patch(facecolor=DELTA_BODY_FACE, edgecolor=DELTA_BODY_EDGE,
-              linewidth=0.7),
         delta_handle,
     ]
+    # The arm keys carry the arm name and nothing else. "density" was a word
+    # the violin shape already says, and on one row every word costs a key its
+    # neighbour's clearance; the resampling count moves to the caption for the
+    # same reason.
     labels = [
-        "Direct density", "Gateway density",
+        "Direct", "Gateway",
         "arm median", "arm mean (offset)",
-        f"{BOOTSTRAP_N}× bootstrap $\\Delta$mean density",
         "paired $\\Delta$mean ±95% CI",
     ]
     # Pinned to the panel block rather than centred on it: the legend frame,
@@ -663,10 +787,10 @@ def build_paper_figure(pairs: dict):
     legend = fig.legend(
         handles=handles, labels=labels, loc="upper left",
         bbox_to_anchor=(AX_LEFT, LEGEND_TOP, AX_RIGHT - AX_LEFT, 0.0),
-        bbox_transform=fig.transFigure, mode="expand", ncols=3, fontsize=NOTE_PT,
+        bbox_transform=fig.transFigure, mode="expand", ncols=5, fontsize=NOTE_PT,
         frameon=True, framealpha=1.0, edgecolor=FRAME_EDGE, borderpad=0.6,
-        borderaxespad=0.0, handlelength=2.6, handleheight=1.2,
-        handletextpad=0.6, columnspacing=1.2, labelspacing=0.7,
+        borderaxespad=0.0, handlelength=LEGEND_HANDLE_EM, handleheight=1.2,
+        handletextpad=LEGEND_HANDLETEXT_EM, columnspacing=1.2, labelspacing=0.7,
         handler_map={delta_handle: _DeltaMarkHandler()},
     )
     legend.get_frame().set_linewidth(FRAME_LW)
@@ -674,6 +798,8 @@ def build_paper_figure(pairs: dict):
 
     fig.canvas.draw()
     _check_headers_fit(fig, headers)
+    _check_ylabels_fit(fig, arms_axes)
+    _check_legend_fits(fig, legend)
     for index, metric in enumerate(("ttft", "ttlt")):
         _result_callout(fig, delta_axes[index], summaries[metric])
         _break_marks(fig,
@@ -681,16 +807,13 @@ def build_paper_figure(pairs: dict):
                      + (NULL_FRAC + BREAK_FRAC * 0.5) * BLOCK_WIDTH,
                      DELTA_BOTTOM, DELTA_TOP)
 
-    # Disclosure block: two footnote lines on one grid line, the trim rule that
-    # governs both panels and the exclusion the reader must hold against panel
-    # (b). The caveat keeps the house's caveat colour and loses its frame: it
-    # is a limit on the finding, not the finding.
+    # Disclosure: one footnote line, in the house's caveat colour and without a
+    # frame, because it is a limit on the finding rather than the finding. The
+    # second line -- the two sample counts and the p5-p95 trim rule -- was
+    # bookkeeping a reader can check just as well from the caption, and a line
+    # of canvas prose is the most expensive place in the figure to keep
+    # bookkeeping. It is printed to stdout for the caption instead.
     dropped_n = int(pairs["dropped"])
-    fig.text(AX_LEFT, NOTE_BOTTOM + 0.032,
-             f"(a) {paired_n} paired requests, (b) {matched_n} equal-token "
-             "pairs; violin bodies and y-axes trimmed to "
-             f"p{VIOLIN_TRIM_Q:g}–p{100 - VIOLIN_TRIM_Q:g} of each arm.",
-             ha="left", va="bottom", fontsize=NOTE_PT, color=STRUCTURE[3])
     fig.text(AX_LEFT, NOTE_BOTTOM,
              f"(b) {dropped_n} of {paired_n} pairs dropped for unequal output "
              "tokens; direction of the residual bias is unknown.",
@@ -729,8 +852,15 @@ def main() -> None:
               f"{s['gateway_mean'] / s['direct_mean']:.2f} "
               f"paired_geometric_ratio={np.exp(log_ratio.mean()):.2f} "
               f"CI95=[{np.exp(paired_low):.2f}, {np.exp(paired_high):.2f}]")
-    # For the LaTeX caption: the trim is disclosed on the canvas, the exact
-    # range the trim hides is disclosed here so it costs no canvas prose.
+    # For the LaTeX caption. The canvas keeps only the caveat, so the sample
+    # counts and the trim rule are disclosed here and the caption must carry
+    # them: they are the selection rules behind both panels.
+    print("caption MUST state: "
+          f"(a) {pairs['all']['ttft_direct'].size} paired requests, "
+          f"(b) {pairs['matched']['ttlt_direct'].size} equal-token pairs; "
+          "violin bodies and y-axes trimmed to "
+          f"p{VIOLIN_TRIM_Q:g}–p{100 - VIOLIN_TRIM_Q:g} of each arm; "
+          f"intervals are {BOOTSTRAP_N}× bootstrap percentile CIs.")
     print("caption: full observed range "
           + ", ".join(f"({panel}) {summaries[key]['observed_range'][0]:.0f}–"
                       f"{summaries[key]['observed_range'][1]:.0f} ms"

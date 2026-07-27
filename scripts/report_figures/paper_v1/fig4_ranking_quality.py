@@ -15,13 +15,18 @@ Layout contract (one claim, one panel, no in-plot prose):
   is. The capped bar is the bootstrap interval the artifact carries, and that
   interval is computed over ONE seed (``ci95_seed17``: t1_strata.py resamples
   sessions of ``common.SEEDS[0]``), while the dot is the mean over all three
-  seeds. Those are two estimators, so the key says so - the interval is
-  labelled "seed 17 only" and the dot "mean of 3 seeds". Nothing here pretends
-  the dot is the centre of the bar; where it is not, the key explains why.
+  seeds. Those are two estimators and the figure must never let them read as
+  one, so both are named - but in the LaTeX caption, not in a framed key on
+  the canvas. This is a single-column figure under a 2.6 in cap; a glyph key
+  is the one block here whose text is equally readable set as caption prose,
+  so it is the block that leaves the artwork. ``main()`` prints the exact
+  sentence the caption must carry, and asserts nothing in it is stale.
 * The thin bar in the lane below each row is the min-max across seeds. Rows
   whose model is deterministic given the split have a zero-wide seed range,
   drawn as a mark no heavier than the bar it replaces: a degenerate range is
   the absence of information and must not out-ink the ranges that carry some.
+  Both of those marks are named in the caption sentence as well, so the
+  degenerate one is read rather than guessed at.
 * Individual seeds are never plotted as separate ticks. With three seeds the
   ticks collide at this scale, and for the deterministic baselines they are
   coincident by construction.
@@ -59,7 +64,6 @@ import re
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.transforms import blended_transform_factory
 
@@ -89,8 +93,8 @@ EXTRA_LABEL = {"schema_hash_categorical": "Schema-hash categorical"}
 PITCH = 0.62          # row pitch within a group (tight forest rhythm)
 GROUP_GAP = 0.40      # extra separation between the BERT and baseline groups
 SEED_LANE = 0.22      # seed-range lane, below the row centre and clear of it
-BANNER_FRAC = 0.200   # figure fraction reserved at the top for the claim strip
-KEY_FRAC = 0.150      # figure fraction reserved at the bottom for the key
+BANNER_FRAC = 0.265   # figure fraction reserved at the top for the claim strip
+FOOT_FRAC = 0.020     # bottom margin only; savefig crops to the ink anyway
 # Frames, header strips and gridlines are structure, not data: they take the
 # EXION structure greys, so nothing that is merely scaffolding can be mistaken
 # for a series.
@@ -108,9 +112,6 @@ CAVEAT = COLOR["overstate"]
 # step is lighter than the family ramp it sits under, so no baseline row
 # out-inks a system that beats it.
 BASELINE_GREYS = tuple(EXION["structure"][1:])
-# Key glyphs are annotation, not data: they are drawn in the annotation ink, so
-# no key mark is a clone of one plotted series' colour.
-KEY_INK = OKABE_ITO["black"]
 BODY_PT = 8.0
 HEAD_PT = 10.0        # a real size step, so weight is not the only hierarchy
 PAD_PT = 5.0          # frame pad = key handle gap = gap between blocks
@@ -262,14 +263,14 @@ def main() -> None:
 
     # The frames below are padded against rendered *ink*, so the raster the
     # measurement runs on is drawn fine enough for that to be exact.
-    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_WIDTH, 3.45), dpi=200,
+    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_WIDTH, 2.62), dpi=200,
                            layout="constrained")
     # The strip's text column runs from the row-label edge to the panel edge, so
     # every point of side margin is a point the claim lines do not get. The rect
     # keeps only the margin the frame's own pad needs (the frame is drawn one
     # PAD_PT outside the text, and savefig crops to that frame anyway).
     fig.get_layout_engine().set(
-        rect=(0.008, KEY_FRAC, 0.984, 1.0 - KEY_FRAC - BANNER_FRAC))
+        rect=(0.008, FOOT_FRAC, 0.984, 1.0 - FOOT_FRAC - BANNER_FRAC))
     # One type size for every glyph the panel carries: the row label, the value
     # label and the tick label sit on the same rows as each other, so they are
     # set at the body size the strip and the key already use.
@@ -284,6 +285,7 @@ def main() -> None:
         cursor += PITCH
     ys = np.asarray(ys)
 
+    zero_spread = []
     for name, row_y in zip(rows, ys):
         cell = results[name]["all"]
         mean = float(cell["mean_tau_b"])
@@ -321,6 +323,7 @@ def main() -> None:
             ax.plot([mean], [row_y + SEED_LANE], marker="|",
                     markersize=ZERO_SPREAD_MS, markeredgewidth=SEED_LW,
                     color=colour, zorder=3)
+            zero_spread.append(name)
 
     baseline = mean_of(record)
     proposed = mean_of(rows[0])
@@ -498,11 +501,8 @@ def main() -> None:
     def shift(artists, delta):
         """Move a block by ``delta`` figure fractions."""
         for artist in artists:
-            if isinstance(artist, Line2D):
-                artist.set_ydata([y + delta for y in artist.get_ydata()])
-            else:
-                x, y = artist.get_position()
-                artist.set_position((x, y + delta))
+            x, y = artist.get_position()
+            artist.set_position((x, y + delta))
 
     def frame(ink_y0, ink_y1, facecolor="white") -> Rectangle:
         """One frame per block: square, house edge, panel width.
@@ -595,62 +595,24 @@ def main() -> None:
     banner = frame(ink_y0 + delta * height_px, ink_y1 + delta * height_px,
                    facecolor=STRIP_FILL)
 
-    # The key names the two units and, for the interval, the estimator it was
-    # actually computed on: the dot is a three-seed mean and the bar is a
-    # single-seed bootstrap, so the key never calls them one thing.
-    handle_px = 17.0 * px_per_pt
-    key_text_left = text_left + (handle_px + pad_px) / width_px
-    key_top = KEY_FRAC - 0.010
-    key_rows = [
-        f"dot: mean of {n_seeds} seeds;  bar: 95% CI, seed {ci_seed} only",
-        f"lane: min–max over {n_seeds} seeds; tick = zero spread",
-    ]
-    key_texts, glyphs = [], []
-    for index, text in enumerate(key_rows):
-        y = key_top - line_y * index
-        key_texts.append(fig.text(key_text_left, y, text, fontsize=BODY_PT,
-                                  ha="left", va="top",
-                                  color=OKABE_ITO["black"], zorder=6))
-        mid = y - line_y * 0.34
-        x0 = text_left
-        x1 = text_left + handle_px / width_px
-        if index == 0:
-            # Dot and bar are drawn apart in the handle, not concentric: the
-            # dot is not the bar's centre and the key must not suggest it is.
-            glyphs.append(Line2D([x0], [mid], transform=fig.transFigure,
-                                 marker="o", markersize=OURS_MS,
-                                 markeredgecolor="white", markeredgewidth=0.5,
-                                 color=KEY_INK, zorder=6))
-            glyphs.append(Line2D([x0 + (x1 - x0) * 0.42, x1], [mid, mid],
-                                 transform=fig.transFigure, color=KEY_INK,
-                                 linewidth=OURS_CI_LW, solid_capstyle="butt",
-                                 zorder=6))
-        else:
-            # Both seed-lane glyphs are shown, so the degenerate one is read
-            # from the key rather than guessed at on the panel.
-            glyphs.append(Line2D([x0, x0 + (x1 - x0) * 0.62], [mid, mid],
-                                 transform=fig.transFigure, color=KEY_INK,
-                                 linewidth=SEED_LW, solid_capstyle="butt",
-                                 zorder=6))
-            glyphs.append(Line2D([x1], [mid], transform=fig.transFigure,
-                                 marker="|", markersize=ZERO_SPREAD_MS,
-                                 markeredgewidth=SEED_LW,
-                                 color=KEY_INK, zorder=6))
-    for glyph in glyphs:
-        fig.add_artist(glyph)
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
-    key_ink_y0, key_ink_y1 = ink_of(key_texts + glyphs)
-    label_ink_y0, _ = ink_box([ax.xaxis.label.get_window_extent(renderer)])
-    key_delta = (label_ink_y0 - gap_px - pad_px - key_ink_y1) / height_px
-    if key_ink_y0 + key_delta * height_px - pad_px < 0.0:
-        raise RuntimeError("the key does not fit below the panel")
-    shift(key_texts + glyphs, key_delta)
-    fig.canvas.draw()
-    renderer = fig.canvas.get_renderer()
-    key_frame = frame(key_ink_y0 + key_delta * height_px,
-                      key_ink_y1 + key_delta * height_px,
-                      facecolor=STRIP_FILL)
+    # The two uncertainty units are named in the caption, not in a framed key
+    # on the canvas: at a 2.6 in cap a key band costs about a fifth of the
+    # figure's height, and it is the one block whose text loses nothing by
+    # being set as caption prose. The sentence is built here, from the same
+    # values the panel draws, so it cannot drift from the artwork.
+    caption_key = (f"Dots are the mean over {n_seeds} seeds; capped bars the "
+                   f"95\\% bootstrap CI on seed {ci_seed} alone; the lane "
+                   f"below each row the min--max across seeds, a tick where "
+                   f"that spread is zero.")
+    # A caption is not checked by the figure guards, so the two claims in it
+    # that could go stale are checked here instead: the tick clause is only
+    # true while some row is deterministic, and both counts must be the ones
+    # the panel drew.
+    if not zero_spread:
+        raise ValueError("no row has zero seed spread; the caption's tick "
+                         "clause would describe a mark that is not drawn")
+    if f"{n_seeds} seeds" not in caption_key or f"seed {ci_seed}" not in caption_key:
+        raise RuntimeError("the caption sentence lost a value it must carry")
 
     # Collision guard: every annotation on this panel must keep a visible gap
     # from every other one, measured on the rendered extents rather than by
@@ -666,8 +628,7 @@ def main() -> None:
 
     for name, artist in ([("headline", head)]
                          + [(f"banner {i}", t)
-                            for i, t in enumerate(banner_lines[2:])]
-                         + [(f"key {i}", t) for i, t in enumerate(key_texts)]):
+                            for i, t in enumerate(banner_lines[2:])]):
         if not fits(artist):
             over = (artist.get_window_extent(renderer).width - inner_px) / px_per_pt
             raise RuntimeError(f"'{name}' runs past the frame edge by {over:.1f} pt "
@@ -678,7 +639,7 @@ def main() -> None:
         raise RuntimeError("the headline crowds the reading-direction tag")
 
     boxed = ([(f"value {t.get_text()}", t) for t in value_labels]
-             + [("banner", banner), ("key", key_frame)]
+             + [("banner", banner)]
              + [("x label", ax.xaxis.label)]
              + [(f"row {t.get_text()}", t) for t in ax.get_yticklabels()]
              + [(f"tick {t.get_text()}", t) for t in ax.get_xticklabels()])
@@ -699,21 +660,20 @@ def main() -> None:
             f"{(label_box.x1 - column_left_px + min_gap) / px_per_pt:.1f} pt "
             f"(label width {label_box.width / px_per_pt:.1f} pt)")
 
-    # Both framed elements and the panel must end on one pixel column.
+    # The framed strip and the panel must end on one pixel column.
     edges = [banner.get_window_extent(renderer).x1,
-             key_frame.get_window_extent(renderer).x1,
              ax.get_window_extent(renderer).x1,
              max(lbl.get_window_extent(renderer).x1 for lbl in value_labels)]
     if max(edges) - min(edges) > 1.5:
         raise RuntimeError(f"right edges are ragged: {edges}")
 
-    # The three vertical gaps a reader sees between blocks must be one gap:
-    # strip to panel, panel to key, and the bottom mark to the spine.
+    # The two vertical gaps a reader sees between blocks must be one gap:
+    # strip to panel, and the bottom mark to the spine. (The third, panel to
+    # key, went with the key itself; the rule it enforced is unchanged.)
     unit_py = abs(ax.transData.transform((0.0, 1.0))[1]
                   - ax.transData.transform((0.0, 0.0))[1])
     measured = {
         "strip to panel": banner.get_window_extent(renderer).y0 - axes_box.y1,
-        "label to key": label_ink_y0 - key_frame.get_window_extent(renderer).y1,
         "last lane to spine": (ax.transData.transform(
             (0.0, ys[-1] + SEED_LANE))[1] - axes_box.y0),
     }
@@ -742,6 +702,7 @@ def main() -> None:
           f"{agree}/{n_seeds} seeds agree, "
           f"CIs separate={separated(rows[0], rows[1])}")
     print(f"vertical gaps {measured}")
+    print(f"caption must carry: {caption_key}")
 
 
 if __name__ == "__main__":
