@@ -65,5 +65,34 @@
       "sha256_16": "c332e3ceb3646e08"
     }
   },
-  "note": "runs/ and artifacts/ are complete local copies; git tracks the derived JSON evidence plus compressed workload and order logs. Model weights and raw sample CSVs live here and in OSS, not in git."
+  "note": "runs/ and artifacts/ are complete local copies; git tracks the derived JSON evidence plus compressed workload and order logs. Model weights and raw sample CSVs live here and in OSS, not in git.",
+  "oss_bundles": {
+    "prefix": "oss://backup/vllm-ltr-2026-07-28/",
+    "staged_on_box": "/hy-tmp/oss-stage",
+    "objects": {
+      "ltr-artifacts-20260728.tar.gz": {
+        "bytes": 409000000,
+        "sha256": "367ba5fac5f7ac146e45f0a3e75810f0078f682a14d111b59be209ebad6cf75a",
+        "holds": "trained ranker checkpoint, labelled ToolACE-6000 sample, replay workload + manifest",
+        "why": "cannot be regenerated cheaply; a re-run needs this or it retrains"
+      },
+      "ltr-runs-20260728.tar.gz": {
+        "bytes": 26173659,
+        "sha256": "5d565a0390c6640e9e2182867ca9de0f2e608c47ffb7e87542a8ad7aa9be218d",
+        "holds": "every run directory, order log and manifest the paper's claims read",
+        "why": "evidence chain; also the baseline a later re-run compares against"
+      },
+      "ltr-env-20260728.tar.gz": {
+        "bytes": 85183,
+        "sha256": "6765458704dae2a24dd8fa0d9feb0fa41ad52b2a7da7fd35fc7af3d97c80f9fc",
+        "holds": "pip freeze, nvidia-smi, launcher and server scripts",
+        "why": "rebuilds the environment to the same versions; the venv itself is reinstallable"
+      }
+    },
+    "deliberately_not_archived": [
+      "venv (6 GB, reinstallable from pip-freeze.txt)",
+      "Qwen3.5-9B weights (re-downloadable)",
+      "vLLM build caches"
+    ]
+  }
 }
