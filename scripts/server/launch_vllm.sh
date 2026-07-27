@@ -43,7 +43,7 @@ PYTHONPATH="$REPO_ROOT" LTR_PREDICTOR=gateway LTR_ORDER_LOG="$RUN_DIR/order.json
   --enable-auto-tool-choice --tool-call-parser qwen3_coder \
   --reasoning-parser qwen3 \
   --default-chat-template-kwargs '{"enable_thinking": false}' \
-  --max-model-len 8192 >"$LOGFILE" 2>&1 &
+  --max-model-len ${MAX_MODEL_LEN:-16384} >"$LOGFILE" 2>&1 &
 pid=$!
 printf '%s\n' "$pid" >"$PIDFILE"
 [[ -r "/proc/$pid/stat" ]] || { rm -f "$PIDFILE" "$STARTFILE"; tail -100 "$LOGFILE" >&2; exit 1; }

@@ -99,18 +99,18 @@ def main() -> None:
             )
 
     ax.text(
-        len(strata) - 0.5,
-        0.965,
-        "region where a rule claims\nmore than is delivered",
+        -0.45,
+        0.975,
+        "shaded: claimed $>$ delivered",
         fontsize=10,
         color=OKABE_ITO["vermillion"],
-        ha="right",
+        ha="left",
         va="top",
     )
     ax.annotate(
         "Rule C abstains",
         xy=(1 + offsets[2], 0.0),
-        xytext=(1.62, 0.11),
+        xytext=(1.55, 0.135),
         fontsize=10,
         color=OKABE_ITO["blue"],
         ha="left",
@@ -150,14 +150,14 @@ def main() -> None:
     ax_bar.set_yticks(np.arange(len(names)))
     ax_bar.set_yticklabels(names)
     ax_bar.set_xlabel("Worst overstatement\n(assigned $-$ realized $\\tau_b$)")
-    ax_bar.set_xlim(-0.09, 0.60)
-    ax_bar.set_title("(b) Worst case per rule", loc="left")
+    ax_bar.set_xlim(-0.09, 0.66)
+    ax_bar.set_title("(b) Worst case per rule", loc="left", pad=12)
     ax_bar.xaxis.grid(True)
     ax_bar.set_axisbelow(True)
     ax_bar.annotate(
         "never overstates",
         xy=(worst[2] / 2, 2),
-        xytext=(0.16, 2.42),
+        xytext=(0.19, 2.30),
         fontsize=10,
         color=OKABE_ITO["blue"],
         arrowprops={"arrowstyle": "->", "color": OKABE_ITO["blue"], "linewidth": 0.8},

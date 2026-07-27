@@ -394,6 +394,7 @@ run_policy() {
   stop_vllm
   collect_vllm_evidence "$attempt_tag" unique
   if [[ "$runner_status" != 0 ]]; then
+    echo "POLICY FAILED: $run_id (runner exit $runner_status) — see $output" >&2
     mark_attempt_status "$manifest" "$attempt_tag" failed
     ACTIVE_ATTEMPT_TAG=""; ACTIVE_ATTEMPT_MANIFEST=""; ACTIVE_ATTEMPT_SCHEDULER=""
     return "$runner_status"
