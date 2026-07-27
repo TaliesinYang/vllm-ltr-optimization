@@ -1,14 +1,18 @@
-"""Figure 4 - ranking quality on the pooled tier-2 test split.
+"""Figure 4 - ranking quality by predictor input family.
 
-Bars are the 3-seed mean Kendall tau-b, dots are the individual seeds, error
-bars are the session-clustered bootstrap 95% CI carried in the artifact. The
-grid-searched LightGBM is the baseline of record and is emphasised, because
-comparing against the untuned one would flatter the headline.
+A horizontal dot-and-interval (forest) plot rather than bars. Kendall's tau is
+an estimate with an interval, not a quantity accumulated from zero: bars spend
+most of their ink on the uninteresting distance from zero, and truncating them
+to fix that exaggerates the differences. The horizontal layout also removes the
+rotated category labels, which were themselves a symptom of the wrong
+orientation.
+
+Row order is fixed paper-wide (baselines, then ablation, then the proposed
+input) so panels can be compared by position. Colour encodes ownership, never
+identity: grey baselines, one accent for the proposed input.
 """
 
 from __future__ import annotations
-
-import json
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,103 +29,69 @@ from _common import (
 )
 
 T1 = OFFLINE / "t1-strata.json"
-ORDER = (
+ROWS = (
     "lightgbm_scalar",
     "schema_hash_lookup",
     "lightgbm_grid",
     "bert_prompt_only",
     "bert_prompt_schema",
 )
-BASELINE = "lightgbm_grid"
-CLAIM = "bert_prompt_schema"
+KEY = {
+    "bert_prompt_schema": "prompt_schema",
+    "bert_prompt_only": "prompt_only",
+    "lightgbm_grid": "lightgbm_grid",
+    "lightgbm_scalar": "lightgbm_scalar",
+    "schema_hash_lookup": "schema_hash_lookup",
+}
 
 
 def main() -> None:
     payload = load_json(T1)
-    cells = {name: payload["results"][name]["all"] for name in ORDER}
+    results = payload["results"]
+    record = payload["baseline_of_record"]["model"]
 
-    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_WIDTH, 2.9), constrained_layout=True)
-    positions = np.arange(len(ORDER))
+    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_WIDTH, 2.30),
+                           layout="constrained")
 
-    for index, name in enumerate(ORDER):
-        cell = cells[name]
+    y = np.arange(len(ROWS))
+    for index, name in enumerate(ROWS):
+        cell = results[name]["all"]
         mean = float(cell["mean_tau_b"])
-        low, high = (float(value) for value in cell["ci95_seed17"])
-        emphasised = name in (BASELINE, CLAIM)
-        ax.bar(
-            index,
-            mean,
-            width=0.62,
-            color=COLOR[name.replace("bert_", "")],
-            edgecolor=OKABE_ITO["black"] if emphasised else "none",
-            linewidth=1.0 if emphasised else 0.0,
-            zorder=2,
-        )
+        low, high = (float(v) for v in cell["ci95_seed17"])
+        colour = COLOR[KEY[name]]
         ax.errorbar(
-            index,
-            mean,
-            yerr=[[mean - low], [high - mean]],
-            fmt="none",
-            ecolor=OKABE_ITO["black"],
-            elinewidth=0.9,
-            capsize=2.5,
-            zorder=4,
+            mean, y[index],
+            xerr=[[mean - low], [high - mean]],
+            fmt="o", markersize=5.5, linewidth=1.1, capsize=2.5,
+            color=colour, markerfacecolor=colour, markeredgecolor=colour,
+            zorder=3,
         )
-        seeds = [float(v) for v in cell["per_seed_tau_b"].values()]
-        ax.scatter(
-            np.full(len(seeds), index),
-            seeds,
-            s=9,
-            facecolor="white",
-            edgecolor=OKABE_ITO["black"],
-            linewidth=0.7,
-            zorder=5,
-        )
+        for seed_value in cell["per_seed_tau_b"].values():
+            ax.plot(float(seed_value), y[index], marker="|", markersize=6,
+                    color=colour, alpha=0.6, zorder=2)
 
-    claim_mean = float(cells[CLAIM]["mean_tau_b"])
-    base_mean = float(cells[BASELINE]["mean_tau_b"])
-    delta = claim_mean - base_mean
+    baseline = float(results[record]["all"]["mean_tau_b"])
+    proposed = float(results["bert_prompt_schema"]["all"]["mean_tau_b"])
+    ax.axvline(baseline, color=OKABE_ITO["dark_gray"], linewidth=0.8,
+               linestyle=(0, (4, 3)), zorder=1)
+    ax.annotate("", xy=(baseline, -0.62), xytext=(proposed, -0.62),
+                arrowprops=dict(arrowstyle="<->", linewidth=0.8,
+                                color=OKABE_ITO["black"]))
+    ax.text((baseline + proposed) / 2, -0.92,
+            f"$\\Delta\\tau_b = +{proposed - baseline:.4f}$",
+            ha="center", va="bottom", fontsize=10, color=OKABE_ITO["black"])
 
-    # Delta bracket between the baseline of record and the claim.
-    left, right = ORDER.index(BASELINE), ORDER.index(CLAIM)
-    top = max(float(cells[n]["ci95_seed17"][1]) for n in ORDER) + 0.035
-    ax.plot([left, left, right, right], [base_mean, top, top, claim_mean],
-            color=OKABE_ITO["black"], linewidth=0.8, zorder=6)
-    ax.text(
-        (left + right) / 2,
-        top + 0.012,
-        f"$\\Delta\\tau_b$ = +{delta:.4f}",
-        ha="center",
-        va="bottom",
-        fontsize=10,
-    )
-
-    ax.set_xticks(positions)
-    ax.set_xticklabels(
-        [LABEL[name] for name in ORDER], rotation=32, ha="right"
-    )
-    ax.set_ylabel("Kendall $\\tau_b$ (test, n=%d)" % int(cells[CLAIM]["n"]))
-    ax.set_ylim(0, top + 0.09)
-    ax.yaxis.grid(True)
+    ax.set_yticks(y)
+    ax.set_yticklabels([LABEL[name] for name in ROWS])
+    ax.set_ylim(len(ROWS) - 0.4, -1.15)
+    ax.set_xlabel("Kendall $\\tau_b$ (test split, $n{=}999$)")
+    ax.set_xlim(0.33, 0.72)
+    ax.xaxis.grid(True)
     ax.set_axisbelow(True)
 
     save(fig, "fig4.pdf")
     record_provenance("fig4.pdf", [T1])
-    print(
-        json.dumps(
-            {
-                name: {
-                    "mean_tau_b": float(cells[name]["mean_tau_b"]),
-                    "ci95": [float(v) for v in cells[name]["ci95_seed17"]],
-                    "per_seed": {k: float(v) for k, v in cells[name]["per_seed_tau_b"].items()},
-                }
-                for name in ORDER
-            }
-            | {"delta_claim_minus_baseline_of_record": delta},
-            indent=2,
-            sort_keys=True,
-        )
-    )
+    print(f"baseline of record {record}={baseline:.4f} proposed={proposed:.4f}")
 
 
 if __name__ == "__main__":
