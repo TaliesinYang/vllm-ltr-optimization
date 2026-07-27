@@ -57,14 +57,32 @@ if [[ ",$ONLY," == *",A,"* ]]; then
 fi
 
 if [[ ",$ONLY," == *",C,"* ]]; then
-  log "C: gateway scheduler path on, executor concurrency 64"
+  # Block 2 already exists for this and is better than a hand-rolled three-arm
+  # version: six arms each adding exactly one component, so consecutive
+  # differences are per-component costs, and an ABBA order so a monotone drift
+  # cancels in each arm's two halves instead of being charged to whichever arm
+  # ran late. D0 is the direct-to-vLLM baseline without which no claim about
+  # the gateway repaying its hop can be made at all.
+  #
+  # The only change here is the arrival rate. A gateway buys governance and
+  # pays a hop; below saturation there is nothing for admission control to
+  # prevent, so overload is the one regime where the hop can pay for itself.
+  OVERLOAD_RPS="${OVERLOAD_RPS:-6.4}"   # ~130% of the 4.9 rps saturation point
+  log "C: Block-2 six-arm ABBA decomposition at ${OVERLOAD_RPS} rps (overload)"
+  LTR_ROOT="$LTR_ROOT" REPO_ROOT="$REPO_ROOT" \
+  MIXED_WORKLOAD="$WORKLOAD" CHECKPOINT="$CHECKPOINT" \
+  CAPACITY_RPS_OVERRIDE="$OVERLOAD_RPS" \
+  VLLM_PREFIX_CACHING=1 \
   SCHEDULER_ENABLED=true \
   SCHEDULER_TIMEOUT=15ms \
   SCHEDULER_SCORER_MAX_CONCURRENCY=4 \
   SCHEDULER_SCORER_SLOW_THRESHOLD=15ms \
   SCHEDULER_EXECUTOR_CONCURRENCY=64 \
-  VLLM_PREFIX_CACHING=1 \
-    matrix gateway-scheduler 3
+  SCHEDULER_QUEUE_SOFT_LIMIT=64 \
+  SCHEDULER_QUEUE_HARD_LIMIT=256 \
+  SCHEDULER_QUEUE_BACKEND=memory \
+  RUN_TAG=overload-block2 \
+    bash "$REPO_ROOT/scripts/server/run_block2_overhead.sh"
   log "C done"
 fi
 

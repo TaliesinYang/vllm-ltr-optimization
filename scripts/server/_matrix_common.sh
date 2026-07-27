@@ -100,13 +100,25 @@ if grep -Eiq '(^|[^0-9])[1-9][0-9]* skipped|SKIPPED' <<<"$protocol_output"; then
   exit 1
 fi
 
-capacity_rps="$(python3 - "$CAPACITY_MANIFEST" <<'PY'
+# The arrival rate normally comes from the saturation sweep recorded in the
+# manifest. An overload arm needs to exceed it on purpose, so the override is
+# explicit and is recorded in the run output like any other parameter.
+if [[ -n "${CAPACITY_RPS_OVERRIDE:-}" ]]; then
+  capacity_rps="$(python3 -c '
+import sys
+value = float(sys.argv[1])
+if value <= 0: raise SystemExit("CAPACITY_RPS_OVERRIDE must be positive")
+print(value)' "$CAPACITY_RPS_OVERRIDE")"
+  echo "capacity_rps overridden to $capacity_rps (manifest value ignored)" >&2
+else
+  capacity_rps="$(python3 - "$CAPACITY_MANIFEST" <<'PY'
 import json, sys
 value = float(json.load(open(sys.argv[1]))["capacity_rps"])
 if value <= 0: raise SystemExit("capacity_rps must be positive")
 print(value)
 PY
 )"
+fi
 
 stop_vllm() {
   local pidfile used
