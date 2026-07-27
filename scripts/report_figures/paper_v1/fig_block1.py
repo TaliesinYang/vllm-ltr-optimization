@@ -31,10 +31,13 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 
-from _common import COLOR, IEEE_DOUBLE_WIDTH, REPO, load_jsonl, record_provenance, save
+from _common import (
+    COLOR, IEEE_DOUBLE_WIDTH, REPO, load_json, load_jsonl, record_provenance, save,
+)
 
 RUNS = REPO / "runs" / "block1-main"
 WORKLOAD = REPO / "runs" / "block1-2026-07-26" / "workload-block1.jsonl"
+QUEUE_DEPTH = REPO / "runs" / "queue-depth.json"
 BOOTSTRAP_DRAWS = 5000
 SAFETY_MARGIN = 1.03  # pre-declared non-inferiority margin on mean TTLT
 
@@ -62,6 +65,36 @@ COMPARISONS: list[tuple[str, str, str, str]] = [
     ("PromptLengthSJFScheduler", "PolicyFCFS", "secondary", ""),
     ("PolicyFCFS", "stock_fcfs", "attribution", ""),
 ]
+
+
+# Directory stem -> arm key in queue-depth.json. Only the four policy arms log
+# scheduling-step queue depth; the stock arms have no policy hook to instrument.
+QUEUE_ARMS: dict[str, str] = {
+    "PolicyFCFS": "PolicyFCFS",
+    "PromptLengthSJFScheduler": "PromptLengthSJF",
+    "PureLTRScheduler": "PureLTR",
+    "GatedRuleCScheduler": "GatedRuleC",
+}
+
+
+def load_queue_depth() -> dict[str, dict]:
+    """Per-arm waiting-queue depth stats, verified against the panel's claim.
+
+    The panel prints a categorical sentence ("empty at p90; >=2 waiting in
+    <1% of steps"), so the script refuses to draw it if the committed data
+    ever stops supporting it.
+    """
+    stats = load_json(QUEUE_DEPTH)["arms"]
+    missing = [key for key in QUEUE_ARMS.values() if key not in stats]
+    if missing:
+        raise SystemExit(f"queue-depth.json lacks arms: {', '.join(missing)}")
+    for key in QUEUE_ARMS.values():
+        if stats[key]["p90"] != 0 or stats[key]["ge2_pct"] >= 1.0:
+            raise SystemExit(
+                f"{key}: p90={stats[key]['p90']}, ge2={stats[key]['ge2_pct']}% "
+                "contradicts the panel's printed claim; update the label."
+            )
+    return stats
 
 
 def session_of_request() -> dict[str, str]:
@@ -138,11 +171,11 @@ def interval(values: np.ndarray) -> tuple[float, float]:
     return float(low), float(high)
 
 
-def build_figure(arms, draws, shared_sessions):
+def build_figure(arms, draws, shared_sessions, queue):
     point = {stem: pooled_mean(launches, shared_sessions) for stem, launches in arms.items()}
-    fig, (ax_forest, ax_level) = plt.subplots(
-        1, 2, figsize=(IEEE_DOUBLE_WIDTH, 2.9),
-        gridspec_kw={"width_ratios": [1.28, 1.0]}, constrained_layout=True,
+    fig, (ax_forest, ax_level, ax_queue) = plt.subplots(
+        1, 3, figsize=(IEEE_DOUBLE_WIDTH, 3.05),
+        gridspec_kw={"width_ratios": [1.6, 1.35, 1.5]}, constrained_layout=True,
     )
 
     # (a) paired ratios. A ratio below one means the numerator arm finished
@@ -159,17 +192,19 @@ def build_figure(arms, draws, shared_sessions):
         colour = COLOR["prompt_schema"] if role in ("primary", "safety") else COLOR["neutral"]
         ax_forest.plot([low, high], [i, i], color=colour, lw=1.5, solid_capstyle="butt", zorder=3)
         ax_forest.plot([est], [i], "o", color=colour, ms=4.6, zorder=4)
-        labels.append(f"{ARMS[num][0]} / {ARMS[den][0]}")
+        labels.append(f"{ARMS[num][0]} /\n{ARMS[den][0]}")
         if role in ("primary", "safety"):
-            ax_forest.annotate(role, (high, i), xytext=(4, 0), textcoords="offset points",
-                               va="center", fontsize=8, color=colour)
-    ax_forest.set_yticks(y, labels)
-    ax_forest.set_ylim(-0.6, len(rows) - 0.4)
+            # Above the point, not beside the whisker: text past the axes edge
+            # makes constrained_layout reserve that width as decoration.
+            ax_forest.annotate(role, (est, i), xytext=(0, 4), textcoords="offset points",
+                               ha="center", va="bottom", fontsize=10, color=colour)
+    ax_forest.set_yticks(y, labels, linespacing=0.9)
+    ax_forest.set_ylim(-0.6, len(rows) + 0.25)
     ax_forest.set_xlabel("Paired ratio of mean TTLT (95% hierarchical CI)")
     ax_forest.xaxis.grid(True, zorder=0)
-    ax_forest.annotate(f"{SAFETY_MARGIN:g} margin", (SAFETY_MARGIN, -0.45),
-                       xytext=(3, 0), textcoords="offset points",
-                       fontsize=8, color="#555555", va="center")
+    ax_forest.text(SAFETY_MARGIN + 0.008, -0.5, f"{SAFETY_MARGIN:g} margin",
+                   rotation=90, ha="left", va="bottom",
+                   fontsize=10, color="#555555")
     ax_forest.text(-0.34, 1.04, "(a)", transform=ax_forest.transAxes,
                    fontweight="bold", fontsize=10)
 
@@ -188,7 +223,58 @@ def build_figure(arms, draws, shared_sessions):
     ax_level.set_ylim(-0.6, len(stems) - 0.4)
     ax_level.set_xlabel("Pooled mean TTLT (s)")
     ax_level.xaxis.grid(True, zorder=0)
+    # Colour carries arm ownership in all three panels; say so once, in the
+    # panel whose upper-right corner is empty (the short policy-arm rows).
+    from matplotlib.lines import Line2D
+
+    ax_level.legend(handles=[
+        Line2D([], [], color=COLOR["prompt_schema"], marker="o", ms=4.6,
+               lw=1.5, label="ranker arms (ours)"),
+        Line2D([], [], color=COLOR["neutral"], marker="o", ms=4.6,
+               lw=1.5, label="baseline arms"),
+    ], loc="upper right", fontsize=8, frameon=False, handlelength=1.3,
+        borderaxespad=0.2, labelspacing=0.4)
     ax_level.text(-0.42, 1.04, "(b)", transform=ax_level.transAxes,
+                  fontweight="bold", fontsize=10)
+
+    # (c) whether the experiment could have detected an ordering effect at all:
+    # the waiting-queue depth each policy saw at its scheduling steps. Rows sit
+    # on panel (b)'s y grid, so each strip reads against the same arm label.
+    for i, stem in enumerate(stems):
+        key = QUEUE_ARMS.get(stem)
+        if key is None:
+            continue  # stock arms: no policy hook, hence no order log
+        d = queue[key]
+        colour = COLOR["prompt_schema"] if ARMS[stem][1] else COLOR["neutral"]
+        ax_queue.plot([d["p50"]], [i], "o", color=colour, ms=4.6, zorder=4)
+        ax_queue.plot([d["p90"]], [i], "o", mfc="none", mec=colour, ms=9.5,
+                      mew=1.0, zorder=3)
+        ax_queue.plot([d["p99"]], [i], "o", mfc="white", mec=colour, ms=4.6,
+                      mew=1.2, zorder=4)
+        ax_queue.text(3.3, i, f"{d['ge2_pct']:.1f}%", ha="right", va="center",
+                      fontsize=10, color=colour)
+    # Column footers sit in the band between the policy rows and the stock
+    # rows, labelling the marks directly instead of through a legend.
+    ax_queue.text(0.1, 1.35, "p50·p90", ha="center", va="center",
+                  fontsize=10, color="#555555")
+    ax_queue.text(1.0, 0.82, "p99", ha="center", va="center",
+                  fontsize=10, color="#555555")
+    ax_queue.text(3.3, 1.35, "steps ≥2", ha="right", va="center",
+                  fontsize=10, color="#555555")
+    ax_queue.text(3.3, 0.3, "stock arms:\nno reorder hook", ha="right",
+                  va="center", fontsize=10, color="#999999")
+    ax_queue.set_xlim(-0.5, 3.45)
+    ax_queue.set_xticks([0, 1, 2])
+    ax_queue.set_ylim(-0.6, len(stems) - 0.4)
+    ax_queue.set_yticks([])
+    ax_queue.set_xlabel("Waiting-queue depth")
+    ax_queue.xaxis.grid(True, zorder=0)
+    # The sentence panel (c) exists to license; guarded by load_queue_depth().
+    ax_queue.set_title("queue the policies could\n"
+                       "reorder: empty at p90;\n"
+                       "≥2 waiting in <1% of steps",
+                       fontsize=10, color="#333333", pad=13)
+    ax_queue.text(-0.06, 1.04, "(c)", transform=ax_queue.transAxes,
                   fontweight="bold", fontsize=10)
     return fig, point
 
@@ -207,14 +293,15 @@ def main() -> None:
     shared_sessions = sorted(shared)
     print(f"{len(shared_sessions)} sessions replayed by every arm")
 
+    queue = load_queue_depth()
     draws = hierarchical_draws(arms, shared_sessions, seed=20260727)
-    fig, point = build_figure(arms, draws, shared_sessions)
+    fig, point = build_figure(arms, draws, shared_sessions, queue)
     save(fig, "block1.pdf")
     plt.close(fig)
 
     record_provenance("block1.pdf", sorted(
         p for stem in ARMS for p in (RUNS / "matrix" / f"{stem}.runs").glob("*.samples.csv")
-    ) + [WORKLOAD])
+    ) + [WORKLOAD, QUEUE_DEPTH])
 
     # Printed so the prose in 06.evaluation.tex quotes the figure's own numbers.
     for stem in ARMS:
@@ -231,6 +318,10 @@ def main() -> None:
             verdict = "PASS" if high < SAFETY_MARGIN else "FAIL"
         print(f"[{role:<11}] {ARMS[num][0]} / {ARMS[den][0]}: "
               f"{est:.4f} CI=[{low:.4f}, {high:.4f}] {verdict}")
+    for stem, key in QUEUE_ARMS.items():
+        d = queue[key]
+        print(f"[queue      ] {ARMS[stem][0]}: p50={d['p50']} p90={d['p90']} "
+              f"p99={d['p99']} ge2={d['ge2_pct']}% over {d['events']} steps")
 
 
 if __name__ == "__main__":

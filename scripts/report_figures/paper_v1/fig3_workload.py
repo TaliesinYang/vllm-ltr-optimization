@@ -1,180 +1,281 @@
 """Figure 3 - workload characterization of real agent traffic.
 
-(a) how much of a request payload is tool schema, per deployment config
-(b) what fraction of requests carry no tools at all
-(c) how long the completions actually are
+Four panels, all recomputed from the raw live trace at build time:
+(a) schema bytes per call kind (0/5/8/10-tool requests observed in the trace)
+(b) per-request schema share vs total request bytes - the spread the paper
+    claims, shown as the 50 tool-bearing points themselves
+(c) request mix (zero-tool vs tool-bearing counts)
+(d) completion-length ECDFs SPLIT by kind - the pooled median describes
+    neither population, which is the figure's point
 
-Every value is computed from the raw probe captures at build time. The schema
-share is measured as serialized tool-array bytes over serialized request-body
-bytes, per request, then averaged - the method is stated on the panel because a
-different byte accounting gives a different number.
+Byte accounting: canonical JSON (compact separators, sorted keys, UTF-8) of
+the tool array over the same serialization of the whole request body. A
+different accounting gives a different number, so the method is fixed here.
 """
 
 from __future__ import annotations
 
 import json
-import statistics
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from _common import (
-    COLOR,
-    FIGS,
     IEEE_DOUBLE_WIDTH,
     OKABE_ITO,
-    PROBE_SCHEMA,
     PROBE_TRACE,
     load_jsonl,
     record_provenance,
     save,
 )
+from style import set_log_axis_plain
 
-CAPTURE = PROBE_SCHEMA / "captured_requests_v2.jsonl"
 TRACE = PROBE_TRACE / "agent_trace_vanilla.jsonl.gz"
-FULL_CONFIG_MIN_TOOLS = 100  # full config ships 170 tools, vanilla 10
+
+C_TOOL = OKABE_ITO["blue"]       # tool-bearing (the traffic class we study)
+C_ZERO = OKABE_ITO["gray"]       # zero-tool
+C_NOTE = OKABE_ITO["dark_gray"]  # annotations / reference lines
 
 
-def schema_share(body: dict) -> float:
-    tools = body.get("tools") or []
-    tool_bytes = len(json.dumps(tools, ensure_ascii=False).encode("utf-8"))
-    body_bytes = len(json.dumps(body, ensure_ascii=False).encode("utf-8"))
-    return tool_bytes / body_bytes if body_bytes else 0.0
+def canonical_bytes(obj) -> int:
+    return len(
+        json.dumps(
+            obj, separators=(",", ":"), sort_keys=True, ensure_ascii=False
+        ).encode("utf-8")
+    )
+
+
+def p50_pooled(values: np.ndarray) -> float:
+    # Ceil-rank pooled percentile, same convention as the rest of the set.
+    ordered = np.sort(values)
+    return float(ordered[max(0, int(np.ceil(0.5 * ordered.size)) - 1)])
 
 
 def main() -> None:
-    capture = load_jsonl(CAPTURE)
     trace = load_jsonl(TRACE)
 
-    full, vanilla = [], []
-    for row in capture:
-        body = row["body"]
-        tools = body.get("tools") or []
-        if not tools:
-            continue
-        (full if len(tools) >= FULL_CONFIG_MIN_TOOLS else vanilla).append(
-            schema_share(body)
+    rows = []
+    for row in trace:
+        tools = row["body"].get("tools") or []
+        rows.append(
+            {
+                "n_tools": len(tools),
+                "tool_bytes": canonical_bytes(tools) if tools else 0,
+                "body_bytes": canonical_bytes(row["body"]),
+                "completion": int(row["usage"]["completion_tokens"]),
+            }
         )
-    tool_counts = {
-        "full": max(len(r["body"].get("tools") or []) for r in capture),
-        "vanilla": max(
-            (
-                len(r["body"].get("tools") or [])
-                for r in capture
-                if 0 < len(r["body"].get("tools") or []) < FULL_CONFIG_MIN_TOOLS
-            ),
-            default=0,
-        ),
-    }
 
-    zero_tool = sum(1 for row in trace if not (row["body"].get("tools") or []))
-    completions = [
-        int(row["usage"]["completion_tokens"])
-        for row in trace
-        if isinstance(row.get("usage", {}).get("completion_tokens"), int)
-        and row["usage"]["completion_tokens"] > 0
-    ]
+    kinds = sorted({r["n_tools"] for r in rows})
+    by_kind = {k: [r for r in rows if r["n_tools"] == k] for k in kinds}
+    # Panel (a) draws one bar per kind from a single request; this only
+    # holds if the schema is fixed per kind, so enforce it on the trace.
+    for k in kinds:
+        distinct = {r["tool_bytes"] for r in by_kind[k]}
+        assert len(distinct) == 1, (
+            f"schema bytes vary within kind {k}: {sorted(distinct)}"
+        )
+    tool_rows = [r for r in rows if r["n_tools"] > 0]
+    zero_rows = [r for r in rows if r["n_tools"] == 0]
+    shares = np.array(
+        [r["tool_bytes"] / r["body_bytes"] * 100 for r in tool_rows]
+    )
+    comp_tool = np.array([r["completion"] for r in tool_rows], dtype=float)
+    comp_zero = np.array([r["completion"] for r in zero_rows], dtype=float)
+    comp_all = np.array([r["completion"] for r in rows], dtype=float)
 
     fig, axes = plt.subplots(
-        1, 3, figsize=(IEEE_DOUBLE_WIDTH, 2.35), constrained_layout=True
+        1,
+        4,
+        figsize=(IEEE_DOUBLE_WIDTH, 2.45),
+        constrained_layout=True,
+        gridspec_kw={"width_ratios": [1.02, 1.27, 0.72, 1.51]},
     )
 
-    # (a) payload composition -------------------------------------------------
+    # (a) schema bytes per call kind -----------------------------------------
     ax = axes[0]
-    shares = [statistics.fmean(full) * 100, statistics.fmean(vanilla) * 100]
-    names = [
-        f"full\n({tool_counts['full']} tools)",
-        f"vanilla\n({tool_counts['vanilla']} tools)",
-    ]
-    bars = ax.bar(
-        names, shares, color=["#6E6E6E", "#9A9A9A"], width=0.55
-    )
-    for bar, value in zip(bars, shares):
+    xs = np.arange(len(kinds))
+    kib = [by_kind[k][0]["tool_bytes"] / 1024 for k in kinds]
+    colors = [C_ZERO if k == 0 else C_TOOL for k in kinds]
+    bars = ax.bar(xs, kib, color=colors, width=0.62)
+    for x, bar, k in zip(xs, bars, kinds):
         ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            value + 2,
-            f"{value:.1f}",
+            x,
+            bar.get_height() + 0.5,
+            f"{bar.get_height():.1f}" if k else "0",
             ha="center",
             va="bottom",
             fontsize=10,
         )
-    ax.set_ylim(0, 100)
-    ax.set_ylabel("Tool schema share of\nrequest payload (%)")
-    ax.set_title("(a) Payload composition", loc="left")
+        ax.text(
+            x,
+            -3.4,
+            f"n={len(by_kind[k])}",
+            ha="center",
+            va="top",
+            fontsize=10,
+            color=C_NOTE,
+        )
+    ax.set_xticks(xs)
+    ax.set_xticklabels([str(k) for k in kinds])
+    ax.set_xlabel("Tools in request", labelpad=14)
+    ax.set_ylabel("Schema size (KiB)")
+    ax.set_ylim(0, max(kib) * 1.22)
+    ax.set_title("(a) Schema per kind", loc="left")
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
-    # (b) request-type mix ----------------------------------------------------
+    # (b) schema share vs request size, per request --------------------------
     ax = axes[1]
-    tool_bearing = len(trace) - zero_tool
-    fractions = [tool_bearing / len(trace) * 100, zero_tool / len(trace) * 100]
-    left = 0.0
-    for value, color, name in zip(
-        fractions,
-        [OKABE_ITO["blue"], OKABE_ITO["gray"]],
-        ["tool-bearing", "zero-tool"],
-    ):
-        ax.barh([0], [value], left=left, color=color, height=0.5, label=name)
-        ax.text(
-            left + value / 2,
-            0,
-            f"{value:.0f}%",
-            ha="center",
-            va="center",
-            fontsize=10,
-            color="white" if name == "tool-bearing" else "black",
+    markers = {5: "^", 8: "s", 10: "o"}
+    for k in kinds:
+        if k == 0:
+            continue
+        sub = by_kind[k]
+        ax.scatter(
+            [r["body_bytes"] / 1024 for r in sub],
+            [r["tool_bytes"] / r["body_bytes"] * 100 for r in sub],
+            s=16,
+            marker=markers.get(k, "o"),
+            facecolors="none",
+            edgecolors=C_TOOL,
+            linewidths=0.9,
         )
-        left += value
-    ax.set_xlim(0, 100)
-    ax.set_yticks([])
-    ax.set_xlabel(f"Share of {len(trace)} live requests (%)")
-    ax.set_title("(b) Request-type mix", loc="left")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.62), ncol=2)
-    ax.spines["left"].set_visible(False)
+    # One legend for the marker shapes; the upper-right quadrant is empty
+    # (high-share requests are all small-bodied, so nothing plots there).
+    from matplotlib.lines import Line2D
 
-    # (c) completion-length distribution --------------------------------------
+    ax.legend(handles=[
+        Line2D([], [], marker=markers[k], linestyle="none", markersize=4.5,
+               markerfacecolor="none", markeredgecolor=C_TOOL,
+               markeredgewidth=0.9, label=f"{k} tools")
+        for k in (5, 8, 10)
+    ], loc="upper right", fontsize=8, frameon=False, handletextpad=0.3,
+        labelspacing=0.4, borderaxespad=0.2)
+    lo, hi = shares.min(), shares.max()
+    ax.text(
+        0.03,
+        0.24,
+        f"schema = {lo:.0f}–{hi:.0f}%\nof request bytes",
+        transform=ax.transAxes,
+        fontsize=10,
+        va="top",
+        color=C_NOTE,
+    )
+    ax.set_xlabel("Request body (KiB)")
+    ax.set_ylabel("Schema share (%)")
+    body_kib_max = max(r["body_bytes"] / 1024 for r in tool_rows)
+    ax.set_xlim(0, body_kib_max * 1.1)
+    ax.set_xticks(np.arange(0, body_kib_max * 1.1, 30))
+    ax.set_ylim(0, shares.max() * 1.12)
+    ax.set_title("(b) Share per request", loc="left")
+    ax.yaxis.grid(True)
+    ax.set_axisbelow(True)
+
+    # (c) request mix --------------------------------------------------------
     ax = axes[2]
-    ordered = np.sort(np.asarray(completions, dtype=float))
-    ecdf = np.arange(1, ordered.size + 1) / ordered.size
-    ax.step(ordered, ecdf, where="post", color=OKABE_ITO["blue"])
-    for fraction, style in ((0.50, ":"), (0.99, "--")):
-        index = max(0, int(np.ceil(fraction * ordered.size)) - 1)
-        value = ordered[index]
-        ax.axvline(value, color=OKABE_ITO["dark_gray"], linestyle=style, linewidth=0.9)
-        ax.text(
-            value,
-            0.06 if fraction == 0.50 else 0.30,
-            f" p{int(fraction * 100)}={value:.0f}",
-            fontsize=10,
-            color=OKABE_ITO["dark_gray"],
-            ha="left",
-        )
+    n_tool, n_zero = len(tool_rows), len(zero_rows)
+    ax.bar([0], [n_tool], color=C_TOOL, width=0.55)
+    ax.bar([0], [n_zero], bottom=[n_tool], color=C_ZERO, width=0.55)
+    ax.text(0, n_tool / 2, f"{n_tool} tool-bearing", ha="center",
+            va="center", fontsize=10, color="white", rotation=90)
+    ax.text(0, n_tool + n_zero / 2, f"{n_zero}\nzero-tool", ha="center",
+            va="center", fontsize=10, color="black")
+    ax.set_xlim(-0.6, 0.6)
+    ax.set_xticks([])
+    ax.set_ylim(0, len(rows))
+    ax.set_yticks([0, 25, 50, 75])
+    ax.set_ylabel("Live requests")
+    ax.set_title("(c) Mix", loc="left")
+    ax.yaxis.grid(True)
+    ax.set_axisbelow(True)
+
+    # (d) completion-length ECDFs split by kind ------------------------------
+    ax = axes[3]
+    for values, color, name in (
+        (comp_zero, C_ZERO, "zero-tool"),
+        (comp_tool, C_TOOL, "tool-bearing"),
+    ):
+        ordered = np.sort(values)
+        ecdf = np.arange(1, ordered.size + 1) / ordered.size
+        ax.step(ordered, ecdf, where="post", color=color)
+    p50_zero = p50_pooled(comp_zero)
+    p50_tool = p50_pooled(comp_tool)
+    p50_all = p50_pooled(comp_all)
+    ax.annotate(
+        f"zero-tool\np50={p50_zero:.0f}",
+        xy=(p50_zero, 0.5),
+        xytext=(0.02, 0.69),
+        textcoords="axes fraction",
+        fontsize=10,
+        color=C_NOTE,
+        arrowprops={"arrowstyle": "-", "color": C_ZERO, "linewidth": 0.7},
+    )
+    ax.annotate(
+        f"tool-bearing\np50={p50_tool:.0f}",
+        xy=(p50_tool, 0.5),
+        xytext=(0.74, 0.37),
+        textcoords="axes fraction",
+        fontsize=10,
+        color=C_TOOL,
+        arrowprops={"arrowstyle": "-", "color": C_TOOL, "linewidth": 0.7},
+    )
+    ax.axvline(p50_all, ymax=0.80, color=C_NOTE, linestyle=":", linewidth=0.8)
+    ax.text(
+        p50_all * 0.93,
+        0.905,
+        f"pooled\np50={p50_all:.0f}",
+        fontsize=10,
+        color=C_NOTE,
+        ha="right",
+        va="center",
+    )
+    # Bottom-right corner: the only region no curve, label, or title enters
+    # (the tool-bearing curve is already above y=0.05 at these lengths).
+    ax.text(
+        comp_tool.max() * 1.30,
+        0.045,
+        f"max={comp_tool.max():.0f}",
+        fontsize=10,
+        color=C_NOTE,
+        ha="right",
+        va="bottom",
+    )
     ax.set_xscale("log")
-    ax.set_xlabel("Completion length (tokens)")
-    ax.set_ylabel(f"ECDF ({ordered.size} requests)")
+    x_hi = comp_all.max() * 1.35
+    ax.set_xlim(1, x_hi)
     ax.set_ylim(0, 1.02)
-    ax.set_title("(c) Completion length", loc="left")
+    log_ticks = [t for t in (1, 3, 10, 30, 100, 300, 1000, 3000) if t <= x_hi]
+    set_log_axis_plain(ax, "x", log_ticks)
+    ax.set_xlabel("Completion length (tokens)")
+    ax.set_ylabel("ECDF")
+    ax.set_title("(d) Completion length, split by kind", loc="left")
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
     save(fig, "workload.pdf")
-    record_provenance("workload.pdf", [CAPTURE, TRACE])
+    record_provenance("workload.pdf", [TRACE])
     print(
         json.dumps(
             {
-                "schema_share_full_pct": round(shares[0], 2),
-                "schema_share_vanilla_pct": round(shares[1], 2),
-                "schema_share_method": "mean over requests of "
-                "len(json(tools)) / len(json(body)), tool-bearing requests only",
-                "zero_tool_requests": zero_tool,
-                "total_trace_requests": len(trace),
-                "zero_tool_pct": round(zero_tool / len(trace) * 100, 2),
-                "completion_p50": float(
-                    ordered[max(0, int(np.ceil(0.50 * ordered.size)) - 1)]
-                ),
-                "completion_p99": float(
-                    ordered[max(0, int(np.ceil(0.99 * ordered.size)) - 1)]
-                ),
+                "kinds": {
+                    str(k): {
+                        "n": len(by_kind[k]),
+                        "schema_kib": round(
+                            by_kind[k][0]["tool_bytes"] / 1024, 2
+                        ),
+                    }
+                    for k in kinds
+                },
+                "schema_share_min_pct": round(float(shares.min()), 2),
+                "schema_share_max_pct": round(float(shares.max()), 2),
+                "share_method": "canonical JSON (compact, sorted keys) "
+                "tool-array bytes / body bytes, per request",
+                "mix": {"tool_bearing": n_tool, "zero_tool": n_zero},
+                "p50_zero_tool": p50_zero,
+                "p50_tool_bearing": p50_tool,
+                "p50_pooled": p50_all,
+                "max_completion": float(comp_tool.max()),
             },
             indent=2,
             sort_keys=True,

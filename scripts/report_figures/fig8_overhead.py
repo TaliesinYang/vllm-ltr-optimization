@@ -121,15 +121,13 @@ def _paired_panel(
         set_log_axis_plain(
             ax,
             "y",
-            [1000, 2000, 3000, 5000, 10000, 20000, 30000],
+            [100, 300, 500, 1000, 2000, 3000, 5000, 10000, 20000, 30000],
             fmt=lambda value: f"{value:g}",
         )
     else:
         ax.set_ylim(bottom=0)
     ax.yaxis.grid(True, zorder=0)
-    note_y = 1.015 if use_log_scale else 0.97
-    note_va = "bottom" if use_log_scale else "top"
-    ax.text(0.02, note_y, note, transform=ax.transAxes, ha="left", va=note_va, fontsize=10)
+    ax.text(0.02, 1.015, note, transform=ax.transAxes, ha="left", va="bottom", fontsize=10)
     ax.text(-0.09, 1.03, panel, transform=ax.transAxes, fontweight="bold", fontsize=10)
     return {
         "direct_mean": float(direct.mean()),
@@ -148,13 +146,15 @@ def build_figure(pairs: dict):
         figsize=(IEEE_DOUBLE_WIDTH, 3.55),
         constrained_layout=True,
     )
-    ttft = _paired_panel(ax_ttft, pairs["all"], "ttft", "(a)", "paired n=150")
+    paired_n = pairs["all"]["ttft_direct"].size
+    matched_n = pairs["matched"]["ttft_direct"].size
+    ttft = _paired_panel(ax_ttft, pairs["all"], "ttft", "(a)", f"paired n={paired_n}")
     ttlt = _paired_panel(
         ax_ttlt,
         pairs["matched"],
         "ttlt",
         "(b)",
-        f"matched n=118 · {pairs['dropped']} dropped",
+        f"matched n={matched_n} · {pairs['dropped']} dropped",
         use_log_scale=True,
     )
     return fig, {"ttft": ttft, "ttlt": ttlt}
@@ -174,7 +174,7 @@ def main() -> None:
         f"delta_mean_ms={ttft['delta_mean']:.1f} CI95={ttft['delta_mean_ci'][0]:.1f},{ttft['delta_mean_ci'][1]:.1f}"
     )
     print(
-        f"TTLT matched_n=118 dropped={pairs['dropped']} "
+        f"TTLT matched_n={pairs['matched']['ttlt_delta'].size} dropped={pairs['dropped']} "
         f"direct_mean_ms={ttlt['direct_mean']:.1f} CI95={ttlt['direct_mean_ci'][0]:.1f},{ttlt['direct_mean_ci'][1]:.1f} "
         f"gateway_mean_ms={ttlt['gateway_mean']:.1f} CI95={ttlt['gateway_mean_ci'][0]:.1f},{ttlt['gateway_mean_ci'][1]:.1f} "
         f"delta_mean_ms={ttlt['delta_mean']:.1f} CI95={ttlt['delta_mean_ci'][0]:.1f},{ttlt['delta_mean_ci'][1]:.1f}"

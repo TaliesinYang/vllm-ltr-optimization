@@ -64,8 +64,13 @@ POLICY_LABEL = {
 
 mpl.rcParams.update(
     {
-        "font.family": "sans-serif",
-        "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+        # Serif matching the IEEEtran body (Times). A figure set in a
+        # different family than the page it sits on reads as pasted-in; this
+        # is the single setting SciencePlots' ieee style is built around.
+        "font.family": "serif",
+        "font.serif": ["Times New Roman", "Nimbus Roman", "Times",
+                       "STIXGeneral", "DejaVu Serif"],
+        "mathtext.fontset": "stix",
         "font.size": 10.0,
         "axes.labelsize": 10.0,
         "axes.titlesize": 10.0,
@@ -74,10 +79,13 @@ mpl.rcParams.update(
         "axes.spines.right": False,
         "xtick.labelsize": 10.0,
         "ytick.labelsize": 10.0,
-        "xtick.major.size": 3.0,
-        "ytick.major.size": 3.0,
-        "xtick.major.width": 0.7,
-        "ytick.major.width": 0.7,
+        "xtick.major.size": 2.6,
+        "ytick.major.size": 2.6,
+        "xtick.major.width": 0.6,
+        "ytick.major.width": 0.6,
+        "xtick.direction": "in",
+        "ytick.direction": "in",
+        "axes.linewidth": 0.6,
         "legend.fontsize": 10.0,
         "legend.frameon": False,
         "lines.linewidth": 1.35,
