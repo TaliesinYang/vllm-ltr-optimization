@@ -1,0 +1,58 @@
+{
+  "source": "fig_prefix_cache.py prefix-cache vs block1-main, 2026-07-27; paired hierarchical bootstrap over 2025 shared sessions",
+  "bridge": {
+    "stock_fcfs": 0.8291,
+    "StockFCFSShim": 0.829,
+    "agreement": true
+  },
+  "ratios_on_over_off": {
+    "stock_fcfs": {
+      "ratio": 0.8291,
+      "ci": [
+        0.7925,
+        0.868
+      ]
+    },
+    "StockFCFSShim": {
+      "ratio": 0.829,
+      "ci": [
+        0.7893,
+        0.8704
+      ]
+    },
+    "PolicyFCFS": {
+      "ratio": 0.7646,
+      "ci": [
+        0.7118,
+        0.8222
+      ]
+    },
+    "PromptLengthSJFScheduler": {
+      "ratio": 0.7768,
+      "ci": [
+        0.7217,
+        0.8354
+      ]
+    },
+    "PureLTRScheduler": {
+      "ratio": 0.773,
+      "ci": [
+        0.7195,
+        0.8313
+      ]
+    },
+    "GatedRuleCScheduler": {
+      "ratio": 0.7681,
+      "ci": [
+        0.7132,
+        0.8261
+      ]
+    }
+  },
+  "engine_hit_rate_pct": {
+    "peak": 62.1,
+    "final": 11.5,
+    "ordering_rounds": 0.0
+  },
+  "note": "replays within a launch share KV state: measures warmed steady state"
+}
