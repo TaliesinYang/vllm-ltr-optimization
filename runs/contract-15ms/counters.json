@@ -1,0 +1,22 @@
+{
+  "run_dir": "/hy-tmp/ltr/runs/contract-15ms",
+  "requests_recorded": 2315,
+  "requests_errored": 1,
+  "status_breakdown": {
+    "transport": 1
+  },
+  "prefix_cache": {
+    "reported_samples": 4435,
+    "final_hit_rate_pct": 0.0,
+    "max_hit_rate_pct": 62.5,
+    "enable_flag_in_log": "False"
+  },
+  "decision_fail_open": {
+    "timeout_or_call_failed": 801,
+    "non_200": 0,
+    "decode_failed": 0,
+    "contract_violation": 0,
+    "total": 801,
+    "rate_of_requests": 0.34600431965442763
+  }
+}

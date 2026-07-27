@@ -1,0 +1,43 @@
+{
+  "budgets": [
+    {
+      "budget_ms": 15,
+      "requests": 2315,
+      "fail_open": 801,
+      "fail_open_rate": 0.34600431965442763,
+      "coverage": 0.6539956803455724,
+      "breakdown": {
+        "timeout_or_call_failed": 801,
+        "non_200": 0,
+        "decode_failed": 0,
+        "contract_violation": 0
+      }
+    },
+    {
+      "budget_ms": 50,
+      "requests": 2315,
+      "fail_open": 46,
+      "fail_open_rate": 0.019870410367170625,
+      "coverage": 0.9801295896328294,
+      "breakdown": {
+        "timeout_or_call_failed": 46,
+        "non_200": 0,
+        "decode_failed": 0,
+        "contract_violation": 0
+      }
+    },
+    {
+      "budget_ms": 75,
+      "requests": 2315,
+      "fail_open": 0,
+      "fail_open_rate": 0.0,
+      "coverage": 1.0,
+      "breakdown": {
+        "timeout_or_call_failed": 0,
+        "non_200": 0,
+        "decode_failed": 0,
+        "contract_violation": 0
+      }
+    }
+  ]
+}
