@@ -19,6 +19,8 @@ import json
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 
 from _common import (
     IEEE_DOUBLE_WIDTH,
@@ -35,6 +37,48 @@ TRACE = PROBE_TRACE / "agent_trace_vanilla.jsonl.gz"
 C_TOOL = OKABE_ITO["blue"]       # tool-bearing (the traffic class we study)
 C_ZERO = OKABE_ITO["gray"]       # zero-tool
 C_NOTE = OKABE_ITO["dark_gray"]  # annotations / reference lines
+
+# Light->dark blue ramp: request kind ordered by tool count (5 -> 8 -> 10).
+# The darkest step is the set-wide house blue; marker SHAPES stay distinct
+# so the encoding survives grayscale.
+KIND_BLUE = {5: "#8CC5E3", 8: "#4198CB", 10: C_TOOL}
+KIND_MARKER = {5: "^", 8: "s", 10: "o"}
+
+# One frame style for every callout, per the figure-craft house rules.
+FRAME = {
+    "boxstyle": "square,pad=0.25",
+    "facecolor": "white",
+    "edgecolor": "#888888",
+    "linewidth": 0.6,
+}
+
+
+def header_strip(ax, label: str) -> None:
+    """Identical light-gray framed header band above each panel."""
+    ax.add_patch(
+        Rectangle(
+            (0.0, 1.035),
+            1.0,
+            0.115,
+            transform=ax.transAxes,
+            facecolor="#ececec",
+            edgecolor="#888888",
+            linewidth=0.6,
+            clip_on=False,
+            zorder=5,
+        )
+    )
+    ax.text(
+        0.5,
+        1.0925,
+        label,
+        transform=ax.transAxes,
+        ha="center",
+        va="center",
+        fontsize=9,
+        fontweight="bold",
+        zorder=6,
+    )
 
 
 def canonical_bytes(obj) -> int:
@@ -87,16 +131,45 @@ def main() -> None:
     fig, axes = plt.subplots(
         1,
         4,
-        figsize=(IEEE_DOUBLE_WIDTH, 2.45),
+        figsize=(IEEE_DOUBLE_WIDTH, 2.7),
         constrained_layout=True,
-        gridspec_kw={"width_ratios": [1.02, 1.27, 0.72, 1.51]},
+        gridspec_kw={"width_ratios": [1.02, 1.12, 0.95, 1.43]},
     )
+
+    # Boxed legend band above the figure: the 5/8/10-tools marker key that
+    # panels (a) and (b) share, moved out of the (b) plotting area.
+    legend = fig.legend(
+        handles=[
+            Line2D(
+                [],
+                [],
+                marker=KIND_MARKER[k],
+                linestyle="none",
+                markersize=4.5,
+                markerfacecolor="none",
+                markeredgecolor=KIND_BLUE[k],
+                markeredgewidth=1.1,
+                label=f"{k} tools",
+            )
+            for k in (5, 8, 10)
+        ],
+        loc="outside upper center",
+        ncols=3,
+        frameon=True,
+        fontsize=9,
+        handletextpad=0.3,
+        columnspacing=1.6,
+        borderaxespad=0.15,
+    )
+    legend.get_frame().set_edgecolor("#888888")
+    legend.get_frame().set_linewidth(0.6)
+    legend.get_frame().set_facecolor("white")
 
     # (a) schema bytes per call kind -----------------------------------------
     ax = axes[0]
     xs = np.arange(len(kinds))
     kib = [by_kind[k][0]["tool_bytes"] / 1024 for k in kinds]
-    colors = [C_ZERO if k == 0 else C_TOOL for k in kinds]
+    colors = [C_ZERO if k == 0 else KIND_BLUE[k] for k in kinds]
     bars = ax.bar(xs, kib, color=colors, width=0.62)
     for x, bar, k in zip(xs, bars, kinds):
         ax.text(
@@ -105,7 +178,7 @@ def main() -> None:
             f"{bar.get_height():.1f}" if k else "0",
             ha="center",
             va="bottom",
-            fontsize=10,
+            fontsize=9,
         )
         ax.text(
             x,
@@ -113,21 +186,20 @@ def main() -> None:
             f"n={len(by_kind[k])}",
             ha="center",
             va="top",
-            fontsize=10,
+            fontsize=8,
             color=C_NOTE,
         )
     ax.set_xticks(xs)
     ax.set_xticklabels([str(k) for k in kinds])
-    ax.set_xlabel("Tools in request", labelpad=14)
+    ax.set_xlabel("Tools in request", labelpad=13)
     ax.set_ylabel("Schema size (KiB)")
     ax.set_ylim(0, max(kib) * 1.22)
-    ax.set_title("(a) Schema per kind", loc="left")
+    header_strip(ax, "(a) Schema size")
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
     # (b) schema share vs request size, per request --------------------------
     ax = axes[1]
-    markers = {5: "^", 8: "s", 10: "o"}
     for k in kinds:
         if k == 0:
             continue
@@ -136,31 +208,24 @@ def main() -> None:
             [r["body_bytes"] / 1024 for r in sub],
             [r["tool_bytes"] / r["body_bytes"] * 100 for r in sub],
             s=16,
-            marker=markers.get(k, "o"),
+            marker=KIND_MARKER[k],
             facecolors="none",
-            edgecolors=C_TOOL,
-            linewidths=0.9,
+            edgecolors=KIND_BLUE[k],
+            linewidths=1.0,
         )
-    # One legend for the marker shapes; the upper-right quadrant is empty
-    # (high-share requests are all small-bodied, so nothing plots there).
-    from matplotlib.lines import Line2D
-
-    ax.legend(handles=[
-        Line2D([], [], marker=markers[k], linestyle="none", markersize=4.5,
-               markerfacecolor="none", markeredgecolor=C_TOOL,
-               markeredgewidth=0.9, label=f"{k} tools")
-        for k in (5, 8, 10)
-    ], loc="upper right", fontsize=8, frameon=False, handletextpad=0.3,
-        labelspacing=0.4, borderaxespad=0.2)
     lo, hi = shares.min(), shares.max()
+    # Upper-right quadrant is empty (high-share requests are all
+    # small-bodied), so the takeaway callout sits there.
     ax.text(
-        0.03,
-        0.24,
-        f"schema = {lo:.0f}–{hi:.0f}%\nof request bytes",
+        0.96,
+        0.94,
+        f"{lo:.0f}–{hi:.0f}% of\nrequest bytes",
         transform=ax.transAxes,
-        fontsize=10,
+        fontsize=9,
+        ha="right",
         va="top",
         color=C_NOTE,
+        bbox=dict(FRAME),
     )
     ax.set_xlabel("Request body (KiB)")
     ax.set_ylabel("Schema share (%)")
@@ -168,7 +233,7 @@ def main() -> None:
     ax.set_xlim(0, body_kib_max * 1.1)
     ax.set_xticks(np.arange(0, body_kib_max * 1.1, 30))
     ax.set_ylim(0, shares.max() * 1.12)
-    ax.set_title("(b) Share per request", loc="left")
+    header_strip(ax, "(b) Schema share")
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
@@ -178,54 +243,63 @@ def main() -> None:
     ax.bar([0], [n_tool], color=C_TOOL, width=0.55)
     ax.bar([0], [n_zero], bottom=[n_tool], color=C_ZERO, width=0.55)
     ax.text(0, n_tool / 2, f"{n_tool} tool-bearing", ha="center",
-            va="center", fontsize=10, color="white", rotation=90)
-    ax.text(0, n_tool + n_zero / 2, f"{n_zero}\nzero-tool", ha="center",
-            va="center", fontsize=10, color="black")
+            va="center", fontsize=9, color="white", rotation=90)
+    ax.text(
+        0,
+        n_tool + n_zero / 2,
+        "1/3\nzero-tool",
+        ha="center",
+        va="center",
+        fontsize=9,
+        color=C_NOTE,
+        bbox=dict(FRAME),
+    )
     ax.set_xlim(-0.6, 0.6)
     ax.set_xticks([])
     ax.set_ylim(0, len(rows))
     ax.set_yticks([0, 25, 50, 75])
     ax.set_ylabel("Live requests")
-    ax.set_title("(c) Mix", loc="left")
+    header_strip(ax, "(c) Request mix")
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
     # (d) completion-length ECDFs split by kind ------------------------------
     ax = axes[3]
-    for values, color, name in (
-        (comp_zero, C_ZERO, "zero-tool"),
-        (comp_tool, C_TOOL, "tool-bearing"),
-    ):
+    for values, color in ((comp_zero, C_ZERO), (comp_tool, C_TOOL)):
         ordered = np.sort(values)
         ecdf = np.arange(1, ordered.size + 1) / ordered.size
         ax.step(ordered, ecdf, where="post", color=color)
     p50_zero = p50_pooled(comp_zero)
     p50_tool = p50_pooled(comp_tool)
     p50_all = p50_pooled(comp_all)
-    ax.annotate(
-        f"zero-tool\np50={p50_zero:.0f}",
-        xy=(p50_zero, 0.5),
-        xytext=(0.02, 0.69),
-        textcoords="axes fraction",
-        fontsize=10,
+    # Plain colour-matched line tags; the takeaway itself is one framed
+    # callout instead of two separate p50 labels.
+    ax.text(0.02, 0.80, "zero-tool", transform=ax.transAxes,
+            fontsize=9, color=C_ZERO, ha="left", va="bottom")
+    ax.text(0.97, 0.50, "tool-\nbearing", transform=ax.transAxes,
+            fontsize=9, color=C_TOOL, ha="right", va="bottom",
+            linespacing=1.0)
+    for p50, color in ((p50_zero, C_ZERO), (p50_tool, C_TOOL)):
+        ax.plot(p50, 0.5, marker="o", markersize=3.4,
+                markerfacecolor="white", markeredgecolor=color,
+                markeredgewidth=1.0, linestyle="none", zorder=4)
+    ax.text(
+        0.97,
+        0.155,
+        f"p50:\n{p50_zero:.0f} vs {p50_tool:.0f}",
+        transform=ax.transAxes,
+        fontsize=9,
         color=C_NOTE,
-        arrowprops={"arrowstyle": "-", "color": C_ZERO, "linewidth": 0.7},
-    )
-    ax.annotate(
-        f"tool-bearing\np50={p50_tool:.0f}",
-        xy=(p50_tool, 0.5),
-        xytext=(0.74, 0.37),
-        textcoords="axes fraction",
-        fontsize=10,
-        color=C_TOOL,
-        arrowprops={"arrowstyle": "-", "color": C_TOOL, "linewidth": 0.7},
+        ha="right",
+        va="bottom",
+        bbox=dict(FRAME),
     )
     ax.axvline(p50_all, ymax=0.80, color=C_NOTE, linestyle=":", linewidth=0.8)
     ax.text(
         p50_all * 0.93,
         0.905,
         f"pooled\np50={p50_all:.0f}",
-        fontsize=10,
+        fontsize=8,
         color=C_NOTE,
         ha="right",
         va="center",
@@ -236,7 +310,7 @@ def main() -> None:
         comp_tool.max() * 1.30,
         0.045,
         f"max={comp_tool.max():.0f}",
-        fontsize=10,
+        fontsize=8,
         color=C_NOTE,
         ha="right",
         va="bottom",
@@ -249,7 +323,7 @@ def main() -> None:
     set_log_axis_plain(ax, "x", log_ticks)
     ax.set_xlabel("Completion length (tokens)")
     ax.set_ylabel("ECDF")
-    ax.set_title("(d) Completion length, split by kind", loc="left")
+    header_strip(ax, "(d) Completion length")
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 

@@ -64,13 +64,14 @@ POLICY_LABEL = {
 
 mpl.rcParams.update(
     {
-        # Serif matching the IEEEtran body (Times). A figure set in a
-        # different family than the page it sits on reads as pasted-in; this
-        # is the single setting SciencePlots' ieee style is built around.
-        "font.family": "serif",
-        "font.serif": ["Times New Roman", "Nimbus Roman", "Times",
-                       "STIXGeneral", "DejaVu Serif"],
-        "mathtext.fontset": "stix",
+        # Compact sans inside the artwork, serif on the page: the convention
+        # of the accelerator-paper figure style (EXION/HPCA) this set is
+        # benchmarked against. Sans survives small sizes and dense panels
+        # better than Times does.
+        "font.family": "sans-serif",
+        "font.sans-serif": ["Helvetica", "Arial", "Liberation Sans",
+                            "DejaVu Sans"],
+        "mathtext.fontset": "dejavusans",
         "font.size": 10.0,
         "axes.labelsize": 10.0,
         "axes.titlesize": 10.0,

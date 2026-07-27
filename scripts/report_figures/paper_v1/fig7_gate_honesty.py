@@ -75,6 +75,36 @@ def live_capture_counts() -> tuple[dict[str, int], int]:
     return counts, zero_tool
 
 
+def _header_strip(ax, text: str) -> None:
+    """Framed light-gray title band spanning the panel top, bold text at left."""
+    ax.add_patch(
+        plt.Rectangle(
+            (0.0, 1.03),
+            1.0,
+            0.095,
+            transform=ax.transAxes,
+            facecolor="#f2f2f2",
+            edgecolor="#888888",
+            linewidth=0.6,
+            clip_on=False,
+            zorder=5,
+        )
+    )
+    ax.text(
+        0.015,
+        1.0775,
+        text,
+        transform=ax.transAxes,
+        fontsize=9,
+        fontweight="bold",
+        ha="left",
+        va="center",
+        zorder=6,
+    )
+    # A blank real title makes constrained layout reserve room for the strip.
+    ax.set_title(" ", pad=16)
+
+
 def _contiguous_label(items: list[str], order: list[str]) -> str:
     indices = [order.index(item) for item in items]
     if len(items) > 2 and indices == list(range(indices[0], indices[-1] + 1)):
@@ -92,7 +122,7 @@ def main() -> None:
     fig, (ax, ax_bar) = plt.subplots(
         1,
         2,
-        figsize=(IEEE_DOUBLE_WIDTH, 3.3),
+        figsize=(IEEE_DOUBLE_WIDTH, 3.7),
         gridspec_kw={"width_ratios": [1.15, 1.0]},
         constrained_layout=True,
     )
@@ -133,6 +163,18 @@ def main() -> None:
             linewidth=1.2,
             zorder=3,
         )
+        # Delivered value printed inside the bar at its left edge, clear of
+        # the rule markers that cluster around the top edge at mid-slot.
+        ax.text(
+            index - 0.38,
+            value - 0.048,
+            f"{value:.2f}",
+            fontsize=8,
+            color=OKABE_ITO["dark_gray"],
+            ha="left",
+            va="top",
+            zorder=4,
+        )
 
     offsets = np.linspace(-0.22, 0.22, len(RULES))
     for offset, (key, label, color, marker) in zip(offsets, RULES):
@@ -161,7 +203,7 @@ def main() -> None:
         -0.45,
         0.975,
         "shaded: claimed $>$ delivered",
-        fontsize=10,
+        fontsize=9,
         color=OKABE_ITO["vermillion"],
         ha="left",
         va="top",
@@ -177,7 +219,7 @@ def main() -> None:
             "Rule C\nabstains",
             xy=(anchor + offsets[RULE_C], 0.0),
             xytext=(anchor - 0.38, 0.19),
-            fontsize=10,
+            fontsize=9,
             color=OKABE_ITO["blue"],
             ha="left",
             va="bottom",
@@ -197,13 +239,37 @@ def main() -> None:
     # coverage row instead (test n, runtime outcome, live-traffic note).
     ax.set_xlabel(" \n \n \n ")  # reserves layout space for the coverage row below
     ax.set_ylabel("Confidence / realized $\\tau_b$")
-    ax.set_title("(a) Claimed vs delivered per Cold-Start stratum", loc="left")
+    _header_strip(ax, "(a) Claimed vs delivered per stratum")
 
     # --- coverage row: test n, runtime outcome, live-traffic marking ---------
     table = {row["stratum"]: row for row in payload["reliability_table"]}
     exercised = [stratum for stratum in strata if live_counts.get(stratum)]
     unexercised = [stratum for stratum in strata if stratum not in exercised]
     xaxis_tf = ax.get_xaxis_transform()
+    # Thin rule above the mini-table so it reads as a table, not stray text.
+    ax.plot(
+        [-0.58, len(strata) - 0.42],
+        [-0.085, -0.085],
+        transform=xaxis_tf,
+        color="#888888",
+        linewidth=0.6,
+        clip_on=False,
+        solid_capstyle="butt",
+    )
+    # Right-aligned just outside the panel edge: below the axis nothing else
+    # occupies that margin, and S1's column entry stays clear.
+    ax.text(
+        -0.66,
+        -0.215,
+        "outcome",
+        transform=xaxis_tf,
+        ha="right",
+        va="top",
+        fontsize=8,
+        fontweight="bold",
+        color=OKABE_ITO["black"],
+        clip_on=False,
+    )
     for index, stratum in enumerate(strata):
         row = table[stratum]
         assigned = float(row["assigned_confidence"])
@@ -222,7 +288,7 @@ def main() -> None:
             transform=xaxis_tf,
             ha="center",
             va="top",
-            fontsize=10,
+            fontsize=8,
             color=OKABE_ITO["dark_gray"],
             clip_on=False,
         )
@@ -231,12 +297,12 @@ def main() -> None:
                 continue
             ax.text(
                 index,
-                -0.215 - 0.10 * line_index,
+                -0.215 - 0.095 * line_index,
                 line,
                 transform=xaxis_tf,
                 ha="center",
                 va="top",
-                fontsize=10,
+                fontsize=8,
                 color=OKABE_ITO["blue"],
                 fontweight="bold" if is_live else "normal",
                 style="italic" if is_abstain else "normal",
@@ -268,13 +334,12 @@ def main() -> None:
         transform=xaxis_tf,
         ha="left",
         va="top",
-        fontsize=10,
+        fontsize=8,
         color=OKABE_ITO["black"],
         clip_on=False,
     )
-    # Legend inside the panel: the bars are uniform grey fill whose only
-    # information is their top edge, so a solid-framed legend can sit on the
-    # S3/S4 bar area without hiding anything a reader needs.
+    # Legend band across the figure top: rule markers plus the delivered-bar
+    # swatch live outside the data region, so no marker or bar is covered.
     from matplotlib.patches import Patch
 
     rule_handles, rule_labels = ax.get_legend_handles_labels()
@@ -283,11 +348,11 @@ def main() -> None:
               linewidth=1.0, label="delivered $\\tau_b$")
     )
     rule_labels.append("delivered $\\tau_b$")
-    ax.legend(rule_handles, rule_labels, title="assigned confidence",
-              title_fontsize=8, loc="lower right", bbox_to_anchor=(1.0, 0.03),
-              fontsize=8, frameon=True, framealpha=1.0,
-              edgecolor=OKABE_ITO["light_gray"], borderpad=0.5,
-              handletextpad=0.5, labelspacing=0.45)
+    legend = fig.legend(rule_handles, rule_labels, loc="outside upper center",
+                        ncol=4, fontsize=8, frameon=True, framealpha=1.0,
+                        facecolor="white", edgecolor="#888888", borderpad=0.5,
+                        handletextpad=0.5, columnspacing=1.4)
+    legend.get_frame().set_linewidth(0.6)
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
@@ -308,7 +373,7 @@ def main() -> None:
             f"{value:+.3f}",
             va="center",
             ha="left",
-            fontsize=10,
+            fontsize=9,
         )
     ax_bar.set_yticks(np.arange(len(names)))
     ax_bar.set_yticklabels(names)
@@ -316,7 +381,9 @@ def main() -> None:
     # Limits track the data: right leaves room for the printed value beside
     # the widest bar, left keeps the small negative bar visible.
     ax_bar.set_xlim(min(0.0, min(worst)) - 0.08 * max(worst), max(worst) * 1.35)
-    ax_bar.set_title("(b) Worst case per rule", loc="left", pad=12)
+    # Headroom above the top bar for the framed never-overstates callout.
+    ax_bar.set_ylim(-0.5, len(names) + 0.05)
+    _header_strip(ax_bar, "(b) Worst case per rule")
     ax_bar.xaxis.grid(True)
     ax_bar.set_axisbelow(True)
     # The annotation is a factual claim about the artifact; a rebuild where
@@ -328,13 +395,17 @@ def main() -> None:
         )
     bar_c = bars[RULE_C]
     ax_bar.annotate(
-        "never overstates\n(this split)",
-        # Target the bar's top edge, not its midline, so the arrow path
-        # clears the value label printed beside the bar.
+        "never overstates (this split)",
+        # Framed callout above the Rule C bar; the arrow targets the bar's
+        # top edge so its path clears the value label beside the bar.
         xy=(worst[RULE_C] / 2, bar_c.get_y() + bar_c.get_height()),
-        xytext=(0.19, RULE_C + 0.30),
-        fontsize=10,
+        xytext=(0.10, RULE_C + 0.62),
+        fontsize=9,
         color=OKABE_ITO["blue"],
+        ha="left",
+        va="center",
+        bbox=dict(boxstyle="square,pad=0.25", facecolor="white",
+                  edgecolor="#888888", linewidth=0.6),
         arrowprops={"arrowstyle": "->", "color": OKABE_ITO["blue"], "linewidth": 0.8},
     )
 

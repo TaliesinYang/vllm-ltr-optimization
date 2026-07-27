@@ -56,7 +56,8 @@ def main() -> None:
     results = payload["results"]
     record = payload["baseline_of_record"]["model"]
 
-    fig, ax = plt.subplots(figsize=(3.4, 1.95), layout="constrained")
+    fig, ax = plt.subplots(figsize=(IEEE_SINGLE_WIDTH, 2.05),
+                           layout="constrained")
 
     # Manual y positions: tight pitch inside a group, a gap between groups.
     ys, cursor = [], 0.0
@@ -67,12 +68,13 @@ def main() -> None:
         cursor += PITCH
     ys = np.asarray(ys)
 
-    highs = []
+    highs, means = [], {}
     for name, row_y in zip(ROWS, ys):
         cell = results[name]["all"]
         mean = float(cell["mean_tau_b"])
         low, high = (float(v) for v in cell["ci95_seed17"])
         highs.append(high)
+        means[name] = mean
         colour = COLOR[KEY[name]]
         is_ours = name == "bert_prompt_schema"
         err = ax.errorbar(
@@ -91,38 +93,58 @@ def main() -> None:
             ax.plot(float(seed_value), row_y + 0.17, marker="|",
                     markersize=3.2, markeredgewidth=0.9, color=colour,
                     alpha=0.7, zorder=2)
+        # Point estimate printed at the whisker end (mean only, never both
+        # CI endpoints: the whisker already draws the interval).
+        ax.text(high + 0.012, row_y, f"{mean:.3f}", ha="left", va="center",
+                fontsize=8, color=OKABE_ITO["black"], zorder=4)
 
     baseline = float(results[record]["all"]["mean_tau_b"])
     proposed = float(results["bert_prompt_schema"]["all"]["mean_tau_b"])
 
-    # Reference line at the tuned-baseline mean, labelled once at the top edge.
+    # Reference line at the tuned-baseline mean, labelled once at the top edge
+    # (inside the axes so the legend band above stays clear of it).
     ax.axvline(baseline, color=OKABE_ITO["gray"], linewidth=0.7,
                linestyle=(0, (4, 3)), zorder=1)
-    ax.text(baseline, 1.02, "tuned LightGBM grid", ha="center", va="bottom",
-            fontsize=10, color=OKABE_ITO["dark_gray"],
-            transform=ax.get_xaxis_transform())
+    ax.text(baseline + 0.008, -0.44, "tuned LightGBM grid", ha="left",
+            va="center", fontsize=9, color=OKABE_ITO["dark_gray"])
 
-    # Headline delta in the right margin, bracket spanning ours -> tuned
-    # baseline (the two rows the number compares).
-    x_br = max(highs) + 0.025
-    y_top, y_base = ys[0], ys[ROWS.index(record)]
+    # Two effect callouts in the right margin, framed EXION-style. The inner
+    # bracket spans the two BERT rows (schema-text ablation); the outer
+    # bracket spans ours -> tuned baseline of record. Each bracket carries a
+    # midpoint leader into its framed box so ownership stays unambiguous.
+    FRAME = dict(boxstyle="square,pad=0.25", facecolor="#f2f2f2",
+                 edgecolor="#888888", linewidth=0.6)
+    x1 = max(highs) + 0.092          # clears the 8pt point-estimate labels
+    x2 = x1 + 0.034
+    x_text = x2 + 0.016
     tick = 0.012
-    ax.plot([x_br, x_br], [y_top, y_base], color=OKABE_ITO["black"],
-            linewidth=0.8, solid_capstyle="butt", clip_on=False, zorder=3)
-    for row_y in (y_top, y_base):
-        ax.plot([x_br - tick, x_br], [row_y, row_y], color=OKABE_ITO["black"],
+
+    def bracket(x_line, y_a, y_b, y_leader, text):
+        ax.plot([x_line, x_line], [y_a, y_b], color=OKABE_ITO["black"],
                 linewidth=0.8, solid_capstyle="butt", clip_on=False, zorder=3)
-    ax.text(x_br + 0.016, (y_top + y_base) / 2,
-            f"$\\Delta\\tau_b$\n$+{proposed - baseline:.2f}$",
-            ha="left", va="center", fontsize=10, color=OKABE_ITO["black"],
-            linespacing=1.25)
+        for row_y in (y_a, y_b):
+            ax.plot([x_line - tick, x_line], [row_y, row_y],
+                    color=OKABE_ITO["black"], linewidth=0.8,
+                    solid_capstyle="butt", clip_on=False, zorder=3)
+        ax.plot([x_line, x_text - 0.006], [y_leader, y_leader],
+                color=OKABE_ITO["black"], linewidth=0.6, clip_on=False,
+                zorder=3)
+        ax.text(x_text, y_leader, text, ha="left", va="center", fontsize=8,
+                color=OKABE_ITO["black"], linespacing=1.3, bbox=FRAME,
+                zorder=5)
+
+    schema_delta = proposed - means["bert_prompt_only"]
+    bracket(x1, ys[0], ys[1], (ys[0] + ys[1]) / 2,
+            f"schema text\n$+{schema_delta:.3f}$")
+    bracket(x2, ys[0], ys[ROWS.index(record)], 1.42,
+            f"$+{proposed - baseline:.3f}$ vs\ntuned scalar")
 
     # Row labels left-aligned on a common edge; no y tick marks.
     ax.set_yticks(ys)
     ax.set_yticklabels([LABEL[name] for name in ROWS])
     for label in ax.get_yticklabels():
         label.set_ha("left")
-    ax.set_ylim(ys[-1] + 0.45, -0.45)
+    ax.set_ylim(ys[-1] + 0.45, -0.62)
     # Left-align row labels on a common edge: pad derives from the widest
     # label's rendered extent instead of a hand-tuned constant.
     fig.canvas.draw()
@@ -132,21 +154,28 @@ def main() -> None:
 
     n_test = int(payload["split_sizes"]["test"])
     ax.set_xlabel(f"Kendall $\\tau_b$ (test split, $n{{=}}{n_test}$)")
-    ax.set_xlim(0.35, x_br + 0.118)
+    ax.set_xlim(0.35, 1.0)
     ax.set_xticks([0.4, 0.5, 0.6, 0.7])
+    # The measured axis ends at the last tick; everything to its right is
+    # annotation margin, so the spine stops there instead of underlining it.
+    ax.spines["bottom"].set_bounds(0.35, 0.72)
     ax.xaxis.grid(True)
     ax.set_axisbelow(True)
     # The per-seed tick is the one mark a reader cannot decode from the row
-    # labels; the legend names it and the summary mark it hangs under.
+    # labels; the key names it in a boxed band above the axes.
     from matplotlib.lines import Line2D
 
-    ax.legend(handles=[
+    legend = fig.legend(handles=[
         Line2D([], [], marker="o", color=OKABE_ITO["black"], linewidth=1.1,
                markersize=5.0, label="mean $\\pm$ 95% CI"),
         Line2D([], [], marker="|", linestyle="none", color=OKABE_ITO["black"],
                markersize=4.0, markeredgewidth=0.9, label="per-seed $\\tau_b$"),
-    ], loc="lower right", fontsize=8, frameon=False, handletextpad=0.4,
-        labelspacing=0.4, borderaxespad=0.3)
+    ], loc="outside upper center", ncols=2, fontsize=8, frameon=True,
+        handletextpad=0.4, columnspacing=1.4, handlelength=1.6,
+        borderaxespad=0.15)
+    legend.get_frame().set_facecolor("#f2f2f2")
+    legend.get_frame().set_edgecolor("#888888")
+    legend.get_frame().set_linewidth(0.6)
 
     save(fig, "ranking.pdf")
     record_provenance("ranking.pdf", [T1])
