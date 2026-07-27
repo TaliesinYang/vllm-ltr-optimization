@@ -1,0 +1,14 @@
+{
+  "schema_version": "slo-preregistration-v1",
+  "metric": "SLO-qualified goodput",
+  "definition": "requests per second returning 2xx with TTLT <= slo_ttlt_ms; 429 and 503 count as offered-and-failed with zero useful completion, never as zero-latency samples",
+  "slo_ttlt_ms": 16600,
+  "basis": "p95 TTLT of stock FCFS in the saturated round-A run, rounded to 100 ms. Chosen because it is the latency a user already absorbs with no optimisation in place, and because it is fixed from data collected before any overload arm ran.",
+  "stock_fcfs_round_a": {
+    "n": 6224,
+    "p50_ms": 2241.9,
+    "p95_ms": 16633.4,
+    "p99_ms": 30787.3
+  },
+  "frozen_before": "the overload arm (C') and any 15 ms contract arm (B)"
+}
