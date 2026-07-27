@@ -1,0 +1,12 @@
+{
+  "schema_version": "queue-depth-v1",
+  "source": "order.jsonl of each round-A policy arm on the box (LTR_ORDER_LOG)",
+  "measured": "2026-07-27, after the critique that stock-calibrated arrival may leave the faster policy base without a queue",
+  "arms": {
+    "PolicyFCFS":      {"events": 76743, "p50": 0, "p90": 0, "p99": 1, "max": 27, "mean": 0.13, "ge2_pct": 0.8},
+    "PromptLengthSJF": {"events": 77245, "p50": 0, "p90": 0, "p99": 1, "max": 18, "mean": 0.11, "ge2_pct": 0.8},
+    "PureLTR":         {"events": 77249, "p50": 0, "p90": 0, "p99": 1, "max": 38, "mean": 0.17, "ge2_pct": 0.8},
+    "GatedRuleC":      {"events": 77236, "p50": 0, "p90": 0, "p99": 1, "max": 37, "mean": 0.16, "ge2_pct": 0.8}
+  },
+  "reading": "The arrival rate was calibrated to 90% of the stock scheduler's saturation. The policy base drains 44% faster, so at that rate its waiting queue is empty at the 90th percentile and holds two or more requests in under 1% of scheduling steps. The ordering null and the implementation gap are one phenomenon: the faster base erased the queue that ordering would have acted on. TTLT for policy arms (mean 2.7 s against ~0.1 s service) accrues in continuous-batch decode contention, not in the waiting queue."
+}
