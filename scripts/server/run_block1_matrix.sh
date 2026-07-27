@@ -42,6 +42,12 @@ BLOCK1_CLASSES=(
   scheduler_benchmark.vllm_scheduler.GatedRuleCScheduler
 )
 
+# A configuration probe does not need the full matrix: measuring whether a
+# 15 ms budget is ever met needs one policy, not six.
+if [[ -n "${BLOCK1_ONLY_CLASS:-}" ]]; then
+  BLOCK1_CLASSES=("$BLOCK1_ONLY_CLASS")
+fi
+
 for value in "$ROUND_A_REPEATS" "$ROUND_B_REPEATS" "$SENTINEL_REPEATS" "$SENTINEL_ROWS"; do
   [[ "$value" =~ ^[1-9][0-9]*$ ]] || {
     echo "repeat/row counts must be positive integers" >&2
@@ -106,8 +112,12 @@ run_round() {
 
 run_sentinel 1
 run_round a "$ROUND_A_REPEATS" "$RUN_ROOT/matrix"
-run_sentinel 2
-run_round b "$ROUND_B_REPEATS" "$RUN_ROOT/matrix-round-b"
+if [[ "${SKIP_ROUND_B:-0}" == "1" ]]; then
+  echo ">> SKIP_ROUND_B=1: replication round omitted"
+else
+  run_sentinel 2
+  run_round b "$ROUND_B_REPEATS" "$RUN_ROOT/matrix-round-b"
+fi
 run_sentinel 3
 
 # Parity is a RECORDED finding, not a gate: a marginal tail delta must not

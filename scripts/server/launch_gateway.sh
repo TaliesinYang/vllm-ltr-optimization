@@ -49,7 +49,13 @@ OPENAI_PRIMARY_API_KEY="${OPENAI_PRIMARY_API_KEY:-unused}" \
 OPENAI_PRIMARY_MODELS="qwen3.5-9b" \
 OPENAI_PRIMARY_DEFAULT_MODEL="qwen3.5-9b" \
 LTR_DECISION_ENDPOINT="${LTR_DECISION_ENDPOINT-http://127.0.0.1:$DECISION_PORT}" \
-LTR_DECISION_TIMEOUT_MS="$timeout_ms" \
+LTR_DECISION_TIMEOUT_MS="${LTR_DECISION_TIMEOUT_MS_OVERRIDE:-$timeout_ms}" \
+SCHEDULER_ENABLED="${SCHEDULER_ENABLED:-false}" \
+SCHEDULER_TIMEOUT="${SCHEDULER_TIMEOUT:-15ms}" \
+SCHEDULER_SCORER_MAX_CONCURRENCY="${SCHEDULER_SCORER_MAX_CONCURRENCY:-4}" \
+SCHEDULER_SCORER_SLOW_THRESHOLD="${SCHEDULER_SCORER_SLOW_THRESHOLD:-15ms}" \
+SCHEDULER_EXECUTOR_CONCURRENCY="${SCHEDULER_EXECUTOR_CONCURRENCY:-64}" \
+SCHEDULER_QUEUE_BACKEND="${SCHEDULER_QUEUE_BACKEND:-memory}" \
   nohup "$GATEWAY_BIN" >"$LOGFILE" 2>&1 &
 pid=$!
 printf '%s\n' "$pid" >"$PIDFILE"
@@ -63,7 +69,7 @@ fi
 for _ in $(seq 1 60); do
   if curl -fsS "http://127.0.0.1:$GATEWAY_PORT/healthz" >/dev/null; then
     trap - INT TERM
-    echo "gateway ready pid=$pid timeout_ms=$timeout_ms"
+    echo "gateway ready pid=$pid decision_timeout_ms=${LTR_DECISION_TIMEOUT_MS_OVERRIDE:-$timeout_ms} scheduler=${SCHEDULER_ENABLED:-false} executor_conc=${SCHEDULER_EXECUTOR_CONCURRENCY:-64}"
     exit 0
   fi
   if ! kill -0 "$pid" 2>/dev/null; then
