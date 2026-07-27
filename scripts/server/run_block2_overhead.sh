@@ -149,6 +149,7 @@ start_decision() {
     --quantile-manifest "$QUANTILE_MANIFEST"
     --reliability-threshold "$RELIABILITY_THRESHOLD"
   )
+  export LTR_DECISION_TORCH_THREADS=2   # 7/19 trap: thread oversubscription
   case "$mode" in
     stub) args+=(--predictor stub) ;;
     cpu_nogate)
@@ -169,12 +170,12 @@ start_gateway() {
   local with_decision="$1"
   local log="$RUN_ROOT/logs/gateway-$with_decision.log"
   if [[ "$with_decision" == "yes" ]]; then
-    LTR_DECISION_ENDPOINT="http://127.0.0.1:9200/v1/decision" \
+    LTR_DECISION_ENDPOINT="http://127.0.0.1:9200" \
       "$REPO_ROOT/scripts/server/launch_gateway.sh" >"$log" 2>&1 &
   else
     # G0 isolates pure gateway proxying: the gateway must not consult any
     # decision service, so the endpoint is unset rather than pointed at a stub.
-    env -u LTR_DECISION_ENDPOINT \
+    LTR_DECISION_ENDPOINT="" \
       "$REPO_ROOT/scripts/server/launch_gateway.sh" >"$log" 2>&1 &
   fi
   GATEWAY_PID=$!
