@@ -367,7 +367,8 @@ run_policy() {
   output="$output_dir/$policy.json"
   manifest="$RUN_ROOT/manifests/$run_id.json"
   if policy_output_complete "$output" "$scheduler" "$runner_profile" "$repeats" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"; then
-    require_completed_evidence "$manifest" "$scheduler" "$runner_profile" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"
+    # The runner OUTPUT records the enum profile; the MANIFEST records the label.
+    require_completed_evidence "$manifest" "$scheduler" "$profile" "$workload" "$capacity_rps" "$MODEL" "$VLLM_VERSION"
     echo "resume: complete policy with archived evidence, skipping launch: $run_id"
     return 0
   fi
