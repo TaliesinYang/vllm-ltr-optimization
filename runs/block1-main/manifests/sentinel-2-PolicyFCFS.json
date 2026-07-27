@@ -28,6 +28,6 @@
     "block1-main-sentinel-2-PolicyFCFS-attempt-1785134029730521322"
   ],
   "vllm_attempt_status": {
-    "block1-main-sentinel-2-PolicyFCFS-attempt-1785134029730521322": "pending"
+    "block1-main-sentinel-2-PolicyFCFS-attempt-1785134029730521322": "complete"
   }
 }

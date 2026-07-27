@@ -1,0 +1,2 @@
+Loading weights:   0%|          | 0/201 [00:00<?, ?it/s]Loading weights: 100%|██████████| 201/201 [00:00<00:00, 2550.89it/s]
+[predictor] device=cuda fp16=True batch_max=8 batch_window_ms=3.0

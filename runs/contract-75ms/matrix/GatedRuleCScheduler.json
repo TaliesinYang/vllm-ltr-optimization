@@ -1,0 +1,286 @@
+{
+  "schema_version": 2,
+  "valid": true,
+  "request_path": "client->gateway->decision->vllm",
+  "gateway_endpoint": "http://127.0.0.1:9100/v1/chat/completions",
+  "policy": "gated_rule_c",
+  "scheduler_cls": "scheduler_benchmark.vllm_scheduler.GatedRuleCScheduler",
+  "model": "qwen3.5-9b",
+  "capacity_rps": 4.4,
+  "workload_sha256": "c332e3ceb3646e081c3da6110eacec5c3559dc72d333a39b84c7dd456f97e853",
+  "seed_derivation": "sha256(profile,load_pct,repeat)",
+  "vllm_version": "0.24.0",
+  "repeats": 1,
+  "profiles": [
+    "mixed"
+  ],
+  "warmup_requested": {
+    "count": null,
+    "ratio": null
+  },
+  "runs_dir": "/hy-tmp/ltr/runs/contract-75ms/matrix/GatedRuleCScheduler.runs",
+  "scenarios": [
+    {
+      "scenario": {
+        "name": "saturation-90",
+        "saturation": 0.9,
+        "burst_multiplier": 1.0,
+        "burst_fraction": 0.0
+      },
+      "load_pct": 90,
+      "profile": "mixed",
+      "runs": [
+        {
+          "schema_version": 2,
+          "workload_sha256": "c332e3ceb3646e081c3da6110eacec5c3559dc72d333a39b84c7dd456f97e853",
+          "policy": "gated_rule_c",
+          "scheduler_cls": "scheduler_benchmark.vllm_scheduler.GatedRuleCScheduler",
+          "model": "qwen3.5-9b",
+          "capacity_rps": 4.4,
+          "scenario": {
+            "name": "saturation-90",
+            "saturation": 0.9,
+            "burst_multiplier": 1.0,
+            "burst_fraction": 0.0
+          },
+          "load_pct": 90,
+          "profile": "mixed",
+          "repeat": 1,
+          "seed": 1181659974,
+          "warmup": {
+            "requested": {
+              "count": null,
+              "ratio": null
+            },
+            "resolved": 0,
+            "measured": 2075,
+            "discarded": 0
+          },
+          "status": "complete",
+          "completed": 2075,
+          "errors": 0,
+          "started_at_unix_s": 1785170361.889569,
+          "completed_at_unix_s": 1785170937.3742838,
+          "wall_time_s": 575.4846626319923,
+          "measurement_wall_time_s": 575.309024810791,
+          "metrics": {
+            "completed": 2075,
+            "errors": 0,
+            "mean_ttlt_ms": 2712.412879,
+            "p95_ttlt_ms": 8664.192836,
+            "p99_ttlt_ms": 23618.064931,
+            "mean_normalized_slowdown": 80.404347,
+            "p95_normalized_slowdown": 279.986779,
+            "p99_normalized_slowdown": 1055.3815,
+            "mean_ttft_ms": 539.818714,
+            "p95_ttft_ms": 569.738836,
+            "p99_ttft_ms": 12819.913031,
+            "mean_send_ttlt_ms": 2711.647316,
+            "p95_send_ttlt_ms": 8663.61451,
+            "p99_send_ttlt_ms": 23617.020309,
+            "mean_send_ttft_ms": 539.053152,
+            "p95_send_ttft_ms": 569.155157,
+            "p99_send_ttft_ms": 12818.867038,
+            "mean_dispatch_lag_ms": 0.765563,
+            "p95_dispatch_lag_ms": 1.730285,
+            "p99_dispatch_lag_ms": 2.076619,
+            "throughput_rps": 3.606757,
+            "output_tokens_per_s": 350.442964
+          },
+          "fingerprint": "c68bdbfd22e895b6f494c89ded759224f49b41ee42259caa1a46b205991d71ff"
+        }
+      ],
+      "aggregate": {
+        "repeats": 1,
+        "metrics": {
+          "completed": {
+            "values": [
+              2075.0
+            ],
+            "mean": 2075.0,
+            "min": 2075.0,
+            "max": 2075.0
+          },
+          "errors": {
+            "values": [
+              0.0
+            ],
+            "mean": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          },
+          "mean_ttlt_ms": {
+            "values": [
+              2712.412879
+            ],
+            "mean": 2712.412879,
+            "min": 2712.412879,
+            "max": 2712.412879
+          },
+          "p95_ttlt_ms": {
+            "values": [
+              8664.192836
+            ],
+            "mean": 8664.192836,
+            "min": 8664.192836,
+            "max": 8664.192836
+          },
+          "p99_ttlt_ms": {
+            "values": [
+              23618.064931
+            ],
+            "mean": 23618.064931,
+            "min": 23618.064931,
+            "max": 23618.064931
+          },
+          "mean_normalized_slowdown": {
+            "values": [
+              80.404347
+            ],
+            "mean": 80.404347,
+            "min": 80.404347,
+            "max": 80.404347
+          },
+          "p95_normalized_slowdown": {
+            "values": [
+              279.986779
+            ],
+            "mean": 279.986779,
+            "min": 279.986779,
+            "max": 279.986779
+          },
+          "p99_normalized_slowdown": {
+            "values": [
+              1055.3815
+            ],
+            "mean": 1055.3815,
+            "min": 1055.3815,
+            "max": 1055.3815
+          },
+          "mean_ttft_ms": {
+            "values": [
+              539.818714
+            ],
+            "mean": 539.818714,
+            "min": 539.818714,
+            "max": 539.818714
+          },
+          "p95_ttft_ms": {
+            "values": [
+              569.738836
+            ],
+            "mean": 569.738836,
+            "min": 569.738836,
+            "max": 569.738836
+          },
+          "p99_ttft_ms": {
+            "values": [
+              12819.913031
+            ],
+            "mean": 12819.913031,
+            "min": 12819.913031,
+            "max": 12819.913031
+          },
+          "mean_send_ttlt_ms": {
+            "values": [
+              2711.647316
+            ],
+            "mean": 2711.647316,
+            "min": 2711.647316,
+            "max": 2711.647316
+          },
+          "p95_send_ttlt_ms": {
+            "values": [
+              8663.61451
+            ],
+            "mean": 8663.61451,
+            "min": 8663.61451,
+            "max": 8663.61451
+          },
+          "p99_send_ttlt_ms": {
+            "values": [
+              23617.020309
+            ],
+            "mean": 23617.020309,
+            "min": 23617.020309,
+            "max": 23617.020309
+          },
+          "mean_send_ttft_ms": {
+            "values": [
+              539.053152
+            ],
+            "mean": 539.053152,
+            "min": 539.053152,
+            "max": 539.053152
+          },
+          "p95_send_ttft_ms": {
+            "values": [
+              569.155157
+            ],
+            "mean": 569.155157,
+            "min": 569.155157,
+            "max": 569.155157
+          },
+          "p99_send_ttft_ms": {
+            "values": [
+              12818.867038
+            ],
+            "mean": 12818.867038,
+            "min": 12818.867038,
+            "max": 12818.867038
+          },
+          "mean_dispatch_lag_ms": {
+            "values": [
+              0.765563
+            ],
+            "mean": 0.765563,
+            "min": 0.765563,
+            "max": 0.765563
+          },
+          "p95_dispatch_lag_ms": {
+            "values": [
+              1.730285
+            ],
+            "mean": 1.730285,
+            "min": 1.730285,
+            "max": 1.730285
+          },
+          "p99_dispatch_lag_ms": {
+            "values": [
+              2.076619
+            ],
+            "mean": 2.076619,
+            "min": 2.076619,
+            "max": 2.076619
+          },
+          "throughput_rps": {
+            "values": [
+              3.606757
+            ],
+            "mean": 3.606757,
+            "min": 3.606757,
+            "max": 3.606757
+          },
+          "output_tokens_per_s": {
+            "values": [
+              350.442964
+            ],
+            "mean": 350.442964,
+            "min": 350.442964,
+            "max": 350.442964
+          }
+        }
+      },
+      "completeness": {
+        "valid": true,
+        "expected_requests_per_repeat": 2075,
+        "completed_per_repeat": [
+          2075
+        ],
+        "errors_per_repeat": [
+          0
+        ]
+      }
+    }
+  ]
+}

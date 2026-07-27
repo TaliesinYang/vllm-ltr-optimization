@@ -1,0 +1,89 @@
+{
+  "source": "E6 capped-batch round, 2026-07-27: VLLM_MAX_NUM_SEQS=16, offered 6.4 rps, one cold launch per arm, prefix caching on, decision timeout unconstrained; everything else held to the main matrix",
+  "why": "Little's law on the earlier rounds put 11-19 requests in flight against a 256-slot running batch, so no affordable arrival rate could produce contention. Capping the batch at 16 creates it by construction.",
+  "manipulation_check": {
+    "PolicyFCFS": {
+      "depth_ge2_at_entry_pct": 58.9,
+      "queue_p90": 10,
+      "queue_max": 21,
+      "carryover_steps": 6259,
+      "reorder_events": 0
+    },
+    "PromptLengthSJFScheduler": {
+      "depth_ge2_at_entry_pct": 63.6,
+      "queue_p90": 14,
+      "queue_max": 26,
+      "carryover_steps": 7121,
+      "reorder_events": 6607
+    },
+    "PureLTRScheduler": {
+      "depth_ge2_at_entry_pct": 57.5,
+      "queue_p90": 8,
+      "queue_max": 17,
+      "carryover_steps": 5914,
+      "reorder_events": 1817
+    },
+    "GatedRuleCScheduler": {
+      "depth_ge2_at_entry_pct": 62.7,
+      "queue_p90": 12,
+      "queue_max": 22,
+      "carryover_steps": 7011,
+      "reorder_events": 2566
+    }
+  },
+  "pooled_mean_ttlt_s": {
+    "PolicyFCFS": 2.92,
+    "PromptLengthSJF": 3.169,
+    "PureLTR": 2.797,
+    "GatedRuleC": 3.062
+  },
+  "comparisons": {
+    "PureLTR/PolicyFCFS": {
+      "ratio": 0.958,
+      "ci": [
+        0.9437,
+        0.9721
+      ],
+      "role": "signal",
+      "verdict": "learned ordering beats arrival order"
+    },
+    "GatedRuleC/PromptLengthSJF": {
+      "ratio": 0.9663,
+      "ci": [
+        0.9348,
+        0.9978
+      ],
+      "role": "primary",
+      "verdict": "pre-registered superiority test passes"
+    },
+    "PromptLengthSJF/PolicyFCFS": {
+      "ratio": 1.0854,
+      "ci": [
+        1.0513,
+        1.1224
+      ],
+      "role": "heuristic",
+      "verdict": "prompt length is worse than arrival order"
+    },
+    "GatedRuleC/PolicyFCFS": {
+      "ratio": 1.0488,
+      "ci": [
+        1.0325,
+        1.0653
+      ],
+      "role": "safety",
+      "verdict": "outside the 3% margin under contention"
+    },
+    "GatedRuleC/PureLTR": {
+      "ratio": 1.0947,
+      "ci": [
+        1.0787,
+        1.1119
+      ],
+      "role": "gate",
+      "verdict": "the gate costs 9.5% once a queue exists"
+    }
+  },
+  "sessions": 2025,
+  "note": "One cold launch per arm: the intervals resample sessions within that launch and do not carry machine-level replication."
+}

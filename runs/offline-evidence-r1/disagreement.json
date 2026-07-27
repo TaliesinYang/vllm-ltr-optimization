@@ -1,0 +1,37 @@
+{
+  "diagnostic_name": "disagreement-empirical-error diagnostic",
+  "domains": {
+    "id": [
+      {
+        "coverage": 0.25012506253126565,
+        "max_rank_dispersion": 0.027909376439830536,
+        "retained": 1500,
+        "risk": 0.2437879651221676,
+        "tau_b": 0.7562120348778324
+      },
+      {
+        "coverage": 0.5000833750208438,
+        "max_rank_dispersion": 0.04886227386708468,
+        "retained": 2999,
+        "risk": 0.2598980909358004,
+        "tau_b": 0.7401019090641996
+      },
+      {
+        "coverage": 0.7500416875104219,
+        "max_rank_dispersion": 0.0751416846218935,
+        "retained": 4498,
+        "risk": 0.2786706288534433,
+        "tau_b": 0.7213293711465567
+      },
+      {
+        "coverage": 1.0,
+        "max_rank_dispersion": 0.3870942645015069,
+        "retained": 5997,
+        "risk": 0.30891623967537873,
+        "tau_b": 0.6910837603246213
+      }
+    ]
+  },
+  "risk_definition": "1 - Kendall tau-b",
+  "schema_version": "disagreement-diagnostic-v1"
+}

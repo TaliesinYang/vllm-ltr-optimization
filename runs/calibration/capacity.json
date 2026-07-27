@@ -1,0 +1,35 @@
+{
+  "schema_version": "saturation-calibration-v1",
+  "request_count": 120,
+  "load_pct": 90,
+  "threshold": 0.95,
+  "grid": [
+    {
+      "capacity_rps": 2.2,
+      "achieved_rps": 1.925162,
+      "achievement_ratio": 0.9723040404040403
+    },
+    {
+      "capacity_rps": 4.4,
+      "achieved_rps": 3.777144,
+      "achievement_ratio": 0.9538242424242422
+    },
+    {
+      "capacity_rps": 8.8,
+      "achieved_rps": 5.218823,
+      "achievement_ratio": 0.658942297979798
+    },
+    {
+      "capacity_rps": 17.6,
+      "achieved_rps": 5.82249,
+      "achievement_ratio": 0.3675814393939394
+    },
+    {
+      "capacity_rps": 35.2,
+      "achieved_rps": 7.95239,
+      "achievement_ratio": 0.2510224116161616
+    }
+  ],
+  "first_saturated_rps": 8.8,
+  "capacity_rps": 4.4
+}

@@ -1,0 +1,29 @@
+{
+  "checkpoint_sha256": {
+    "17": "9755fd9f510dd39e85f2dfd8aefb0b6fc76725cdc43920e42df8304daa6b4740",
+    "42": "49b1df6ca54e71aadb5ace358d35b7f7a5993946ad7ddf0a0d098d74a29af77f",
+    "73": "43367a9123a47e6ffabfe6e6d5c9b5dccf8cb9cdfbcc62884c41249e5ea7b9b2"
+  },
+  "diagnostic_sha256": "1f365a1e5306385849bc156fe2be7048c392defb8edf1e5a11acbe7b3c12ed35",
+  "disagreement_basis": "within-domain percentile-rank population standard deviation",
+  "domains": {
+    "id": {
+      "max_length": 512,
+      "rows": 5997,
+      "truncated_rows": 4817,
+      "truncation_ratio": 0.8032349508087377
+    }
+  },
+  "input_sha256": "5233f0579adbf9ac8b72855130eaf1aecddf8fe2c5d68d1dc7131118c541d1ff",
+  "lengths_sha256": "35aad037de83720c98529ac81c50d186acfd56365770b283c164f7382cc6d0b6",
+  "request_id_mapping": "request_id == sample_id",
+  "row_count": 5997,
+  "schema_version": "offline-ensemble-scores-v1",
+  "scores_sha256": "477fa8108f1f8fa014064331080fba1747762b7d3f5429804594c5ed48878e44",
+  "seeds": [
+    17,
+    42,
+    73
+  ],
+  "status": "done"
+}

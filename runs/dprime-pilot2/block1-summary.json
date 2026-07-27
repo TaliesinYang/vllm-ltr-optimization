@@ -1,0 +1,21 @@
+{
+  "rounds": {
+    "a": {
+      "dir": "matrix",
+      "outputs": [
+        "PolicyFCFS.json"
+      ]
+    },
+    "b": {
+      "dir": "matrix-round-b",
+      "outputs": []
+    }
+  },
+  "run_tag": "dprime-pilot2",
+  "schema_version": "block1-matrix-v1",
+  "sentinels": {
+    "1": "sentinels/1/PolicyFCFS.json",
+    "3": "sentinels/3/PolicyFCFS.json"
+  },
+  "workload": "/hy-tmp/ltr/artifacts/current/workload-block1.jsonl"
+}

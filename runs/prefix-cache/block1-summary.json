@@ -1,0 +1,34 @@
+{
+  "rounds": {
+    "a": {
+      "dir": "matrix",
+      "outputs": [
+        "GatedRuleCScheduler.json",
+        "PolicyFCFS.json",
+        "PromptLengthSJFScheduler.json",
+        "PureLTRScheduler.json",
+        "StockFCFSShim.json",
+        "stock_fcfs.json"
+      ]
+    },
+    "b": {
+      "dir": "matrix-round-b",
+      "outputs": [
+        "GatedRuleCScheduler.json",
+        "PolicyFCFS.json",
+        "PromptLengthSJFScheduler.json",
+        "PureLTRScheduler.json",
+        "StockFCFSShim.json",
+        "stock_fcfs.json"
+      ]
+    }
+  },
+  "run_tag": "prefix-cache",
+  "schema_version": "block1-matrix-v1",
+  "sentinels": {
+    "1": "sentinels/1/PolicyFCFS.json",
+    "2": "sentinels/2/PolicyFCFS.json",
+    "3": "sentinels/3/PolicyFCFS.json"
+  },
+  "workload": "/hy-tmp/ltr/artifacts/current/workload-block1.jsonl"
+}

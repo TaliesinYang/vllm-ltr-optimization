@@ -1,0 +1,60 @@
+{
+  "capacity_rps": 4.4,
+  "completed": 2073,
+  "completed_at_unix_s": 1785134835.2613192,
+  "errors": 2,
+  "fingerprint": "63daeda119fc971264832e3bbad038e21bc9663e9153760d045c1d480a2fd39d",
+  "load_pct": 90,
+  "measurement_wall_time_s": 590.0610659122467,
+  "metrics": {
+    "completed": 2073,
+    "errors": 2,
+    "mean_dispatch_lag_ms": 0.762938,
+    "mean_normalized_slowdown": 136.377283,
+    "mean_send_ttft_ms": 588.955657,
+    "mean_send_ttlt_ms": 4793.636594,
+    "mean_ttft_ms": 589.718595,
+    "mean_ttlt_ms": 4794.399531,
+    "output_tokens_per_s": 336.624481,
+    "p95_dispatch_lag_ms": 1.730358,
+    "p95_normalized_slowdown": 537.516972,
+    "p95_send_ttft_ms": 924.200454,
+    "p95_send_ttlt_ms": 16082.435581,
+    "p95_ttft_ms": 924.75006,
+    "p95_ttlt_ms": 16082.871287,
+    "p99_dispatch_lag_ms": 2.049519,
+    "p99_normalized_slowdown": 1592.350165,
+    "p99_send_ttft_ms": 6662.192661,
+    "p99_send_ttlt_ms": 29696.746811,
+    "p99_ttft_ms": 6662.918858,
+    "p99_ttlt_ms": 29697.292202,
+    "throughput_rps": 3.513196
+  },
+  "model": "qwen3.5-9b",
+  "policy": "fcfs",
+  "profile": "mixed",
+  "repeat": 1,
+  "samples_csv": "63daeda119fc971264832e3bbad038e21bc9663e9153760d045c1d480a2fd39d.samples.csv",
+  "scenario": {
+    "burst_fraction": 0.0,
+    "burst_multiplier": 1.0,
+    "name": "saturation-90",
+    "saturation": 0.9
+  },
+  "scheduler_cls": "scheduler_benchmark.vllm_scheduler.StockFCFSShim",
+  "schema_version": 2,
+  "seed": 1181659974,
+  "started_at_unix_s": 1785134245.025298,
+  "status": "complete",
+  "wall_time_s": 590.2360129419249,
+  "warmup": {
+    "discarded": 0,
+    "measured": 2075,
+    "requested": {
+      "count": null,
+      "ratio": null
+    },
+    "resolved": 0
+  },
+  "workload_sha256": "c332e3ceb3646e081c3da6110eacec5c3559dc72d333a39b84c7dd456f97e853"
+}

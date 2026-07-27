@@ -1,0 +1,24 @@
+{
+  "rounds": {
+    "a": {
+      "dir": "matrix",
+      "outputs": [
+        "GatedRuleCScheduler.json",
+        "PolicyFCFS.json",
+        "PromptLengthSJFScheduler.json",
+        "PureLTRScheduler.json"
+      ]
+    },
+    "b": {
+      "dir": "matrix-round-b",
+      "outputs": []
+    }
+  },
+  "run_tag": "dprime-b1",
+  "schema_version": "block1-matrix-v1",
+  "sentinels": {
+    "1": "sentinels/1/PolicyFCFS.json",
+    "3": "sentinels/3/PolicyFCFS.json"
+  },
+  "workload": "/hy-tmp/ltr/artifacts/current/workload-block1.jsonl"
+}
