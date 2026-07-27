@@ -408,6 +408,17 @@ run_policy() {
   fi
   stop_vllm
   collect_vllm_evidence "$attempt_tag" unique
+  if [[ "$runner_status" != 0 ]] && policy_output_complete "$output" "$scheduler" \
+      "$runner_profile" "$repeats" "$workload" "$capacity_rps" "$MODEL" \
+      "$VLLM_VERSION"; then
+    # The runner exits non-zero on any request error, however transient. When
+    # the output nonetheless satisfies the completeness gate -- which now
+    # carries an explicit, printed error tolerance -- the cell is usable and
+    # the attempt is complete. Marking it failed here is what previously sent
+    # the driver into a resume loop it could never leave.
+    echo "POLICY ACCEPTED WITHIN TOLERANCE: $run_id (runner exit $runner_status)" >&2
+    runner_status=0
+  fi
   if [[ "$runner_status" != 0 ]]; then
     echo "POLICY FAILED: $run_id (runner exit $runner_status) — see $output" >&2
     mark_attempt_status "$manifest" "$attempt_tag" failed
