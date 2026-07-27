@@ -37,6 +37,11 @@ matrix() {  # matrix <run-tag> <round-a-repeats>
   ROUND_A_REPEATS="$2" ROUND_B_REPEATS=1 RUN_TAG="$1" \
   MIXED_WORKLOAD="$WORKLOAD" CHECKPOINT="$CHECKPOINT" \
     bash "$REPO_ROOT/scripts/server/run_block1_matrix.sh"
+  # Counters are collected per arm rather than at the end: a hole found after
+  # the machine is returned cannot be filled, and a flag that silently did not
+  # take looks exactly like a flag that did until someone reads the log.
+  bash "$REPO_ROOT/scripts/server/collect_run_counters.sh" \
+    "$LTR_ROOT/runs/$1" || log "WARNING: counters incomplete for $1"
 }
 
 if [[ ",$ONLY," == *",B,"* ]]; then

@@ -70,6 +70,15 @@ class ResponseSample:
     first_token_at_unix_s: float | None = None
     completed_at_unix_s: float | None = None
     error: str | None = None
+    # A rejected request and a crashed one are different outcomes. Goodput
+    # under backpressure needs the status to tell 429 (shed on purpose) from
+    # 503 (queue full) from a transport failure.
+    http_status: int | None = None
+    # Whether the gateway answered without a usable prediction. Under a 15 ms
+    # contract a 37.9 ms ranker fails open on essentially every request, and an
+    # arm that does not record this reports the pass-through path while
+    # appearing to report the gate.
+    decision_fail_open: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -642,6 +651,7 @@ async def run_replay(
                 first_token_at_unix_s=failed_at_unix_s,
                 completed_at_unix_s=failed_at_unix_s,
                 error=str(exc),
+                http_status=getattr(exc, "status", None),
             )
 
     samples = await asyncio.gather(
