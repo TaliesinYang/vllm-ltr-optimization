@@ -62,9 +62,9 @@ variance, which may leave ordering little room to separate.
 One choice bounded the first three ordering rounds: vLLM's running-batch cap
 sat at its 256-slot default. By Little's law our own
 numbers put mean occupancy at roughly eleven requests in flight at
-3.96\,requests/s and nineteen at 6.4, under a fourteenth of that cap. Mean
+3.96\,requests/s and nineteen at 6.4, under a thirteenth of that cap. Mean
 occupancy does not forbid queueing, and our logs show it did not: bursts put
-12.4\% of requests behind another, but those queues drained within a
+11.9--12.5\% of requests behind another, but those queues drained within a
 scheduling step instead of accumulating. Our calibration targeted completion
 (a 95\% success criterion), not contention. E6 removes that bound and the
 ordering result flips, so every ordering number here is conditional on its

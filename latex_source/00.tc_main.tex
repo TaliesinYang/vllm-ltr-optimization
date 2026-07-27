@@ -44,12 +44,20 @@
 
 \graphicspath{{figs/}}
 
+% Two builds share these section files. The rubric build (00.tc_main_prof)
+% sets this true: it moves the workload plate into Background, which is the
+% one move that fixes both page violations at once -- Background reaches its
+% 1.5 pages and Evaluation drops to its 3 with the minimum six figures.
+\newif\ifrubric
+\rubricfalse
+
 \begin{document}
 
-\title{Group XX: Schema-Aware Output-Length Ranking with an Abstaining
+\title{Group 05: Schema-Aware Output-Length Ranking with an Abstaining
 Reliability Gate for Agentic LLM Serving}
 
-\author{\IEEEauthorblockN{First A.~Author}
+\author{\IEEEauthorblockN{Dazhi Yang, Mingye Lang, Yibo Zhang,
+and Anitha Saravana Kumar}
 \IEEEauthorblockA{Fairleigh Dickinson University}}
 
 \maketitle
@@ -62,7 +70,11 @@ Reliability Gate for Agentic LLM Serving}
 \input{06.evaluation}
 \input{07.discussion}
 \input{08.conclusion}
+% Two rubric lines that cost nothing to honour: "Appendix A ... must be on its
+% own page" and "References ... must start on a new page".
+\clearpage
 \input{09.appendix}
+\clearpage
 
 \bibliographystyle{IEEEtran}
 \bibliography{reference}

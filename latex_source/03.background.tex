@@ -12,10 +12,30 @@ independently lists FIFO-induced head-of-line blocking among live system
 bottlenecks for agentic traffic~\cite{park2026minimizing}, while placing
 learned scheduling in its future-work section --- the gap this paper works in.
 
+\subsection{The Running Batch and the Waiting Queue}
+An engine that batches continuously holds two sets of requests, and only one
+of them is schedulable. The \emph{running batch} is what the GPU steps
+forward on the current iteration; the \emph{waiting queue} holds requests
+that have been admitted but hold no slot yet. vLLM caps the running batch at
+\texttt{max\_num\_seqs}, 256 by default. A scheduler chooses which waiting
+request enters the batch as slots free, so it can only express an ordering
+over requests that are already waiting. When the cap is never reached, every
+arrival enters the batch at once and the queue a policy would reorder never
+forms.
+
+Whether it forms follows from Little's law: the mean number in flight is the
+arrival rate times the mean time each request spends in the system. Serving
+3.96 requests per second at a mean of 2.75\,s holds about eleven at a time,
+and 6.4 per second holds about nineteen in our runs --- neither near 256, and
+no rate we could sustain on one card would be. The cap therefore decides
+whether the scheduling problem this paper studies is present at all, which is
+why Section~\ref{sec:eval} reports two regimes.
+
 \subsection{Learned Output-Length Prediction}
 Shortest-job-style ordering requires knowing output lengths in
 advance. Since generation length is stochastic, a body of work predicts it:
-S\textsuperscript{3} classifies responses into length buckets; the
+early designs classify responses into coarse length buckets or predict
+sequence length with a proxy model~\cite{ssjf2024}; the
 learning-to-rank line~\cite{fuLTR2024} showed that \emph{relative order},
 not absolute length, is what scheduling needs, training a small proxy with a
 ranking loss; PARS~\cite{tao2026ranking} refined this with pairwise margin
@@ -158,19 +178,43 @@ unreliable or slow prediction never blocks the request path.
   \includegraphics[width=\linewidth]{strata.pdf}
   \caption{The four cold-start strata, and which of them the paper is
   allowed to speak for. S1 and S2 hold too few test requests to support a
-  claim, so their Ranking Tau is withheld and the gate routes them to
-  Fallback.}
+  headline claim, so their Ranking Tau is not plotted and the gate routes
+  them to Fallback; both values appear with their sizes in
+  Sec.~\ref{sec:eval}, where they inform the gate's design rather than a
+  claim.}
   \label{fig:strata}
 \end{figure*}
+
+\ifrubric
+Fig.~\ref{fig:workload} characterizes the traffic these mechanisms serve:
+schemas dominate the request bytes, a third of requests carry no tools at
+all, and the two kinds of completion have medians an order of magnitude
+apart, so a single pooled median describes neither.
+
+\begin{figure*}[t]\centering
+  % Source: probes/agent-traces-2026-07-26/MANIFEST.md + schema-variability probe.
+  \includegraphics[width=\linewidth]{workload.pdf}
+  \caption{Captured agent traffic: across the captured tool sets schemas are
+  18--66\% of request bytes, a
+  third of requests carry no tools, and completion medians split 6 versus 58
+  tokens, so the pooled median of 42 describes neither kind.}
+  \label{fig:workload}
+\end{figure*}
+\fi
 
 \subsection{Vocabulary}
 Throughout, the \emph{Ranker} is the fine-tuned BERT model scoring a
 request's expected output length; the \emph{Reliability Gate} is the runtime
 decision of whether that score may influence queue order; \emph{Fallback}
 means serving in arrival order because the gate withheld trust.
-\emph{Ranking Tau} is Kendall's $\tau_b$~\cite{kendall1938} between predicted and true
-output-length order on held-out data. \emph{Cold-Start Transfer} measures
-Ranking Tau on test strata whose tool sets were unseen in training, within
+\emph{Ranking Tau} is Kendall's $\tau_b$~\cite{kendall1938} between the
+predicted and realized output-length order of every held-out pair, running
+from $-1$ through $0$, which is what guessing achieves, to $+1$; it scores
+order rather than token error, and 0.64 corresponds to agreeing on roughly
+four pairs in five. Because it is computed over all held-out pairs while a
+scheduler chooses only among requests waiting together, it is evidence that
+a usable signal exists in the input, not that any latency will improve.
+\emph{Cold-Start Transfer} measures it on test strata whose tool sets were unseen in training, within
 the same workload family: S1 (seen combination), S2 (new combination of seen
 tools), S3 (partially new tools), S4 (all-new tools); Fig.~\ref{fig:strata}
 gives each stratum's size and what the gate does with it. It is distinct from

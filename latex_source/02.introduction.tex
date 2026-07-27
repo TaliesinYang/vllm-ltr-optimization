@@ -1,7 +1,7 @@
 % Outline: Introduction (1 page cap; the ONLY section where bullets are allowed)
 \section{Introduction}
 
-When a coding agent talks to a language model, most of what travels
+When a coding agent talks to a language model, much of what travels
 over the wire is not the user's question. Intercepting a production coding
 agent (OpenCode) with an echo endpoint, we measured a single agent-loop
 request. It declared 170 tools whose JSON schemas occupied 147\,kB, 67\% of
@@ -43,8 +43,9 @@ learned signal can operate within the budget the gateway grants it.
 We argue for two design changes. The request should be read as
 \emph{text}: a ranker that consumes prompt and schema text orders unseen-tool
 requests with little observed $\tau$ difference across the two adequately
-powered unseen-tool strata (equivalence untested), and none of the identity
-or scalar features we tested can rank tools they have never seen. Prediction
+powered unseen-tool strata (equivalence untested), while the identity
+features we tested have nothing to look up there at all and the tuned scalar
+family ranks unseen tools only from well behind it. Prediction
 should also carry its own error bounds: our reliability gate assigns each
 request a confidence measured per cold-start stratum and abstains,
 preserving arrival order, wherever that measurement does not exist.
@@ -60,15 +61,19 @@ This paper contributes:
         and a tool set entirely out of vocabulary relative to the corpus we
         train on;
   \item schema-text ranking: $+0.19$~$\tau$ over a grid-searched scalar
-        baseline, with no drop detected across the two adequately powered
-        unseen-tool strata (equivalence untested),
+        baseline --- a figure that changes both the model and its input, of
+        which $+0.044$ is the schema text alone against the same encoder
+        reading the prompt only --- with no drop detected across the two
+        adequately powered unseen-tool strata (equivalence untested),
         while schema-identity
         baselines gain $+0.008$ (within noise) and \emph{lose} accuracy when
         forced to use the identity feature;
   \item a decision-budget coverage curve: neither un-truncating the schema
         nor caching its encodings makes the CPU scorer fit the documented
-        15\,ms default, under which 34.6\% of decisions silently fail open;
-        a timeout matched to the measured GPU scorer (50--75\,ms) restores
+        15\,ms default, which it misses on essentially every request; even
+        served from the GPU, 34.6\% of traffic still fails open silently at
+        that budget; a timeout matched to the measured GPU scorer
+        (50--75\,ms) restores
         98--100\% coverage, permitting that much decision latency on the
         critical path of a scored request rather than incurring it;
   \item a contention threshold for learned ordering: with the engine's
@@ -79,7 +84,8 @@ This paper contributes:
         at all;
   \item a serving-level attribution: switching the scheduler implementation
         alone moved mean latency 44\% with arrival order held fixed, and
-        prefix caching a further 17--23\%, in both contention regimes;
+        prefix caching a further 17--23\%, both measured at the default
+        batch cap;
   \item an evidence-based abstaining gate: per-stratum confidences derived
         from measured ranking quality replace a hardcoded constant that
         overstates reliability by $+0.25$--$+0.46$ everywhere; the lowest
@@ -90,7 +96,7 @@ This paper contributes:
 We evaluate on tool-calling corpora and on a live gateway stack
 serving Qwen3.5-9B, with pre-registered criteria fixed before each
 measurement. At serving time our pre-registered superiority test fails: no ordering
-policy separates from another by more than 2\%, while swapping the scheduler
+policy separates from another by more than 1.2\%, while swapping the scheduler
 implementation alone cuts mean latency by 44\%. We report this attribution
 result in place of the improvement we expected.
 

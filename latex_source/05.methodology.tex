@@ -33,7 +33,7 @@ full-context arm is reported void because the same 512-token cap leaves
 
 \begin{table}[t]
   \caption{Feature variants and offline recipe. All variants share one fixed
-  3{,}997/998/999 split of the ToolACE tier-2 sample.}
+  3{,}997/998/999 split of the labelled ToolACE sample.}
   \label{tab:variants}
   \centering\footnotesize
   \setlength{\tabcolsep}{3.5pt}
@@ -68,8 +68,12 @@ per-client lookup table with a global-mean fallback for unseen keys.
 \subsection{Cold-Start Strata and the Gate}
 The fixed test split is partitioned into S1--S4 by fingerprint and
 tool-name novelty against the training vocabulary. Strata under 100 rows
-(S1$=$45, S2$=$78) are withheld from headline claims; they may inform design
-when disclosed with their size. The Reliability Gate assigns each stratum the
+(S1$=$45, S2$=$78 at test) are withheld from headline claims; they may
+inform design when disclosed with their size. The abstention set itself is
+fixed on the validation split alone: S1 and S2 fall below the same 100-row
+floor there ($n{=}74$ and $n{=}82$, against 472 and 370 for S3 and S4), so
+the gate has no validation basis on which to vouch for them. Their test
+sizes are reported for power, never used to set the rule. The Reliability Gate assigns each stratum the
 lower bound of the 95\% session-clustered bootstrap~\cite{efron1979}
 confidence interval of
 \emph{validation} Ranking Tau --- fit on validation, evaluated on test ---
@@ -101,10 +105,11 @@ as such. The budget itself is enforced and measured in dedicated arms
 at 15\,ms (the documented default), 50 and 75\,ms
 ($\approx$1.3$\times$ and 2$\times$ the Ranker's GPU median), tracing
 in-budget coverage against the operating point an operator who had
-measured our scorer would actually set. vLLM prefix caching is disabled uniformly across all
+measured our scorer would actually set. vLLM prefix caching is disabled uniformly across the default-cap
 ordering arms, verified from the engine's reported hit rate rather
-than from the flag alone, and enabled only in the arm that measures
-its effect.
+than from the flag alone. It is enabled in the arm that measures its
+effect and in all four arms of the capped-batch round, where holding it
+on everywhere means it cannot separate them.
 
 \subsection{Serving Environments and Provenance}
 Table~\ref{tab:envs} pins both environments. Serving experiments
@@ -113,9 +118,9 @@ configuration common on Chinese GPU clouds); the decision service runs the
 Ranker in fp16 with micro-batching (batch $\le$ 8, 3\,ms window) and a
 reliability threshold of exactly 0.5. All vLLM capacity and cache settings
 are held constant across every arm of every comparison; prefix caching is
-disabled in every ordering arm --- verified from the engine's own reported
-hit rate rather than from the flag alone --- and enabled only in the round
-that measures it. The scheduler is
+disabled in every default-cap ordering arm --- verified from the engine's own
+reported hit rate rather than from the flag alone --- and enabled in the
+round that measures it and throughout the capped-batch round. The scheduler is
 replaced through vLLM's~\cite{vllm2023} \texttt{--scheduler-cls} seam; each
 policy arm swaps only its ordering rule, while the stock pair differs in
 scheduler implementation as well --- the difference E5's attribution control

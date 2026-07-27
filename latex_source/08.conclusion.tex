@@ -21,7 +21,9 @@ behind another, and there the learned ranker beat arrival order by 4.2\%
 while ordering by prompt length ran 8.5\% slower than leaving the queue
 alone. The reliability gate follows the same regime split: free when nothing
 waits, and 9.5\% expensive once something does, because the requests it
-declines to vouch for hold their arrival slots and block. Two levers paid in
+declines to vouch for hold their arrival slots and block --- enough to leave
+the gated system 4.9\% slower under contention than the arrival order it was
+built to improve on. Two levers paid in
 the uncapped configuration and neither came from prediction: exchanging the stock scheduler
 for the policy implementation cut mean time-to-last-token by 44\% with
 arrival order held fixed, and prefix caching over the resent schemas cut a

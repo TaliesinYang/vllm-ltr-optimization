@@ -16,19 +16,23 @@ text and evaluate it in strata defined by how novel each request's tool set
 is. Reading the schema is worth $+0.044$ Kendall's~$\tau$ over the same
 encoder given the prompt alone (95\% paired CI $[+0.024, +0.066]$); the text
 encoder as a whole is worth $+0.19$ over the tuned scalar features it
-replaces, and quality holds at $\tau{=}0.64$--$0.65$ where the tool set is
-partly or wholly unseen, which is where identity-based features have nothing
-to look up.
+replaces, and quality stays at $\tau{=}0.64$--$0.65$ where the tool set is
+partly or wholly unseen (equivalence untested), which is where identity-based
+features have nothing to look up.
 
 A better order becomes lower latency only where the engine leaves a queue to
-reorder, and that condition is set by configuration rather than by the
-workload. With vLLM's running-batch cap at its default of 256 slots, mean
-occupancy stayed under a fourteenth of it, the waiting queue was empty at the
+reorder, and across our runs nothing but an engine setting decided whether it
+did. With vLLM's running-batch cap at its default of 256 slots, mean
+occupancy stayed under a thirteenth of it, the waiting queue was empty at the
 90th percentile, and no ordering policy separated from another by more than
-2\%. Capping the batch at sixteen puts 57--64\% of requests behind another,
+1.2\%. Capping the batch at sixteen puts 57--64\% of requests behind another,
 and the same policies then separate: the ranker beats arrival order by 4.2\%
 (0.958, 95\% CI $[0.944, 0.972]$), while ordering by prompt length, which
 costs nothing to compute, runs 8.5\% slower than not reordering at all. The
+gate is the part that does not pay: abstained requests hold their arrival
+slots and block the ones behind them, which costs 9.5\% against the ungated
+ranker and leaves the gated system 4.9\% slower than plain arrival order
+(1.049, $[1.033, 1.065]$). The
 signal must be paid for as well as earned --- under the gateway's own
 documented 15\,ms decision timeout a third of the scores arrive too late to
 use. Neither ordering nor prediction produced the largest effects we

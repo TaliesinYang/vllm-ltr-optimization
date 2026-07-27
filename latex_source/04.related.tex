@@ -25,7 +25,8 @@ SRPT baseline by 35.1\% on P99 time-to-last-token in its Table~2
 configuration~\cite{beyondPrediction2026}, and starvation-free preemptive
 designs make adjacent arguments~\cite{fastServe2026,tie2026}. We
 therefore make no tail claims: if an oracle loses on P99, better ranking
-accuracy will not repair that, so our endpoints are means and goodput. The concession is scoped by the papers' own designs, however:
+accuracy will not repair that, so our endpoints are pooled means rather
+than tail percentiles. The concession is scoped by the papers' own designs, however:
 UniBoost evaluates no tool-calling workload, disables prefix caching for
 experimental control, and is prediction-free but not feature-free --- its
 scheduler consumes prompt length, the same class of signal our weakest
@@ -77,8 +78,9 @@ execution substrate, and prefix reuse --- RadixAttention in
 SGLang~\cite{sglang2024} and the prefix caching now standard in
 vLLM --- exploits the repetition our capture exhibits, a
 schema resent byte-identically on every turn of a given call kind; our
-ordering runs hold it
-disabled to isolate ordering, and one round enables it to measure it. Above the engine, gateways
+default-cap ordering runs hold it
+disabled to isolate ordering, one round enables it to measure it, and the
+capped-batch round holds it on in every arm. Above the engine, gateways
 own admission: overload control in production RPC systems sheds load
 by priority when queues exceed bounds~\cite{dagor2018}, and the
 gateway we deploy on implements the same pattern as queue guards with

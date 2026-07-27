@@ -1,11 +1,15 @@
 % Outline: Evaluation (3 page cap, >=6 figures; narrative order = story acts)
 % Numbers of record: SYNC-CHECKLIST-2026-07-26.md; claims->evidence map in outline.md.
-% Figure inventory for the >=6 rule: fig:workload, fig:tau, fig:coldstart,
-% fig:overhead, fig:gate, fig:regime, fig:block1.
+% Figure inventory for the >=6 rule, at exactly six: fig:workload, fig:tau,
+% fig:overhead, fig:gate, fig:regime, fig:block1. The cold-start plate was
+% dropped to reach the 3-page budget; its numbers are all in the prose and
+% Fig. 2 in Background carries the per-stratum view.
 \section{Evaluation}
+\label{sec:eval}
 
 \subsection{E1: What Agent Requests Are Made Of}
-Our capture of a production coding agent covers 75 requests across 25 tasks.
+Fig.~\ref{fig:workload} characterizes the capture. It covers 75 requests
+across 25 tasks of a production coding agent.
 Each tool in the native sets contributes about 2\,kB of schema
 (1.8--2.1\,kB), giving 21\,kB for ten native tools; the denser 170-tool
 configuration totals 147\,kB, resent whole every turn. That fixed per-turn
@@ -14,6 +18,7 @@ configuration alone (median 23.5\%), and 67.0\% with 170 tools. Within a
 call kind the tool set is byte-identical across turns, and the 75 requests
 carry only three distinct sets. Against the ToolACE vocabulary, every
 tool-bearing live request classified as S4.
+\ifrubric\else
 \begin{figure*}[t]\centering
   % Source: probes/agent-traces-2026-07-26/MANIFEST.md + schema-variability probe.
   \includegraphics[width=\linewidth]{workload.pdf}
@@ -23,6 +28,7 @@ tool-bearing live request classified as S4.
   tokens, so the pooled median of 42 describes neither kind.}
   \label{fig:workload}
 \end{figure*}
+\fi
 
 \subsection{E2: Schema Text vs.\ Scalars vs.\ Identity}
 Fig.~\ref{fig:tau} gives the headline offline result. Reading the request as
@@ -46,27 +52,21 @@ training.
   \label{fig:tau}
 \end{figure}
 
-Fig.~\ref{fig:coldstart} evaluates the same models on the S3 (partially new
-tools, $n{=}543$) and S4 (all-new tools, $n{=}333$) strata. Both
+The same models are evaluated on the two strata Fig.~\ref{fig:strata} clears
+for use: S3 (partially new tools, $n{=}543$) and S4 (all-new tools,
+$n{=}333$). Both
 pre-registered criteria pass on both strata against the tuned baseline, and
 schema-text $\tau$ differs by only 0.0075 between them (0.647 and 0.639,
 against 0.630 overall). We ran no equivalence test, so this is consistent
-with no degradation rather than a demonstration of it.
-\begin{figure*}[t]\centering
-  % Source: runs/offline-experiments-2026-07-25/t1-strata.json
-  \includegraphics[width=\linewidth]{coldstart.pdf}
-  \caption{Cold-start transfer: schema-text ranking differs by 0.0075
-  between the two adequately powered unseen-tool strata, and the identity
-  lookup records no table hits. Panel (a) pools all 999 test requests,
-  including the withheld S1 and S2 of Fig.~\ref{fig:strata}, so it is not the
-  mean of (b) and (c); markers are the mean over three seeds, whiskers are
-  session-clustered bootstrap CIs (1000 resamples, percentile, seed-17
-  scores), and each $\Delta\tau_b$ interval adds the two arms' variances as
-  independent, which is conservative for these paired rows.}
-  \label{fig:coldstart}
-\end{figure*}
+with no degradation rather than a demonstration of it. What does not hold
+flat is the \emph{margin}: schema text leads the tuned baseline by $+0.25$
+on S3 but only $+0.14$ on S4, because the scalar baseline itself scores
+higher where no tool is familiar ($\tau_b$ 0.50 against 0.40). Reading the
+schema keeps its own quality on wholly unseen tools; it does not widen its
+lead there.
 
 \subsection{E3: Deployment Cost and Two Failed Rescues}
+Fig.~\ref{fig:overhead} prices the admission path the scorer sits on.
 The Ranker costs 722\,ms at p99 on production CPU settings at the deployed
 concurrency of eight, 48$\times$ the gateway's 15\,ms contract and still
 8$\times$ over it served serially. Two pre-registered rescues fail.
@@ -78,10 +78,15 @@ concurrency 8 (4.3$\times$ serial). On the serving GPU with fp16
 micro-batching, scoring costs 37.9\,ms at p50, $6.0\times$ faster than
 unbatched GPU inference and
 $16.6\times$ faster than the CPU path at the same percentile (628.8\,ms
-p50). Under the documented 15\,ms default,
-34.6\%
-of requests (801 of 2{,}315) fail open into arrival order, silently; at
-50\,ms fail-open drops to 2.0\%, and at 75\,ms it reaches zero.
+p50). Enforcing a budget end to end is a different measurement, and we
+report it over every request the gateway handled rather than over the scored
+subset: under the documented 15\,ms default, 801 of 2{,}315 requests
+(34.6\%) fail open into arrival order, silently; at 50\,ms that falls to
+2.0\% and at 75\,ms to zero. The denominator includes requests the gate
+never scores at all --- the zero-tool third of the traffic and the strata it
+abstains on --- so 34.6\% is the share of \emph{traffic} left unordered, not
+the share of scoring attempts that miss the budget, which is necessarily
+larger.
 \begin{figure*}[tb]\centering
   \includegraphics[width=\linewidth]{overhead.pdf}
   \caption{Admission-time scoring versus direct: $+$737\,ms TTFT and
@@ -93,12 +98,18 @@ of requests (801 of 2{,}315) fail open into arrival order, silently; at
 \end{figure*}
 
 \subsection{E4: Assigned versus Realized Confidence}
+Fig.~\ref{fig:gate} contrasts the confidence each rule assigns with the
+ranking quality it actually delivered.
 The placeholder constant confidence (0.9) overstates realized ranking
 quality on every stratum, by $+0.25$ to $+0.46$; the lower CI bound of
 validation $\tau$ per stratum, abstaining where it cannot be measured, did
-not overstate on any stratum here (worst deviation $-0.016$). S2 is where
+not overstate on any stratum here: its closest approach to overstating was
+$-0.016$ on S4, and its largest understatement $-0.068$ on S3. S2 is where
 the Ranker fails: familiar tools in new combinations realize $\tau = 0.44$,
-some 0.2 below every other stratum ($n{=}78$).
+against 0.60 on S1, 0.65 on S3 and 0.64 on S4 --- 0.16 to 0.21 below every
+other stratum. At $n{=}78$ that sits below our reporting threshold, so we
+read it as a design signal rather than a result, which is why
+Fig.~\ref{fig:strata} plots neither it nor S1's.
 \begin{figure*}[tb]\centering
   \includegraphics[width=\linewidth]{gate.pdf}
   \caption{Assigned versus realized confidence: the placeholder constant
@@ -115,8 +126,9 @@ first-come-first-served, a shim wrapping it unchanged, and four on our own
 base, \emph{PolicyFCFS} (arrival order, no scorer), \emph{PromptLengthSJF}
 (prompt length), \emph{PureLTR} (Ranker score) and \emph{GatedRuleC} (Ranker
 score where the gate vouches). The pre-registered endpoint is pooled mean
-time-to-last-token, compared as paired-mean ratios with hierarchical
-bootstrap intervals against a pre-declared 3\% margin.
+time-to-last-token (TTLT), compared as paired-mean ratios with hierarchical
+bootstrap intervals against a pre-declared 3\% margin; time-to-first-token
+(TTFT) is reported only where the admission path is priced.
 
 The attribution control comes first (Fig.~\ref{fig:block1}).
 \emph{PolicyFCFS} and stock serve the same requests in the same arrival
@@ -131,12 +143,13 @@ Against the same-base control, ordering does not move the endpoint here. The
 superiority test fails: GatedRuleC versus PromptLengthSJF gives $1.008$
 ($[0.979, 1.041]$), an interval containing one. Safety passes: against
 PolicyFCFS the ratio is $0.996$ ($[0.970, 1.023]$), inside the 3\% margin,
-and with an empty queue the gate itself costs under 1.4\%.
+and with an empty queue the gate itself costs at most 1.4\% (GatedRuleC against
+PureLTR, $1.003$, $[0.991, 1.014]$; Sec.~V-F).
 
 The order logs quantify how often ordering could act and show that the
 policies acted when able. Across 77{,}000 scheduling steps per arm the
 waiting queue was empty at p90 and held two waiting requests in under 1\% of
-steps; 12.4\% of requests first entered a queue of depth two or more.
+steps; 11.9--12.5\% of requests first entered a queue of depth two or more.
 Expressing an order needs two requests that were \emph{already} waiting to
 meet in the same step. That happened in 293--324 steps per arm, and the
 policies rewrote 262--307 of them (87--95\%), while \emph{PolicyFCFS}
@@ -165,8 +178,13 @@ PromptLengthSJF, PolicyFCFS and PureLTR, all inside the 3\% margin.
 \subsection{E6: Ordering Under Contention}
 None of those rounds formed a queue: the running-batch cap sat at vLLM's
 default of 256 slots while only eleven to nineteen requests were in flight.
-E6 caps it at 16 and repeats the question with everything else fixed, at
-6.4 requests/s with prefix caching on and one cold launch per arm. The cap
+E6 caps it at 16 and repeats the question at 6.4 requests/s with prefix
+caching on and one cold launch per arm. Three conditions therefore differ
+from round~A besides the cap --- rate, caching and launch structure --- so
+the comparison across panels is between regimes rather than between two
+otherwise identical runs; what is held exactly is the workload, the arrival
+offsets, the checkpoint, and the four policies being contrasted, which is
+what makes the ordering comparison \emph{within} each regime clean. The cap
 is an instrument, not a recommendation. A scheduler can only act where
 requests wait, and what we could vary at our budget was the number of slots
 rather than the arrival rate needed to fill 256 of them; a deployment
@@ -202,9 +220,12 @@ nothing is waiting and costly when something is.
   % runs/capped-batch/matrix (cap 16); same workload, same arrival offsets,
   % same checkpoint. Ratios and intervals are the paired bootstrap.
   \includegraphics[width=\linewidth]{regime.pdf}
-  \caption{One engine setting decides the paper's answer. The same four
-  policies on the same workload: with the default running-batch cap no pair
-  separates, and with the cap reduced every pair does.}
+  \caption{One engine setting decides the paper's answer: the same four
+  policies on the same workload, with the default running-batch cap no pair
+  separates, and with the cap reduced every pair does. Both panels replay the
+  same 2{,}025 sessions and each arm resamples within one engine launch (3
+  replays in (a), 1 in (b)), so neither panel's intervals carry machine-level
+  replication.}
   \label{fig:regime}
 \end{figure*}
 \begin{figure*}[tb]\centering
