@@ -27,7 +27,7 @@ from _common import (
 T5 = OFFLINE / "t5-gate.json"
 RULES = (
     ("placeholder_0.9", "Placeholder 0.9", OKABE_ITO["vermillion"], "X"),
-    ("global_control_no_stratification", "Global (no strata)", OKABE_ITO["orange"], "s"),
+    ("global_control_no_stratification", "Global (no strata)", "#8A8A8A", "s"),
     ("C_abstain", "Rule C (shipped)", OKABE_ITO["blue"], "o"),
 )
 
@@ -108,9 +108,9 @@ def main() -> None:
         va="top",
     )
     ax.annotate(
-        "Rule C abstains",
+        "abstains",
         xy=(1 + offsets[2], 0.0),
-        xytext=(1.55, 0.135),
+        xytext=(1.48, 0.16),
         fontsize=10,
         color=OKABE_ITO["blue"],
         ha="left",
@@ -124,7 +124,8 @@ def main() -> None:
     ax.set_xlabel("Cold-Start stratum")
     ax.set_ylabel("Confidence / realized $\\tau_b$")
     ax.set_title("(a) Claimed vs delivered", loc="left")
-    ax.legend(loc="lower left", ncol=1)
+    # No legend: panel (b) names all three rules on its y-axis, so a legend
+    # would repeat them. The marker mapping lives in the caption.
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
