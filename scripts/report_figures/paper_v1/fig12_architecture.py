@@ -35,10 +35,10 @@ def fig1() -> None:
     ax.set_xlim(0, 10); ax.set_ylim(0, 4.4); ax.axis("off")
 
     # lanes
-    for y, label in ((3.3, "Agent clients"), (1.8, "Gateway tier"), (0.3, "Engine")):
-        ax.text(0.06, y + 0.55, label, fontsize=10, style="italic",
-                color=OKABE["grey"], rotation=90, va="center")
-        ax.axhline(y - 0.12, color=OKABE["grey"], lw=0.4, alpha=0.4)
+    for y0, y1, label in ((3.2, 4.3, "Clients"), (1.7, 2.8, "Gateway"), (0.2, 1.3, "Engine")):
+        ax.text(0.18, (y0 + y1) / 2, label, fontsize=10, style="italic",
+                color=OKABE["grey"], rotation=90, va="center", ha="center")
+        ax.axhline(y0 - 0.05, color=OKABE["grey"], lw=0.4, alpha=0.4)
 
     box(ax, 0.7, 3.35, 1.9, 0.75, "OpenCode\nagents", "#EAF3FA")
     box(ax, 3.1, 3.35, 2.1, 0.75, "utility calls\n(33% zero-tool)", "#F5F5F5")
@@ -82,7 +82,7 @@ def fig2() -> None:
     arrow(ax, 4.15, 2.47, 4.15, 1.28, color=OKABE["red"])          # abstain path
     arrow(ax, 5.47, 0.87, 6.07, 0.87, color=OKABE["red"])
     arrow(ax, 7.8, 2.47, 7.8, 2.28, color=OKABE["green"])          # trusted -> BERT
-    ax.text(4.25, 1.7, "no Ranker invocation", fontsize=9, color=OKABE["red"])
+    ax.text(4.32, 1.62, "no Ranker\ninvocation", fontsize=9, color=OKABE["red"])
     ax.text(0.4, 0.15,
             "slot-preserving: trusted requests reorder only among trusted slots",
             fontsize=9, style="italic", color=OKABE["grey"])
