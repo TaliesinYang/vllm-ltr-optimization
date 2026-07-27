@@ -1,0 +1,120 @@
+% Outline: Background (1.5 page cap, >=2 figures; defines the paper's vocabulary)
+\section{Background}
+
+\subsection{Serving, Scheduling, and Head-of-Line Blocking}
+Modern LLM engines admit requests continuously and batch them at
+token granularity; continuous batching~\cite{orca2022} and vLLM's paged
+KV-cache~\cite{vllm2023} are the substrate for this work. The scheduler decides which waiting request joins
+the running batch next. First-come-first-served is the default, and its
+weakness is classical: a long-running request admitted early delays every
+short request behind it. A 2026 survey of latency in LLM agent systems
+independently lists FIFO-induced head-of-line blocking among live system
+bottlenecks for agentic traffic~\cite{park2026minimizing}, while placing
+learned scheduling in its future-work section --- the gap this paper works in.
+
+\subsection{Learned Output-Length Prediction}
+Shortest-job-style ordering requires knowing output lengths in
+advance. Since generation length is stochastic, a body of work predicts it:
+S\textsuperscript{3} classifies responses into length buckets; the
+learning-to-rank line~\cite{fuLTR2024} showed that \emph{relative order},
+not absolute length, is what scheduling needs, training a small proxy with a
+ranking loss; PARS~\cite{tao2026ranking} refined this with pairwise margin
+training over a BERT encoder. All of these read the prompt (or scalar request
+statistics); none consume tool-schema text.
+
+\subsection{System Substrate: Gateway and Decision Service}
+Our serving stack (Fig.~\ref{fig:arch}) fronts the engine with an
+LLM gateway (VeloxMesh) that owns routing, admission, and a scheduler hook
+with a hard design contract: scoring must return within 15\,ms, after which
+the gateway \emph{fails open} to arrival order. The gateway consults a
+separate decision service over HTTP (Fig.~\ref{fig:components}); the service
+hosts the Ranker and applies the Reliability Gate on the gateway's behalf.
+This fail-open contract is load-bearing for everything that follows: an
+unreliable or slow prediction never blocks the request path.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[node distance=6.5mm and 9mm]
+    \node[environment component, text width=19mm] (client)
+      {Agent clients\\[-1pt]{\sub{OpenCode}}};
+    \node[environment component, right=of client, text width=21mm] (gw)
+      {Gateway\\[-1pt]{\sub{admission, routing}}};
+    \node[proposed component, right=of gw, text width=25mm] (dec)
+      {Decision service\\[-1pt]{\sub{Ranker + Reliability Gate}}};
+    \node[environment component, right=15mm of dec, text width=19mm] (fb)
+      {Fallback\\[-1pt]{\sub{arrival order}}};
+    \node[proposed component, below=11mm of dec, text width=25mm] (order)
+      {Queue order\\[-1pt]{\sub{policy under test}}};
+    \node[environment component, below=11mm of gw, text width=21mm] (engine)
+      {vLLM engine\\[-1pt]{\sub{Qwen3.5-9B}}};
+
+    \draw[data flow] (client) -- node[numbered step, pos=.5] {1} (gw);
+    \draw[control flow] (gw) -- node[numbered step, pos=.5] {2} (dec);
+    \draw[control flow] (dec) -- node[numbered step, pos=.5] {3} (order);
+    \draw[control flow] (order) -- node[numbered step, pos=.5] {4} (engine);
+    \draw[data flow] (gw) -- node[numbered step, pos=.5] {5} (engine);
+    \draw[degraded flow] (dec) -- node[warn label, pos=.5, above=1pt]
+      {$>15$\,ms} (fb);
+
+    \begin{scope}[on background layer]
+      \node[system boundary, fit=(gw)(dec)(order)(engine)] (sys) {};
+    \end{scope}
+    \node[boundary title, anchor=north west]
+      at ($(sys.north west)+(3pt,-2pt)$) {serving stack under study};
+  \end{tikzpicture}
+  \caption{System architecture. Solid arrows carry requests, dashed arrows
+  carry scheduling decisions, and the orange path is the gateway's fail-open
+  behavior when scoring exceeds its 15\,ms budget. Shaded components are
+  contributed by this work; the rest is the environment they run in.}
+  \label{fig:arch}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[node distance=7mm and 12mm]
+    \node[environment component, text width=19mm] (req)
+      {Request\\[-1pt]{\sub{prompt + schema}}};
+    \node[proposed component, right=of req, text width=24mm] (cls)
+      {Stratum classifier\\[-1pt]{\sub{hash vs vocabulary}}};
+    \node[proposed component, above right=3.5mm and 22mm of cls, text width=26mm]
+      (rank) {Ranker\\[-1pt]{\sub{BERT fp16, batch $\leq$ 8}}};
+    \node[proposed component, right=of rank, text width=21mm] (ord)
+      {Rank order\\[-1pt]{\sub{trusted slots only}}};
+    \node[environment component, below right=3.5mm and 22mm of cls,
+      text width=26mm] (queue) {Fallback queue\\[-1pt]{\sub{arrival order}}};
+    \node[environment component, right=of queue, text width=21mm] (served)
+      {Served\\[-1pt]{\sub{slot preserved}}};
+
+    % The branch is routed orthogonally from a single split point rather than
+    % as two diagonals. One decision, two outcomes -- the geometry should say
+    % that, and right angles keep the edge labels off the boxes.
+    \coordinate (split) at ($(cls.east)+(9mm,0)$);
+    \draw[draw=black!80, line width=.8pt] (cls.east) -- (split);
+    \draw[control flow] (split) |- (rank.west);
+    \draw[degraded flow] (split) |- (queue.west);
+    \draw[data flow] (req) -- (cls);
+    \draw[data flow] (rank) -- (ord);
+    \draw[data flow] (queue) -- (served);
+
+    \node[fact label, above right=0.5mm and 1mm of split] {S3 / S4};
+    \node[warn label, below right=0.5mm and 1mm of split, align=left]
+      {S1 / S2 / zero-tool\\no Ranker invocation};
+  \end{tikzpicture}
+  \caption{Decision path. The stratum classifier is a vocabulary hash, so
+  requests the gate cannot vouch for are answered without invoking the model at
+  all. Abstained requests keep their arrival slots; trusted requests are
+  reordered only among themselves.}
+  \label{fig:components}
+\end{figure*}
+
+\subsection{Vocabulary}
+Throughout, the \emph{Ranker} is the fine-tuned BERT model scoring a
+request's expected output length; the \emph{Reliability Gate} is the runtime
+decision of whether that score may influence queue order; \emph{Fallback}
+means serving in arrival order because the gate withheld trust.
+\emph{Ranking Tau} is Kendall's $\tau_b$~\cite{kendall1938} between predicted and true
+output-length order on held-out data. \emph{Cold-Start Transfer} measures
+Ranking Tau on test strata whose tool sets were unseen in training, within
+the same workload family: S1 (seen combination), S2 (new combination of seen
+tools), S3 (partially new tools), S4 (all-new tools). It is distinct from
+\emph{Cross-Workload Transfer}, which changes the workload family entirely.

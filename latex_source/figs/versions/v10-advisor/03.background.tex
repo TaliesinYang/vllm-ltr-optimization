@@ -1,0 +1,174 @@
+% Outline: Background (1.5 page cap, >=2 figures; defines the paper's vocabulary)
+\section{Background}
+
+\subsection{Serving, Scheduling, and Head-of-Line Blocking}
+Modern LLM engines admit requests continuously and batch them at
+token granularity; continuous batching~\cite{orca2022} and vLLM's paged
+KV-cache~\cite{vllm2023} are the substrate for this work. The scheduler decides which waiting request joins
+the running batch next. First-come-first-served is the default, and its
+weakness is classical: a long-running request admitted early delays every
+short request behind it. A 2026 survey of latency in LLM agent systems
+independently lists FIFO-induced head-of-line blocking among live system
+bottlenecks for agentic traffic~\cite{park2026minimizing}, while placing
+learned scheduling in its future-work section --- the gap this paper works in.
+
+\subsection{Learned Output-Length Prediction}
+Shortest-job-style ordering requires knowing output lengths in
+advance. Since generation length is stochastic, a body of work predicts it:
+S\textsuperscript{3} classifies responses into length buckets; the
+learning-to-rank line~\cite{fuLTR2024} showed that \emph{relative order},
+not absolute length, is what scheduling needs, training a small proxy with a
+ranking loss; PARS~\cite{tao2026ranking} refined this with pairwise margin
+training over a BERT encoder. All of these read the prompt (or scalar request
+statistics); none consume tool-schema text.
+
+\subsection{System Substrate: Gateway and Decision Service}
+Our serving stack (Fig.~\ref{fig:arch}) fronts the engine with an
+LLM gateway (VeloxMesh) that owns routing, admission, and a scheduler hook
+with a hard design contract: scoring must return within 15\,ms, after which
+the gateway \emph{fails open} to arrival order. The gateway consults a
+separate decision service over HTTP (Fig.~\ref{fig:components}); the service
+hosts the Ranker and applies the Reliability Gate on the gateway's behalf.
+This fail-open contract is load-bearing for everything that follows: an
+unreliable or slow prediction never blocks the request path.
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[node distance=5mm and 8mm]
+    % ---- engine tier: the queue lives INSIDE vLLM, not beside it ----------
+    % (verified: the gateway attaches the verdict to the forwarded request,
+    %  VeloxMesh internal/ltr/decision.go:218; the policy reads it back from
+    %  the request's extra_args inside the engine, vllm_scheduler.py:87)
+    \node[proposed component, text width=44mm, inner ysep=4pt] (sched)
+      {Scheduler\\[-1pt]{\sub{policy under test}}};
+    \node[below=2.5mm of sched] (queue) {%
+      \begin{tikzpicture}[baseline]
+        \node[trusted slot] (q1) {2};
+        \node[pinned slot, right=1mm of q1] (q2) {};
+        \node[trusted slot, right=1mm of q2] (q3) {1};
+        \node[pinned slot, right=1mm of q3] (q4) {};
+        \node[pinned slot, right=1mm of q4] (q5) {};
+        \draw[control flow, -{Stealth[length=3pt,width=3pt]}]
+          (q3.north) to[bend right=42] (q1.north);
+      \end{tikzpicture}};
+    \node[fact label, below=0.5mm of queue, text width=40mm, align=center]
+      (qcap) {queue: trusted ranked,\\abstained pinned};
+    \draw[data flow, shorten >=1.5pt, shorten <=1.5pt] (sched) -- (queue);
+    \node[tier title, anchor=south west]
+      (engtitle) at ($(sched.north west)+(-1mm,1.2mm)$)
+      {vLLM engine (Qwen3.5-9B)};
+    \begin{scope}[on background layer]
+      \node[host component, fit=(engtitle)(sched)(queue)(qcap),
+            inner xsep=6pt, inner ysep=5pt] (engine) {};
+    \end{scope}
+
+    % ---- gateway tier -------------------------------------------------------
+    \node[environment component, left=44mm of engine, yshift=11mm,
+          minimum width=12mm, inner xsep=2pt] (adm) {admit};
+    \node[environment component, right=2.5mm of adm, minimum width=12mm,
+          inner xsep=2pt] (cache) {cache};
+    \node[environment component, right=2.5mm of cache, minimum width=12mm,
+          inner xsep=2pt] (route) {route};
+    \draw[data flow, shorten <=1pt, shorten >=1pt] (adm) -- (cache);
+    \draw[data flow, shorten <=1pt, shorten >=1pt] (cache) -- (route);
+    \node[fact label, below=0.6mm of route.south, anchor=north east,
+          xshift=6mm] (gwnote) {streaming bypasses cache};
+    \node[tier title, anchor=south west]
+      (gwtitle) at ($(adm.north west)+(-1mm,1mm)$) {Gateway};
+    \begin{scope}[on background layer]
+      \node[host component, fit=(gwtitle)(adm)(cache)(route)(gwnote),
+            inner xsep=5pt, inner ysep=4pt] (gw) {};
+    \end{scope}
+    \node[proposed component, below=4.5mm of gw, text width=31mm] (dec)
+      {Decision service\\[-1pt]{\sub{Ranker $+$ Reliability Gate}}};
+
+    % ---- client tier --------------------------------------------------------
+    \node[environment component, left=12mm of gw, text width=21mm] (client)
+      {Agent client\\[-1pt]{\sub{OpenCode}}};
+    \node[request card, below=4.5mm of client, text width=32mm] (card)
+      {\sub{captured turn:}\\\sub{170 tools, 147\,kB schema}};
+
+    % ---- flows, annotated with the real worked example ---------------------
+    \draw[data flow] (client) -- (gw);
+    \draw[data flow] (card.east) to[out=0,in=210] (gw.south west);
+    \draw[control flow] (adm.south |- gw.south) -- node[fact label,
+      right=1pt, pos=.45] {score, 15\,ms} (adm.south |- dec.north);
+    \draw[data flow] (gw.east) -- node[fact label, below=2pt, pos=.5] {$+$ verdict} (engine.west |- gw.east);
+
+    \draw[degraded flow] (dec.south east) to[out=-60,in=-115]
+      node[warn label, below=3pt, pos=.5, align=left]
+      {fail-open: arrival order}
+      (engine.south west);
+  \end{tikzpicture}
+  \caption{The scheduler under test runs inside the engine and consumes a
+  verdict the gateway attaches to each forwarded request. Shaded components
+  are contributed by this work; any decision failure degrades to arrival
+  order.}
+  \label{fig:arch}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+  \begin{tikzpicture}[node distance=4.5mm and 10mm]
+    % Two REAL captured requests, not an abstract "Request" role: the agent
+    % turn that exercises the whole path, and the title-generation call that
+    % is a third of live traffic and never touches the model.
+    \node[request card, draw=sysaccent!85!black, line width=.9pt,
+          text width=25mm] (cardA)
+      {\sub{agent turn}\\\sub{170 tools $\to$ S4}};
+    \node[request card, draw=syswarn, line width=.9pt,
+          below=16mm of cardA, text width=25mm] (cardB)
+      {\sub{title generation}\\\sub{0 tools (25 of 75 live)}};
+
+    \node[proposed component, right=of cardA, text width=30mm,
+          yshift=-7mm] (cls)
+      {Stratum classifier\\[-1pt]{\sub{SHA-256 over tool names
+       vs.\ training vocabulary}}};
+
+    % Rule C's actual table rides in the figure: real per-stratum floors,
+    % which is the strongest anti-template signal a schematic can carry.
+
+
+    % trusted lane
+    \node[proposed component, above right=4mm and 14mm of cls,
+          text width=31mm] (rank)
+      {Ranker\\[-1pt]{\sub{BERT fp16, batch $\le$ 8, 37.9\,ms p50}}};
+    \node[proposed component, right=of rank, text width=25mm] (ord)
+      {Rank order\\[-1pt]{\sub{among trusted slots only}}};
+
+    % abstain lane
+    \node[environment component, below right=7mm and 14mm of cls,
+          text width=31mm] (fb)
+      {Fallback queue\\[-1pt]{\sub{no model invocation, 0\,ms}}};
+    \node[environment component, right=of fb, text width=25mm] (served)
+      {Served\\[-1pt]{\sub{arrival slot preserved}}};
+
+    \coordinate (split) at ($(cls.east)+(6mm,0)$);
+    \draw[draw=black!80, line width=.8pt] (cls.east) -- (split);
+    \draw[data flow] (split) |- node[fact label, pos=.25, right=2pt]
+      {S3 / S4} (rank.west);
+    \draw[degraded flow] (split) |- node[warn label, pos=.25, right=2pt]
+      {S1 / S2 / zero-tool} (fb.west);
+    \draw[data flow] (cardA) -- (cls.west |- cardA);
+    \draw[data flow] (cardB.east) to[out=0,in=-130] (cls.south west);
+    \draw[data flow] (rank) -- (ord);
+    \draw[data flow] (fb) -- (served);
+
+  \end{tikzpicture}
+  \caption{Requests the gate cannot vouch for are answered without invoking
+  the model and keep their arrival slots; only vouched requests are
+  reordered, and only among themselves.}
+  \label{fig:components}
+\end{figure*}
+
+\subsection{Vocabulary}
+Throughout, the \emph{Ranker} is the fine-tuned BERT model scoring a
+request's expected output length; the \emph{Reliability Gate} is the runtime
+decision of whether that score may influence queue order; \emph{Fallback}
+means serving in arrival order because the gate withheld trust.
+\emph{Ranking Tau} is Kendall's $\tau_b$~\cite{kendall1938} between predicted and true
+output-length order on held-out data. \emph{Cold-Start Transfer} measures
+Ranking Tau on test strata whose tool sets were unseen in training, within
+the same workload family: S1 (seen combination), S2 (new combination of seen
+tools), S3 (partially new tools), S4 (all-new tools). It is distinct from
+\emph{Cross-Workload Transfer}, which changes the workload family entirely.

@@ -1,0 +1,80 @@
+% Shared TikZ styles for the system schematics.
+%
+% Roles, not decorations: a component's style says whether the paper contributes
+% it or merely runs on it, and an edge's style says whether it carries data or a
+% control decision. Both distinctions survive greyscale, because line style and
+% fill weight carry them, not colour alone.
+%
+% Figures are compiled inside the document, so they inherit \columnwidth and the
+% document's type. Nothing here is resized after the fact.
+
+\usetikzlibrary{positioning,fit,backgrounds,arrows.meta,calc}
+
+\definecolor{sysaccent}{HTML}{0072B2}
+\definecolor{syswarn}{HTML}{D55E00}
+
+\tikzset{
+  % Course rule: every glyph inside a figure is >= 10 pt. In IEEEtran
+% conference that is \normalsize exactly; \footnotesize is 8 pt and
+% \scriptsize is 7 pt, so neither may appear in a figure here.
+  every node/.style={font=\normalsize},
+  %
+  component/.style={
+    draw=black!62, fill=white, line width=.7pt, rounded corners=1.4pt,
+    minimum height=6.4mm, align=center, inner xsep=4pt, inner ysep=2.6pt
+  },
+  environment component/.style={component, draw=black!45, fill=black!4},
+  proposed component/.style={
+    component, draw=sysaccent!85!black, fill=sysaccent!8, line width=.9pt
+  },
+  %
+  system boundary/.style={
+    draw=sysaccent!80!black, fill=sysaccent!3, line width=.85pt,
+    rounded corners=2pt, inner xsep=7pt, inner ysep=7pt
+  },
+  %
+  data flow/.style={
+    -{Stealth[length=5pt,width=4.6pt]}, draw=black!80, line width=1.5pt
+  },
+  control flow/.style={
+    -{Stealth[length=3.6pt,width=3.4pt]}, draw=black!62, line width=.7pt,
+    dashed, dash pattern=on 2.6pt off 1.8pt
+  },
+  degraded flow/.style={
+    -{Stealth[length=3.6pt,width=3.4pt]}, draw=syswarn, line width=.8pt,
+    dash pattern=on 3pt off 2pt
+  },
+  %
+  numbered step/.style={
+    circle, draw=none, fill=black!85, text=white, minimum size=4.8mm,
+    inner sep=0pt, font=\normalsize\bfseries
+  },
+  fact label/.style={fill=white, text=black!68, font=\normalsize,
+    inner xsep=1.6pt, inner ysep=.8pt},
+  warn label/.style={fill=white, text=syswarn, font=\normalsize,
+    inner xsep=1.6pt, inner ysep=.8pt},
+  boundary title/.style={font=\normalsize\itshape, text=sysaccent!85!black},
+}
+
+% Secondary line inside a component: what it is, in one short qualifier.
+\newcommand{\sub}[1]{{\normalsize\textcolor{black!58}{#1}}}
+
+% ---- figure-craft additions -------------------------------------------------
+% A tier is a background band, not a component: 2D nesting instead of a single
+% row of boxes, which is the strongest generic-template signal.
+\tikzset{
+  tier band/.style={fill=black!3, draw=black!14, line width=.4pt,
+    rounded corners=2pt, inner xsep=5pt, inner ysep=6pt},
+  tier title/.style={font=\normalsize\itshape, text=black!55},
+  % Container that visibly holds a nested contributed component.
+  host component/.style={component, draw=black!55, fill=white,
+    inner ysep=5pt},
+  % One waiting request in the engine queue. Fill encodes trust.
+  queue slot/.style={draw=black!60, line width=.7pt, minimum width=4.8mm,
+    minimum height=4.8mm, inner sep=0pt, font=\normalsize},
+  trusted slot/.style={queue slot, fill=sysaccent!22, draw=sysaccent!85!black},
+  pinned slot/.style={queue slot, fill=black!8},
+  % A real captured request, drawn as a card rather than an abstract role box.
+  request card/.style={component, fill=white, draw=black!50, align=left,
+    inner xsep=4pt, inner ysep=3pt},
+}

@@ -1,0 +1,57 @@
+% Shared TikZ styles for the system schematics.
+%
+% Roles, not decorations: a component's style says whether the paper contributes
+% it or merely runs on it, and an edge's style says whether it carries data or a
+% control decision. Both distinctions survive greyscale, because line style and
+% fill weight carry them, not colour alone.
+%
+% Figures are compiled inside the document, so they inherit \columnwidth and the
+% document's type. Nothing here is resized after the fact.
+
+\usetikzlibrary{positioning,fit,backgrounds,arrows.meta,calc}
+
+\definecolor{sysaccent}{HTML}{0072B2}
+\definecolor{syswarn}{HTML}{D55E00}
+
+\tikzset{
+  every node/.style={font=\footnotesize},
+  %
+  component/.style={
+    draw=black!62, fill=white, line width=.7pt, rounded corners=1.4pt,
+    minimum height=6.4mm, align=center, inner xsep=4pt, inner ysep=2.6pt
+  },
+  environment component/.style={component, draw=black!45, fill=black!4},
+  proposed component/.style={
+    component, draw=sysaccent!85!black, fill=sysaccent!8, line width=.9pt
+  },
+  %
+  system boundary/.style={
+    draw=sysaccent!80!black, fill=sysaccent!3, line width=.85pt,
+    rounded corners=2pt, inner xsep=6pt, inner ysep=9pt
+  },
+  %
+  data flow/.style={
+    -{Stealth[length=3.6pt,width=3.4pt]}, draw=black!80, line width=.8pt
+  },
+  control flow/.style={
+    -{Stealth[length=3.6pt,width=3.4pt]}, draw=black!62, line width=.7pt,
+    dashed, dash pattern=on 2.6pt off 1.8pt
+  },
+  degraded flow/.style={
+    -{Stealth[length=3.6pt,width=3.4pt]}, draw=syswarn, line width=.8pt,
+    dash pattern=on 3pt off 2pt
+  },
+  %
+  numbered step/.style={
+    circle, draw=none, fill=black!85, text=white, minimum size=3.6mm,
+    inner sep=0pt, font=\scriptsize\bfseries
+  },
+  fact label/.style={fill=white, text=black!68, font=\scriptsize,
+    inner xsep=1.6pt, inner ysep=.8pt},
+  warn label/.style={fill=white, text=syswarn, font=\scriptsize,
+    inner xsep=1.6pt, inner ysep=.8pt},
+  boundary title/.style={font=\scriptsize\itshape, text=sysaccent!85!black},
+}
+
+% Secondary line inside a component: what it is, in one short qualifier.
+\newcommand{\sub}[1]{{\scriptsize\textcolor{black!58}{#1}}}

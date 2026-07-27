@@ -117,6 +117,15 @@ def main() -> int:
         pdf = FIGS / name
         if not pdf.exists():
             continue
+        # Appendix A's evidence is a screenshot, which the assignment asks for
+        # by name. It carries no embedded fonts and no page size, so the scale
+        # and font checks below do not apply to it -- but say so rather than
+        # skipping silently, since a raster figure appearing anywhere else in
+        # this paper would be a rule violation worth seeing.
+        if pdf.suffix.lower() != ".pdf":
+            print(f"{name:16s} {'raster':>8s} {width:7.2f}in {'--':>7s} {'--':>7s}"
+                  f"   (screenshot; scale and font checks not applicable)")
+            continue
         native = native_width(pdf)
         scale = width / native
         effective = MIN_PT * scale

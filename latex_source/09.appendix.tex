@@ -1,19 +1,19 @@
-% Outline: Appendix A (1 page): repo pointer + latex_source screenshot
+% Outline: Appendix A. The assignment asks for the latex_source screenshot as a
+% figure and says no text is necessary, so the page is the figure plus the URL
+% it evidences. The float sits at the page bottom: a two-column figure* cannot
+% honour [h], and forcing it to the top puts the plate above the heading it
+% belongs to.
 \appendices
 \section*{Appendix A: Artifact Availability}
 \addcontentsline{toc}{section}{Appendix A}
 
-All code, data manifests, experiment artifacts, and the LaTeX source of this
-report are available at
-\url{https://github.com/TaliesinYang/vllm-ltr-optimization}, with the report
-sources under the top-level \texttt{latex\_source/} directory and every figure
-script under \texttt{scripts/}. Every headline quantitative claim in this paper traces to
-a committed JSON artifact through \texttt{EVIDENCE-MAP.md}, which is generated
-rather than written: its builder reads every value out of the artifact it names
-and fails if that artifact disagrees with the number printed here.
+\noindent
+\url{https://github.com/TaliesinYang/vllm-ltr-optimization}
 
-% [TODO before submission: screenshot of the latex_source/ directory on GitHub]
-% \begin{figure}[h]\centering
-%   \includegraphics[width=\linewidth]{latex-source-screenshot.png}
-%   \caption{The \texttt{latex\_source/} directory in the project repository.}
-% \end{figure}
+\begin{figure*}[!b]\centering
+  \includegraphics[width=0.92\linewidth]{latex-source-screenshot.png}
+  \caption{The \texttt{latex\_source/} directory of the project repository,
+  holding the LaTeX source, bibliography, figures and build checks that
+  produce this report.}
+  \label{fig:latexsource}
+\end{figure*}
