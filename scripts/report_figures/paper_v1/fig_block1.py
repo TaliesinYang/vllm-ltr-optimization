@@ -54,6 +54,10 @@ ARMS: dict[str, tuple[str, bool]] = {
 COMPARISONS: list[tuple[str, str, str, str]] = [
     ("GatedRuleCScheduler", "PromptLengthSJFScheduler", "primary", "superiority"),
     ("GatedRuleCScheduler", "PolicyFCFS", "safety", "non-inferiority"),
+    # The gate's own hypothesis: selective trust beats blind trust. This is
+    # the only comparison that isolates the gate, since the two arms share
+    # the Ranker and differ solely in whether its score is acted on.
+    ("GatedRuleCScheduler", "PureLTRScheduler", "gate value", ""),
     ("PureLTRScheduler", "PolicyFCFS", "secondary", ""),
     ("PromptLengthSJFScheduler", "PolicyFCFS", "secondary", ""),
     ("PolicyFCFS", "stock_fcfs", "attribution", ""),
