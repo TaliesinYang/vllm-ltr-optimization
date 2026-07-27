@@ -1,0 +1,66 @@
+{
+  "definition": "A scheduling step can express ordering only if two or more requests that were ALREADY waiting at an earlier step co-occur in it; a step made only of first-time arrivals has no order to change. reorder_events counts steps where the emitted order of those carried-over requests differs from the order they previously held.",
+  "note": "The order log keys requests by the engine's chatcmpl id, disjoint from the client's workload ids, so absolute arrival time cannot be joined; carry-over rank is the available ground truth and is exact for the question asked.",
+  "rounds": {
+    "round_a": {
+      "PolicyFCFS": {
+        "requests": 6225,
+        "depth_ge2_pct": 12.4,
+        "steps_depth_ge2": 598,
+        "steps_with_two_waiting_carryover": 304,
+        "reorder_events": 0
+      },
+      "PromptLengthSJFScheduler": {
+        "requests": 6225,
+        "depth_ge2_pct": 12.5,
+        "steps_depth_ge2": 592,
+        "steps_with_two_waiting_carryover": 293,
+        "reorder_events": 262
+      },
+      "PureLTRScheduler": {
+        "requests": 6225,
+        "depth_ge2_pct": 12.4,
+        "steps_depth_ge2": 618,
+        "steps_with_two_waiting_carryover": 324,
+        "reorder_events": 307
+      },
+      "GatedRuleCScheduler": {
+        "requests": 6225,
+        "depth_ge2_pct": 11.9,
+        "steps_depth_ge2": 594,
+        "steps_with_two_waiting_carryover": 313,
+        "reorder_events": 272
+      }
+    },
+    "dprime_pooled": {
+      "PolicyFCFS": {
+        "requests": 6225,
+        "steps_depth_ge2": 432,
+        "steps_with_two_waiting_carryover": 0,
+        "reorder_events": 0,
+        "depth_ge2_pct": 14.3
+      },
+      "PromptLengthSJFScheduler": {
+        "requests": 6225,
+        "steps_depth_ge2": 433,
+        "steps_with_two_waiting_carryover": 0,
+        "reorder_events": 0,
+        "depth_ge2_pct": 14.4
+      },
+      "PureLTRScheduler": {
+        "requests": 6225,
+        "steps_depth_ge2": 451,
+        "steps_with_two_waiting_carryover": 0,
+        "reorder_events": 0,
+        "depth_ge2_pct": 15.0
+      },
+      "GatedRuleCScheduler": {
+        "requests": 6225,
+        "steps_depth_ge2": 433,
+        "steps_with_two_waiting_carryover": 0,
+        "reorder_events": 0,
+        "depth_ge2_pct": 14.3
+      }
+    }
+  }
+}

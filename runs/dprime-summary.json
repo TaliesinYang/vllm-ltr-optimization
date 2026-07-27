@@ -1,0 +1,142 @@
+{
+  "floor_pct": 10.0,
+  "diagnostic": true,
+  "manipulation": {
+    "PolicyFCFS": [
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 13.542168674698795,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.795180722891565,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.650602409638553,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      }
+    ],
+    "PromptLengthSJF": [
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 15.036144578313253,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.602409638554217,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 13.542168674698795,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      }
+    ],
+    "PureLTR": [
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.168674698795181,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 15.710843373493976,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.987951807228916,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      }
+    ],
+    "GatedRuleC": [
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 13.927710843373495,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.650602409638553,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      },
+      {
+        "requests": 2075,
+        "depth_ge2_pct": 14.36144578313253,
+        "steps_ge2": 0,
+        "inversion_steps": 0,
+        "inversion_pct_of_ge2_steps": 0.0
+      }
+    ]
+  },
+  "comparisons": {
+    "GatedRuleC/PromptLengthSJF": {
+      "role": "primary",
+      "ratio": 1.0013,
+      "ci": [
+        0.9878,
+        1.0147
+      ]
+    },
+    "GatedRuleC/PolicyFCFS": {
+      "role": "safety",
+      "ratio": 1.0064,
+      "ci": [
+        0.9931,
+        1.02
+      ]
+    },
+    "GatedRuleC/PureLTR": {
+      "role": "gate value",
+      "ratio": 1.006,
+      "ci": [
+        0.9953,
+        1.0175
+      ]
+    },
+    "PureLTR/PolicyFCFS": {
+      "role": "signal",
+      "ratio": 1.0004,
+      "ci": [
+        0.9856,
+        1.0147
+      ]
+    },
+    "PromptLengthSJF/PolicyFCFS": {
+      "role": "heuristic",
+      "ratio": 1.0052,
+      "ci": [
+        0.9925,
+        1.0173
+      ]
+    }
+  },
+  "blocks": 3,
+  "note": "each arm-block cell is a cold vLLM launch; bootstrap resamples blocks then sessions"
+}

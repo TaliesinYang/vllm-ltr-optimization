@@ -60,13 +60,32 @@ def load_block(stem: str, block: int, sessions) -> dict | None:
     return by_session or None
 
 
+def arrival_order(stem: str, block: int) -> dict[str, float]:
+    """request_id -> dispatch time, the ground truth an ordering policy departs from.
+
+    Ranking the order log against first-appearance-within-the-log is circular:
+    a sorted list assigns its own ranks in sorted order and can never look
+    inverted. The client's dispatch timestamp is outside the scheduler and is
+    what "arrival order" means.
+    """
+    runs = REPO / "runs" / f"dprime-b{block}" / "matrix" / f"{stem}.runs"
+    stamps: dict[str, float] = {}
+    for path in sorted(runs.glob("*.samples.csv")):
+        with path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                value = row.get("dispatched_at_unix_s") or row.get("scheduled_at_unix_s")
+                if value:
+                    stamps[row["request_id"]] = float(value)
+    return stamps
+
+
 def manipulation_check(stem: str, block: int) -> dict | None:
     pattern = str(REPO / "runs" / f"dprime-b{block}-mixed-round-a-{stem}-attempt-*"
                   / "order.jsonl")
+    stamps = arrival_order(stem, block)
     first_depth, seen = {}, set()
-    inversions = 0
+    inversions = steps_ge2 = 0
     for path in sorted(glob.glob(pattern)):
-        arrival_rank: dict[str, int] = {}
         for line in open(path, errors="ignore"):
             line = line.strip()
             if not line:
@@ -80,18 +99,21 @@ def manipulation_check(stem: str, block: int) -> dict | None:
                 if rid not in seen:
                     seen.add(rid)
                     first_depth[rid] = len(order)
-                    arrival_rank[rid] = len(arrival_rank)
             if len(order) >= 2:
-                ranks = [arrival_rank.get(r, 1 << 30) for r in order]
-                if ranks != sorted(ranks):
-                    inversions += 1
+                times = [stamps.get(r) for r in order]
+                if all(t is not None for t in times):
+                    steps_ge2 += 1
+                    if times != sorted(times):
+                        inversions += 1
     if not first_depth:
         return None
     ge2 = sum(1 for d in first_depth.values() if d >= 2)
     return {
         "requests": len(first_depth),
         "depth_ge2_pct": 100.0 * ge2 / len(first_depth),
+        "steps_ge2": steps_ge2,
         "inversion_steps": inversions,
+        "inversion_pct_of_ge2_steps": (100.0 * inversions / steps_ge2) if steps_ge2 else 0.0,
     }
 
 
