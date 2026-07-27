@@ -1,17 +1,22 @@
 {
-  "schema_version": "schema-share-v1",
-  "source": "probes/agent-traces-2026-07-26/agent_trace_vanilla.jsonl.gz",
-  "tool_bearing_requests": 50,
-  "configuration": "agent native tool set (10 tools)",
-  "share_pct": {
-    "min": 17.1,
-    "median": 23.5,
-    "max": 57.4
-  },
-  "bytes_per_tool": {
-    "mean": 2067,
-    "min": 1789,
-    "max": 2130
-  },
-  "note": "The share is unstable because the denominator grows with the conversation while the schema block is resent whole every turn. The per-tool cost is the stable quantity; the paper reports the range and the per-tool figure together for that reason."
+ "schema_version": "schema-share-v1",
+ "source": "probes/agent-traces-2026-07-26/agent_trace_vanilla.jsonl.gz",
+ "tool_bearing_requests": 50,
+ "configuration": "agent native tool set (10 tools)",
+ "share_pct": {
+  "min": 17.1,
+  "median": 23.5,
+  "max": 57.4
+ },
+ "bytes_per_tool": {
+  "mean": 2067,
+  "min": 1789,
+  "max": 2130
+ },
+ "note": "The share is unstable because the denominator grows with the conversation while the schema block is resent whole every turn. The per-tool cost is the stable quantity; the paper reports the range and the per-tool figure together for that reason.",
+ "canonical_all_sets": {
+  "min_pct": 18,
+  "max_pct": 66,
+  "source": "fig3_workload.py panel (b): canonical-JSON tool_bytes/body_bytes over all 50 tool-bearing captured requests (5/8/10-tool sets); integers as printed in the figure annotation"
+ }
 }

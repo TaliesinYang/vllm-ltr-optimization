@@ -34,7 +34,7 @@ GATE_VOCAB = REPO / "scheduler_benchmark" / "artifacts" / "gate_confidence.json"
 RULES = (
     ("placeholder_0.9", "Placeholder 0.9", OKABE_ITO["vermillion"], "X"),
     ("global_control_no_stratification", "Global (no strata)", "#8A8A8A", "s"),
-    ("C_abstain", "Rule C (shipped)", OKABE_ITO["blue"], "o"),
+    ("C_abstain", "Rule C (evaluated)", OKABE_ITO["blue"], "o"),
 )
 RULE_C = 2  # index into RULES; asserted against the key below
 
