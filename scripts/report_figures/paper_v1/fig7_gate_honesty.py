@@ -328,7 +328,7 @@ def main() -> None:
         )
     bar_c = bars[RULE_C]
     ax_bar.annotate(
-        "never overstates",
+        "never overstates\n(this split)",
         # Target the bar's top edge, not its midline, so the arrow path
         # clears the value label printed beside the bar.
         xy=(worst[RULE_C] / 2, bar_c.get_y() + bar_c.get_height()),
