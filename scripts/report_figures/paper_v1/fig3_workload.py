@@ -87,7 +87,7 @@ def main() -> None:
         f"vanilla\n({tool_counts['vanilla']} tools)",
     ]
     bars = ax.bar(
-        names, shares, color=[OKABE_ITO["vermillion"], OKABE_ITO["blue"]], width=0.55
+        names, shares, color=["#6E6E6E", "#9A9A9A"], width=0.55
     )
     for bar, value in zip(bars, shares):
         ax.text(

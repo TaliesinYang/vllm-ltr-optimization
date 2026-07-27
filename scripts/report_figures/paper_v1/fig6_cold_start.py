@@ -49,7 +49,7 @@ def main() -> None:
         1,
         2,
         figsize=(IEEE_DOUBLE_WIDTH, 2.7),
-        gridspec_kw={"width_ratios": [2.6, 1.0]},
+        gridspec_kw={"width_ratios": [2.9, 1.0]},
         constrained_layout=True,
     )
 
@@ -97,23 +97,30 @@ def main() -> None:
     ax.set_ylim(0, 0.78)
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.30), ncol=2)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.24), ncol=4,
+              frameon=False, columnspacing=1.1, handlelength=1.4)
 
     # Withheld strata: size only, no tau.
     ax_small.set_xlim(-0.6, len(WITHHELD) - 0.4)
     ax_small.set_ylim(0, 0.78)
+    # A full-height solid bar reads as a value, and the largest one on the
+    # figure at that: exactly the misreading the n<100 rule exists to prevent.
+    # Hatched, unfilled slots read as absence instead.
     for index, stratum in enumerate(WITHHELD):
         ax_small.bar(
             index,
             0.78,
             width=0.62,
-            color=COLOR["withheld"],
+            facecolor="none",
+            edgecolor=OKABE_ITO["light_gray"],
+            hatch="///",
+            linewidth=0.8,
             zorder=1,
         )
         ax_small.text(
             index,
             0.40,
-            f"withheld\n(n<{threshold})",
+            f"$\\tau$ withheld",
             ha="center",
             va="center",
             fontsize=10,
@@ -123,8 +130,8 @@ def main() -> None:
     ax_small.set_xticks(range(len(WITHHELD)))
     ax_small.set_xticklabels(
         [
-            f"S1\nseen combo\n(n={sizes['S1']})",
-            f"S2\nnew combo\n(n={sizes['S2']})",
+            f"S1\n(n={sizes['S1']})",
+            f"S2\n(n={sizes['S2']})",
         ]
     )
     ax_small.set_yticks([])

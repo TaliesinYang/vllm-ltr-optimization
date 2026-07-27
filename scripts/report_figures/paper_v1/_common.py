@@ -33,11 +33,15 @@ PROVENANCE = FIGS / "PROVENANCE.txt"
 
 # One colour role per concept, held constant across every figure in the set.
 COLOR = {
+    # Semantic palette, not a rainbow: the proposed input carries the single
+    # accent colour, its ablation a lighter tint of the same hue, and every
+    # baseline is neutral grey. Colour therefore means "ours vs not ours"
+    # rather than merely "a different row".
     "prompt_schema": OKABE_ITO["blue"],
     "prompt_only": OKABE_ITO["sky_blue"],
-    "lightgbm_grid": OKABE_ITO["vermillion"],
-    "lightgbm_scalar": OKABE_ITO["orange"],
-    "schema_hash_lookup": OKABE_ITO["purple"],
+    "lightgbm_grid": "#6E6E6E",
+    "lightgbm_scalar": "#9A9A9A",
+    "schema_hash_lookup": "#C2C2C2",
     "withheld": OKABE_ITO["light_gray"],
     "overstate": OKABE_ITO["vermillion"],
     "abstain": OKABE_ITO["dark_gray"],
