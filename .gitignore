@@ -23,3 +23,8 @@ vllm-ltr/
 # keep run manifests (text) — do NOT ignore runs/*.md
 checkpoints_best_predictor/
 checkpoints_best_predictor_seed4*
+
+# Evidence exceptions: the paper's claims trace to these, so they ship with the
+# repo despite the blanket rules above. Both are compressed to stay small.
+!runs/**/workload-block1.jsonl.gz
+!runs/order-logs/order-logs-all.tar.gz
