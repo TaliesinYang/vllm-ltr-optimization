@@ -1,0 +1,70 @@
+% Outline: OUTLINE.md (course-rubric section order; Ryoo file conventions otherwise)
+% Course hard rules: IEEE 2-col, each section starts a NEW PAGE, no bullets outside
+% the Introduction, matplotlib-only figures, per-section page caps.
+\documentclass[conference]{IEEEtran}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{tikz}
+\input{systems-figures.tikzstyles}
+% Course rule: figure fonts AND captions >= 10 pt (IEEEtran default is 8 pt).
+\usepackage[font=normalsize,labelsep=period]{caption}
+
+% Double-column floats may only sit at a page top in standard LaTeX. With five
+% of them in a nine-page paper they queue behind each other and surface pages
+% after the section that discusses them. stfloats opens the page bottom as a
+% second landing site, and the fractions below let a page carry more float area
+% before LaTeX defers to the next one. This keeps each figure inside the
+% section that argues from it, which is what the page caps are really about.
+\usepackage{stfloats}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.65}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.72}
+\renewcommand{\dbltopfraction}{0.92}
+\renewcommand{\dblfloatpagefraction}{0.72}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\setcounter{dbltopnumber}{3}
+
+% Whitespace between a float and the text, tightened. IEEEtran's defaults leave
+% roughly a line and a half around each; with six floats that adds up to a page
+% and strands the last reference on a page of its own.
+\setlength{\dbltextfloatsep}{11pt plus 2pt minus 2pt}
+\setlength{\textfloatsep}{11pt plus 2pt minus 2pt}
+\setlength{\floatsep}{9pt plus 2pt minus 2pt}
+\setlength{\intextsep}{9pt plus 2pt minus 2pt}
+
+
+\graphicspath{{figs/}}
+
+\begin{document}
+
+\title{Group XX: Schema-Aware Output-Length Ranking with an Abstaining
+Reliability Gate for Agentic LLM Serving}
+
+\author{\IEEEauthorblockN{First A.~Author}
+\IEEEauthorblockA{Fairleigh Dickinson University}}
+
+\maketitle
+
+\input{01.abstract}
+\input{02.introduction}
+\input{03.background}
+\input{04.related}
+\input{05.methodology}
+\input{06.evaluation}
+\input{07.discussion}
+\input{08.conclusion}
+\input{09.appendix}
+
+\bibliographystyle{IEEEtran}
+\bibliography{reference}
+
+\end{document}

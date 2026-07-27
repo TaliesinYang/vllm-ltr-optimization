@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" data-editor="draw.io" content="&lt;mxfile host=&quot;Electron&quot; agent=&quot;Mozilla/5.0&quot; version=&quot;27.0.9&quot;&gt;
+  &lt;diagram id=&quot;fig1&quot; name=&quot;Figure 1&quot;&gt;
+    &lt;mxGraphModel dx=&quot;1800&quot; dy=&quot;780&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1800&quot; pageHeight=&quot;780&quot; math=&quot;0&quot; shadow=&quot;0&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;panel-a&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8B8B8;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;20&quot; width=&quot;810&quot; height=&quot;720&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;panel-a-title&quot; value=&quot;&amp;lt;b&amp;gt;(a) Runtime request path&amp;lt;/b&amp;gt;&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=10;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;44&quot; y=&quot;38&quot; width=&quot;300&quot; height=&quot;28&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;client&quot; value=&quot;&amp;lt;b&amp;gt;Client&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;request&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;260&quot; width=&quot;130&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;gateway&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A4A4A;strokeWidth=1.2;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;220&quot; y=&quot;135&quot; width=&quot;390&quot; height=&quot;360&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;gateway-title&quot; value=&quot;&amp;lt;b&amp;gt;Gateway&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;decision RPC boundary&amp;lt;/font&amp;gt;&quot; style=&quot;text;html=1;strokeColor=none;fillColor=#F2F2F2;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;222&quot; y=&quot;137&quot; width=&quot;386&quot; height=&quot;72&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;validate&quot; value=&quot;&amp;lt;b&amp;gt;Validate&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;bundle&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;250&quot; y=&quot;260&quot; width=&quot;125&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;stamp&quot; value=&quot;&amp;lt;b&amp;gt;Stamp&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;metadata&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;470&quot; y=&quot;260&quot; width=&quot;110&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fallback-contract&quot; value=&quot;&amp;lt;b&amp;gt;prediction_reliable=0&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;omit&amp;lt;br&amp;gt;workflow_estimated_tokens&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF5DE;strokeColor=#E69F00;strokeWidth=1.2;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;245&quot; y=&quot;385&quot; width=&quot;340&quot; height=&quot;100&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;vllm&quot; value=&quot;&amp;lt;b&amp;gt;vLLM&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;metadata&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;680&quot; y=&quot;260&quot; width=&quot;135&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;vllm-xargs-label&quot; value=&quot;vllm_xargs&quot; style=&quot;text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=7;fontColor=#4A4A4A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;680&quot; y=&quot;215&quot; width=&quot;135&quot; height=&quot;30&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;panel-b&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8B8B8;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;850&quot; y=&quot;20&quot; width=&quot;930&quot; height=&quot;720&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;panel-b-title&quot; value=&quot;&amp;lt;b&amp;gt;(b) Decision seam&amp;lt;/b&amp;gt;&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=10;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;874&quot; y=&quot;38&quot; width=&quot;300&quot; height=&quot;28&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;input&quot; value=&quot;&amp;lt;b&amp;gt;Prompt&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;+ schema&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;880&quot; y=&quot;175&quot; width=&quot;140&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;bert&quot; value=&quot;&amp;lt;b&amp;gt;BERT&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;prediction&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1120&quot; y=&quot;175&quot; width=&quot;140&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;reliability&quot; value=&quot;&amp;lt;b&amp;gt;Reliable?&amp;lt;/b&amp;gt;&quot; style=&quot;rhombus;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1360&quot; y=&quot;160&quot; width=&quot;140&quot; height=&quot;120&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;placeholder-note&quot; value=&quot;reliability placeholder&amp;lt;br&amp;gt;confidence 0.9 · ood false&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=7;fontColor=#4A4A4A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1300&quot; y=&quot;95&quot; width=&quot;260&quot; height=&quot;55&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;yes-label&quot; value=&quot;yes&quot; style=&quot;text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=7;fontColor=#0072B2;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1510&quot; y=&quot;185&quot; width=&quot;50&quot; height=&quot;25&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;no-label&quot; value=&quot;no&quot; style=&quot;text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=7;fontColor=#E69F00;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1420&quot; y=&quot;305&quot; width=&quot;50&quot; height=&quot;25&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;mapping&quot; value=&quot;&amp;lt;b&amp;gt;Empirical&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;mapping&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1600&quot; y=&quot;175&quot; width=&quot;155&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;estimate&quot; value=&quot;&amp;lt;b&amp;gt;Reliable&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;estimated_tokens&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1550&quot; y=&quot;385&quot; width=&quot;210&quot; height=&quot;100&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;fallback&quot; value=&quot;&amp;lt;b&amp;gt;Fallback&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;no estimate&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFF5DE;strokeColor=#E69F00;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1240&quot; y=&quot;385&quot; width=&quot;180&quot; height=&quot;90&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;bundle&quot; value=&quot;&amp;lt;b&amp;gt;Decision bundle&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;prediction_reliable&amp;lt;br&amp;gt;estimated_tokens iff reliable&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1370&quot; y=&quot;570&quot; width=&quot;340&quot; height=&quot;110&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;decision-response-label&quot; value=&quot;decision response&quot; style=&quot;text;html=1;strokeColor=none;fillColor=#FFFFFF;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=7;fontColor=#0072B2;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;755&quot; y=&quot;594&quot; width=&quot;210&quot; height=&quot;38&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-client-validate&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4A4A4A;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;client&quot; target=&quot;validate&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-validate-stamp&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;validate&quot; target=&quot;stamp&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-stamp-vllm&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#4A4A4A;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;stamp&quot; target=&quot;vllm&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-input-bert&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;input&quot; target=&quot;bert&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-bert-reliability&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;bert&quot; target=&quot;reliability&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-reliability-mapping&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;reliability&quot; target=&quot;mapping&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-mapping-estimate&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;mapping&quot; target=&quot;estimate&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-reliability-fallback&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E69F00;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;reliability&quot; target=&quot;fallback&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;1430&quot; y=&quot;335&quot;/&gt;&lt;mxPoint x=&quot;1330&quot; y=&quot;335&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-estimate-bundle&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;estimate&quot; target=&quot;bundle&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;1668&quot; y=&quot;535&quot;/&gt;&lt;mxPoint x=&quot;1590&quot; y=&quot;535&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-fallback-bundle&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#E69F00;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;fallback&quot; target=&quot;bundle&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;1330&quot; y=&quot;535&quot;/&gt;&lt;mxPoint x=&quot;1490&quot; y=&quot;535&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-bundle-validate&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;entryPerimeter=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;bundle&quot; target=&quot;validate&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;&gt;&lt;Array as=&quot;points&quot;&gt;&lt;mxPoint x=&quot;190&quot; y=&quot;625&quot;/&gt;&lt;mxPoint x=&quot;190&quot; y=&quot;370&quot;/&gt;&lt;mxPoint x=&quot;313&quot; y=&quot;370&quot;/&gt;&lt;/Array&gt;&lt;/mxGeometry&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;" width="181.9mm" height="78.8mm" viewBox="0 0 1800 780" role="img" aria-labelledby="title desc">
+  <title id="title">Runtime request path and predictor decision seam</title>
+  <desc id="desc">The client request passes through a gateway to vLLM. A decision response returns to gateway validation. The predictor checks reliability before applying the empirical mapping; unreliable decisions omit workflow estimated tokens.</desc>
+  <defs>
+    <marker id="arrow-neutral" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L12,6 L0,12 Z" fill="#4A4A4A"/></marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L12,6 L0,12 Z" fill="#0072B2"/></marker>
+    <marker id="arrow-orange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L12,6 L0,12 Z" fill="#E69F00"/></marker>
+    <style>
+      .headline { font: 700 35px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .node-title { font: 700 31px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .body { font: 400 28px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .body-bold { font: 700 28px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .micro { font: 400 24.5px Arial, Helvetica, sans-serif; fill: #4A4A4A; }
+      .micro-blue { font: 400 24.5px Arial, Helvetica, sans-serif; fill: #0072B2; }
+      .micro-orange { font: 400 24.5px Arial, Helvetica, sans-serif; fill: #E69F00; }
+      .panel { fill: #FFFFFF; stroke: #B8B8B8; stroke-width: 3.5; }
+      .neutral { fill: #F2F2F2; stroke: #4A4A4A; stroke-width: 3.5; }
+      .blue { fill: #EAF4FA; stroke: #0072B2; stroke-width: 4; }
+      .blue-white { fill: #FFFFFF; stroke: #0072B2; stroke-width: 4; }
+      .orange { fill: #FFF5DE; stroke: #E69F00; stroke-width: 4; }
+      .edge-neutral { fill: none; stroke: #4A4A4A; stroke-width: 3.5; marker-end: url(#arrow-neutral); }
+      .edge-blue { fill: none; stroke: #0072B2; stroke-width: 3.5; marker-end: url(#arrow-blue); }
+      .edge-orange { fill: none; stroke: #E69F00; stroke-width: 3.5; marker-end: url(#arrow-orange); }
+    </style>
+  </defs>
+  <rect width="1800" height="780" fill="#FFFFFF"/>
+  <g id="panel-a">
+    <rect class="panel" x="20" y="20" width="810" height="720"/>
+    <text class="headline" x="44" y="65">(a) Runtime request path</text>
+    <path class="edge-neutral" d="M160 305 H250"/>
+    <path class="edge-blue" d="M375 305 H470"/>
+    <path class="edge-neutral" d="M580 305 H680"/>
+    <text class="micro" x="747.5" y="240" text-anchor="middle">vllm_xargs</text>
+    <g id="client">
+      <rect class="neutral" x="30" y="260" width="130" height="90"/>
+      <text class="node-title" x="95" y="299" text-anchor="middle">Client</text>
+      <text class="micro" x="95" y="332" text-anchor="middle">request</text>
+    </g>
+    <g id="gateway">
+      <rect x="220" y="135" width="390" height="360" fill="#FFFFFF" stroke="#4A4A4A" stroke-width="4"/>
+      <rect x="222" y="137" width="386" height="72" fill="#F2F2F2"/>
+      <text class="node-title" x="415" y="170" text-anchor="middle">Gateway</text>
+      <text class="micro" x="415" y="198" text-anchor="middle">decision RPC boundary</text>
+      <g id="validate">
+        <rect class="blue-white" x="250" y="260" width="125" height="90"/>
+        <text class="node-title" x="312.5" y="298" text-anchor="middle">Validate</text>
+        <text class="body" x="312.5" y="334" text-anchor="middle">bundle</text>
+      </g>
+      <g id="stamp">
+        <rect class="blue-white" x="470" y="260" width="110" height="90"/>
+        <text class="node-title" x="525" y="298" text-anchor="middle">Stamp</text>
+        <text class="micro" x="525" y="334" text-anchor="middle">metadata</text>
+      </g>
+      <g id="fallback-contract">
+        <rect class="orange" x="245" y="385" width="340" height="100"/>
+        <text class="body-bold" x="415" y="416" text-anchor="middle">prediction_reliable=0</text>
+        <text class="micro" x="415" y="447" text-anchor="middle">omit</text>
+        <text class="micro" x="415" y="476" text-anchor="middle">workflow_estimated_tokens</text>
+      </g>
+    </g>
+    <g id="vllm">
+      <rect class="neutral" x="680" y="260" width="135" height="90"/>
+      <text class="node-title" x="747.5" y="299" text-anchor="middle">vLLM</text>
+      <text class="micro" x="747.5" y="332" text-anchor="middle">metadata</text>
+    </g>
+  </g>
+  <g id="panel-b">
+    <rect class="panel" x="850" y="20" width="930" height="720"/>
+    <text class="headline" x="874" y="65">(b) Decision seam</text>
+    <path class="edge-blue" d="M1020 220 H1120"/>
+    <path class="edge-blue" d="M1260 220 H1360"/>
+    <path class="edge-blue" d="M1500 220 H1600"/>
+    <path class="edge-blue" d="M1677.5 265 V385"/>
+    <path class="edge-orange" d="M1430 280 V335 H1330 V385"/>
+    <path class="edge-blue" d="M1655 485 V535 H1590 V570"/>
+    <path class="edge-orange" d="M1330 475 V535 H1490 V570"/>
+    <g id="predictor-input">
+      <rect class="blue-white" x="880" y="175" width="140" height="90"/>
+      <text class="node-title" x="950" y="214" text-anchor="middle">Prompt</text>
+      <text class="body" x="950" y="249" text-anchor="middle">+ schema</text>
+    </g>
+    <g id="bert-prediction">
+      <rect class="blue" x="1120" y="175" width="140" height="90"/>
+      <text class="node-title" x="1190" y="214" text-anchor="middle">BERT</text>
+      <text class="body" x="1190" y="249" text-anchor="middle">prediction</text>
+    </g>
+    <g id="reliability-decision">
+      <path class="blue-white" d="M1430 160 L1500 220 L1430 280 L1360 220 Z"/>
+      <text class="node-title" x="1430" y="229" text-anchor="middle">Reliable?</text>
+      <text class="micro" x="1430" y="116" text-anchor="middle">reliability placeholder</text>
+      <text class="micro" x="1430" y="145" text-anchor="middle">confidence 0.9 · ood false</text>
+    </g>
+    <text class="micro-blue" x="1535" y="205">yes</text>
+    <text class="micro-orange" x="1445" y="330">no</text>
+    <g id="empirical-mapping">
+      <rect class="blue" x="1600" y="175" width="155" height="90"/>
+      <text class="node-title" x="1677.5" y="210" text-anchor="middle">Empirical</text>
+      <text class="body" x="1677.5" y="247" text-anchor="middle">mapping</text>
+    </g>
+    <g id="estimated-token-output">
+      <rect class="blue" x="1550" y="385" width="210" height="100"/>
+      <text class="node-title" x="1655" y="426" text-anchor="middle">Reliable</text>
+      <text class="micro" x="1655" y="459" text-anchor="middle">estimated_tokens</text>
+    </g>
+    <g id="fallback-output">
+      <rect class="orange" x="1240" y="385" width="180" height="90"/>
+      <text class="node-title" x="1330" y="424" text-anchor="middle">Fallback</text>
+      <text class="body" x="1330" y="458" text-anchor="middle">no estimate</text>
+    </g>
+    <g id="decision-bundle">
+      <rect class="blue-white" x="1370" y="570" width="340" height="110"/>
+      <text class="node-title" x="1540" y="606" text-anchor="middle">Decision bundle</text>
+      <text class="micro" x="1540" y="638" text-anchor="middle">prediction_reliable</text>
+      <text class="micro" x="1540" y="668" text-anchor="middle">estimated_tokens iff reliable</text>
+    </g>
+  </g>
+  <g id="decision-response-seam">
+    <path class="edge-blue" d="M1370 625 H190 V370 H312.5 V350"/>
+    <rect x="755" y="594" width="210" height="38" fill="#FFFFFF"/>
+    <text class="micro-blue" x="860" y="621" text-anchor="middle">decision response</text>
+  </g>
+</svg>

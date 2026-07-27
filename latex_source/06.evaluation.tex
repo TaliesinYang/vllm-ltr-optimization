@@ -1,0 +1,219 @@
+% Outline: Evaluation (3 page cap, >=6 figures; narrative order = story acts)
+% Numbers of record: SYNC-CHECKLIST-2026-07-26.md; claims->evidence map in outline.md.
+% Figure inventory for the >=6 rule: fig:workload, fig:tau, fig:coldstart,
+% fig:overhead, fig:gate, fig:regime, fig:block1.
+\section{Evaluation}
+
+\subsection{E1: What Agent Requests Are Made Of}
+Our capture of a production coding agent covers 75 requests across 25 tasks.
+Each tool in the native sets contributes about 2\,kB of schema
+(1.8--2.1\,kB), giving 21\,kB for ten native tools; the denser 170-tool
+configuration totals 147\,kB, resent whole every turn. That fixed per-turn
+cost is an unstable share of the request: 17\% to 57\% within the native
+configuration alone (median 23.5\%), and 67.0\% with 170 tools. Within a
+call kind the tool set is byte-identical across turns, and the 75 requests
+carry only three distinct sets. Against the ToolACE vocabulary, every
+tool-bearing live request classified as S4.
+\begin{figure*}[t]\centering
+  % Source: probes/agent-traces-2026-07-26/MANIFEST.md + schema-variability probe.
+  \includegraphics[width=\linewidth]{workload.pdf}
+  \caption{Captured agent traffic: across the captured tool sets schemas are
+  18--66\% of request bytes, a
+  third of requests carry no tools, and completion medians split 6 versus 58
+  tokens, so the pooled median of 42 describes neither kind.}
+  \label{fig:workload}
+\end{figure*}
+
+\subsection{E2: Schema Text vs.\ Scalars vs.\ Identity}
+Fig.~\ref{fig:tau} gives the headline offline result. Reading the request as
+text beats the scalar baseline family by $+0.19$~$\tau$ against the tuned
+baseline of record (0.6302 vs.\ 0.4395; fixed form 0.4268). The prompt-only
+control reaches 0.5865, so roughly 77\% of that gap comes from the text
+encoder and 23\% from the schema text. Isolated, the schema is worth
+$\Delta\tau_b = +0.0437$ (95\% session-clustered paired CI
+$[+0.024, +0.066]$). Schema identity is nearly worthless: a
+fingerprint-plus-lookup baseline gains $+0.008$, inside its own $\pm 0.035$
+interval, because only 4.5\% of test requests share a fingerprint with
+training.
+
+\begin{figure}[tb]\centering
+  \includegraphics[width=\linewidth]{ranking.pdf}
+  \caption{Ranking quality by input family: prompt-plus-schema text exceeds
+  the tuned scalar baseline by $\Delta\tau_b{=}+0.191$. Dots are the mean
+  over 3 seeds; capped bars the 95\% bootstrap CI on seed 17 alone; the lane
+  below each row the min--max across seeds, a tick where that spread is
+  zero.}
+  \label{fig:tau}
+\end{figure}
+
+Fig.~\ref{fig:coldstart} evaluates the same models on the S3 (partially new
+tools, $n{=}543$) and S4 (all-new tools, $n{=}333$) strata. Both
+pre-registered criteria pass on both strata against the tuned baseline, and
+schema-text $\tau$ differs by only 0.0075 between them (0.647 and 0.639,
+against 0.630 overall). We ran no equivalence test, so this is consistent
+with no degradation rather than a demonstration of it.
+\begin{figure*}[t]\centering
+  % Source: runs/offline-experiments-2026-07-25/t1-strata.json
+  \includegraphics[width=\linewidth]{coldstart.pdf}
+  \caption{Cold-start transfer: schema-text ranking differs by 0.0075
+  between the two adequately powered unseen-tool strata, and the identity
+  lookup records no table hits. Panel (a) pools all 999 test requests,
+  including the withheld S1 and S2 of Fig.~\ref{fig:strata}, so it is not the
+  mean of (b) and (c); markers are the mean over three seeds, whiskers are
+  session-clustered bootstrap CIs (1000 resamples, percentile, seed-17
+  scores), and each $\Delta\tau_b$ interval adds the two arms' variances as
+  independent, which is conservative for these paired rows.}
+  \label{fig:coldstart}
+\end{figure*}
+
+\subsection{E3: Deployment Cost and Two Failed Rescues}
+The Ranker costs 722\,ms at p99 on production CPU settings at the deployed
+concurrency of eight, 48$\times$ the gateway's 15\,ms contract and still
+8$\times$ over it served serially. Two pre-registered rescues fail.
+\emph{Un-truncation}: 71\% of schemas exceed the 512-token cap, yet a
+two-tower encoder reading the whole schema moves $\tau$ by $+0.0008$ (S3)
+and $-0.0112$ (S4), intervals overlapping. \emph{Caching}: precomputing the
+schema tower yields $1.9\times$, still 25$\times$ over contract at
+concurrency 8 (4.3$\times$ serial). On the serving GPU with fp16
+micro-batching, scoring costs 37.9\,ms at p50, $6.0\times$ faster than
+unbatched GPU inference and
+$16.6\times$ faster than the CPU path at the same percentile (628.8\,ms
+p50). Under the documented 15\,ms default,
+34.6\%
+of requests (801 of 2{,}315) fail open into arrival order, silently; at
+50\,ms fail-open drops to 2.0\%, and at 75\,ms it reaches zero.
+\begin{figure*}[tb]\centering
+  \includegraphics[width=\linewidth]{overhead.pdf}
+  \caption{Admission-time scoring versus direct: $+$737\,ms TTFT and
+  $+$840\,ms TTLT over the whole added path.}
+  \label{fig:overhead}
+\end{figure*}
+
+\subsection{E4: Assigned versus Realized Confidence}
+The placeholder constant confidence (0.9) overstates realized ranking
+quality on every stratum, by $+0.25$ to $+0.46$; the lower CI bound of
+validation $\tau$ per stratum, abstaining where it cannot be measured, did
+not overstate on any stratum here (worst deviation $-0.016$). S2 is where
+the Ranker fails: familiar tools in new combinations realize $\tau = 0.44$,
+some 0.2 below every other stratum ($n{=}78$).
+\begin{figure*}[tb]\centering
+  \includegraphics[width=\linewidth]{gate.pdf}
+  \caption{Assigned versus realized confidence: the placeholder constant
+  overstates on every stratum; Rule~C did not on this split, at the cost of
+  abstaining where it cannot measure.}
+  \label{fig:gate}
+\end{figure*}
+
+\subsection{E5: Serving-Level Scheduling}
+We replayed 2{,}075 requests open-loop at 3.96 requests/s, 90\% of the
+highest rate the stock scheduler sustained under a 95\% completion criterion
+(4.4\,requests/s). Six schedulers share one arrival schedule: stock
+first-come-first-served, a shim wrapping it unchanged, and four on our own
+base, \emph{PolicyFCFS} (arrival order, no scorer), \emph{PromptLengthSJF}
+(prompt length), \emph{PureLTR} (Ranker score) and \emph{GatedRuleC} (Ranker
+score where the gate vouches). The pre-registered endpoint is pooled mean
+time-to-last-token, compared as paired-mean ratios with hierarchical
+bootstrap intervals against a pre-declared 3\% margin.
+
+The attribution control comes first (Fig.~\ref{fig:block1}).
+\emph{PolicyFCFS} and stock serve the same requests in the same arrival
+order and differ only in scheduler implementation; PolicyFCFS records a
+paired mean-TTLT ratio of $0.560$ ($[0.540, 0.581]$), so that 44\% reduction
+arrives with the switch of implementation itself. We did not isolate which
+internal difference produces it, and none of it is contributed by ordering.
+Interposition does not explain it: the shim lands within 2\,ms of stock
+(4903 vs.\ 4905\,ms).
+
+Against the same-base control, ordering does not move the endpoint here. The
+superiority test fails: GatedRuleC versus PromptLengthSJF gives $1.008$
+($[0.979, 1.041]$), an interval containing one. Safety passes: against
+PolicyFCFS the ratio is $0.996$ ($[0.970, 1.023]$), inside the 3\% margin,
+and with an empty queue the gate itself costs under 1.4\%.
+
+The order logs quantify how often ordering could act and show that the
+policies acted when able. Across 77{,}000 scheduling steps per arm the
+waiting queue was empty at p90 and held two waiting requests in under 1\% of
+steps; 12.4\% of requests first entered a queue of depth two or more.
+Expressing an order needs two requests that were \emph{already} waiting to
+meet in the same step. That happened in 293--324 steps per arm, and the
+policies rewrote 262--307 of them (87--95\%), while \emph{PolicyFCFS}
+rewrote none. Ordering was executed on nearly every opportunity it had and
+mean TTLT did not move. This round did not isolate why: three mechanisms are
+consistent with it, the replay's compressed job-size variance, a two-deep
+queue where a swap moves a request by at most one slot, and residual ranking
+error at $\tau{=}0.63$. Round~A separates none of them; E6 does.
+
+A second round replays all six arms with vLLM prefix caching enabled and
+nothing else changed. The stock arms bridge the sessions, their on/off
+ratios agreeing to four decimal places (0.8291 vs.\ 0.8290), and the
+engine's log confirms the cache took effect (62.1\% peak hit rate). Caching
+cuts pooled mean TTLT by 17.1\% on the stock pair and 22--23\% on the four
+policy-base arms. The policy intervals overlap the bridge's, so the larger
+gain is suggested rather than established, and the experiment did not
+isolate the schema's share of it.
+
+A third round at 6.4\,requests/s in three blocks of cold engine launches
+fails the same check (exposure only 14.3--15.0\%, \emph{not one} carry-over
+step across twelve launches), so it is non-diagnostic for superiority. On
+those independent launches GatedRuleC gives $1.001$ ($[0.988, 1.015]$),
+$1.006$ ($[0.993, 1.020]$) and $1.006$ ($[0.995, 1.018]$) against
+PromptLengthSJF, PolicyFCFS and PureLTR, all inside the 3\% margin.
+
+\subsection{E6: Ordering Under Contention}
+None of those rounds formed a queue: the running-batch cap sat at vLLM's
+default of 256 slots while only eleven to nineteen requests were in flight.
+E6 caps it at 16 and repeats the question with everything else fixed, at
+6.4 requests/s with prefix caching on and one cold launch per arm. The cap
+is an instrument, not a recommendation. A scheduler can only act where
+requests wait, and what we could vary at our budget was the number of slots
+rather than the arrival rate needed to fill 256 of them; a deployment
+reaches the same condition whenever offered concurrency exceeds the slots
+it has, whether because the cap is low or because long contexts exhaust the
+KV cache first. What E6 tests is therefore the regime, not the number: the
+claim is that ordering pays once a queue exists, and the cap is how we made
+one. The
+manipulation check passes this time: 57.5--63.6\% of requests entered a
+queue of depth two or more, p90 depth reached 8 to 14, and 5{,}914 to
+7{,}121 steps per arm carried two requests that had both waited earlier,
+against 293--324 in round~A. The policies rewrote 1{,}817 to 6{,}607 of
+them, and \emph{PolicyFCFS} again rewrote none.
+
+Ordering now moves the endpoint (Fig.~\ref{fig:regime}), and the
+pre-registered primary test passes for the first time: GatedRuleC versus PromptLengthSJF gives $0.966$
+($[0.935, 0.998]$), an upper bound below one. What pays is the learned
+signal. PureLTR beats arrival order by 4.2\% ($0.958$, $[0.944, 0.972]$),
+while the free length heuristic runs 8.5\% \emph{worse} than doing nothing
+($1.085$, $[1.051, 1.122]$), so rendered prompt length is a poor proxy for
+output length; over 2{,}025 shared sessions pooled mean TTLT is 2.797\,s for
+PureLTR against 3.169\,s for PromptLengthSJF. The two regimes also separate
+the gate's cost:
+GatedRuleC against PureLTR was $1.003$ ($[0.991, 1.014]$) with an empty
+queue and is $1.095$ ($[1.079, 1.112]$) here, and against PolicyFCFS it is
+$1.049$ ($[1.033, 1.065]$), outside the 3\% margin. Abstention pins S1, S2
+and zero-tool requests in their arrival slots, and once the queue is deep
+those pinned requests block the ones behind them. Abstaining is free when
+nothing is waiting and costly when something is.
+
+\begin{figure*}[tb]\centering
+  % Source: runs/block1-main/matrix (default cap) and
+  % runs/capped-batch/matrix (cap 16); same workload, same arrival offsets,
+  % same checkpoint. Ratios and intervals are the paired bootstrap.
+  \includegraphics[width=\linewidth]{regime.pdf}
+  \caption{One engine setting decides the paper's answer. The same four
+  policies on the same workload: with the default running-batch cap no pair
+  separates, and with the cap reduced every pair does.}
+  \label{fig:regime}
+\end{figure*}
+\begin{figure*}[tb]\centering
+  % Source: runs/block1-main/matrix, six arms x 3 replay repetitions
+  % (round A only; the generator reads matrix/, not matrix-round-b/),
+  % 2075-request replay.
+  \includegraphics[width=\linewidth]{block1.pdf}
+  \caption{Serving-level scheduling at the default batch cap: the
+  $1.78\times$ gap between stock and \emph{PolicyFCFS} comes from the
+  scheduler implementation, not from ordering, and the policies rewrote
+  87--95\% of the steps that could express an order. The paired ordering
+  ratios for this regime, and the 3\% margin they are judged against, are in
+  Fig.~\ref{fig:regime}(a).}
+  \label{fig:block1}
+\end{figure*}

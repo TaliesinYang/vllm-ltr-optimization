@@ -1,0 +1,91 @@
+% Outline: Related Work (1 page cap). Ryoo craft: pure gap-framing, never survey;
+% batch-cites to establish each field; bold run-in headers; differentiate by AXIS;
+% first-person "Our work ..." differentiators; concede-then-pivot, never dismiss.
+\section{Related Work}
+
+\subsection{Learned Length Prediction for Scheduling}
+A substantial line learns output-length signals to approximate
+shortest-job-first serving~\cite{ssjf2024,fuLTR2024,tao2026ranking,elis2025},
+progressing from length-bucket classification to relative-rank training, the
+insight we inherit: scheduling needs \emph{order}, not absolute
+length~\cite{fuLTR2024}. PARS, now peer-reviewed at ISC High Performance
+2026, pairs a BERT encoder with pairwise margin training and demonstrates
+cross-model robustness~\cite{tao2026ranking}. However, every predictor in
+this line reads the prompt or scalar request statistics; none consumes
+tool-schema text, and none is evaluated on requests whose tools were absent
+from training. Our work fills this gap: schema text as
+predictor input, and a novelty-stratified evaluation in which 95.5\% of test
+requests carry tool combinations unseen in training --- the regime our
+single-client live capture exhibits throughout.
+
+\subsection{Prediction-Free Scheduling}
+A newer position holds that tail latency does not need prediction at all.
+UniBoost's distribution-aware boosting beats even an \emph{oracle}-length
+SRPT baseline by 35.1\% on P99 time-to-last-token in its Table~2
+configuration~\cite{beyondPrediction2026}, and starvation-free preemptive
+designs make adjacent arguments~\cite{fastServe2026,tie2026}. We
+therefore make no tail claims: if an oracle loses on P99, better ranking
+accuracy will not repair that, so our endpoints are means and goodput. The concession is scoped by the papers' own designs, however:
+UniBoost evaluates no tool-calling workload, disables prefix caching for
+experimental control, and is prediction-free but not feature-free --- its
+scheduler consumes prompt length, the same class of signal our weakest
+baseline uses. Whether its result transfers to agentic traffic is, by its
+own construction, open.
+
+\subsection{Scheduling Under Imprecise Information}
+JITServe is the strongest published treatment of acting on unreliable
+estimates: quantile-forest \emph{upper bounds} on length, refined every
+$\sim$50 generated tokens, drive grouped goodput scheduling within 3--9\% of
+an oracle on a 16-GPU cluster --- with BERT-class predictors explicitly
+rejected at 56--187\,ms under load against a forest costing 11--24\,ms at
+those same loads (its oft-quoted 7\,ms is the lightest, 8-requests/s
+point)~\cite{jitServe2026}. Its tool awareness is structural: tools enter as
+identity and duration in a dependency graph, never as text into the length
+model. We position our gate as complementary, not competitive. JITServe
+absorbs uncertainty by always scheduling against a pessimistic bound; our
+gate \emph{detects} where trust has no measured basis and abstains,
+preserving arrival order --- the ``explicit fallback policies'' its authors
+name as an open problem under distribution shift. Agent-serving systems that
+exploit workflow structure~\cite{agentix2026,infercept2024} are orthogonal:
+they schedule around tool-call \emph{interruptions}, not around length
+uncertainty.
+
+\subsection{Schemas as Model Input; Unseen-Tool Evaluation}
+Fine-tuning small encoders on schema text is established practice in tool
+learning --- it is how function-calling models are
+trained~\cite{toolace2024,qin2024toolllm,patil2024gorilla} --- and
+Switchcraft packs function signatures into a DistilBERT to route requests
+across models by predicted \emph{correctness}~\cite{switchcraft2026}. The
+distinction we claim is therefore narrow and specific: schema text
+$\rightarrow$ output-length rank $\rightarrow$ queue order is, to our
+knowledge, unoccupied; Switchcraft itself lists benchmark-shift
+quantification as future work; our Cold-Start Transfer strata measure that
+axis. For the stratified design we follow tool-learning precedent:
+ToolLLM evaluates at unseen-instruction, unseen-tool, and unseen-category
+levels~\cite{qin2024toolllm}, licensing our S1--S4 \emph{design} though not
+our metric (it scores task success, not length rank). BFCL's crowd-sourced
+split targets contamination control, a different axis~\cite{patil2025bfcl},
+and Gorilla's holdout is random --- its ``zero-shot'' denotes retriever
+absence, not unseen APIs~\cite{patil2024gorilla} --- so neither substitutes
+for tool-novelty stratification.
+
+\subsection{The Serving Substrate: Gateways, Admission, Prefix Reuse}
+Our contribution sits between two systems layers that are usually studied
+separately. Below the engine, continuous
+batching~\cite{orca2022} and paged attention~\cite{vllm2023} set the
+execution substrate, and prefix reuse --- RadixAttention in
+SGLang~\cite{sglang2024} and the prefix caching now standard in
+vLLM --- exploits the repetition our capture exhibits, a
+schema resent byte-identically on every turn of a given call kind; our
+ordering runs hold it
+disabled to isolate ordering, and one round enables it to measure it. Above the engine, gateways
+own admission: overload control in production RPC systems sheds load
+by priority when queues exceed bounds~\cite{dagor2018}, and the
+gateway we deploy on implements the same pattern as queue guards with
+priority bypass. Admission decides \emph{whether and when} a request
+reaches the engine; the engine's scheduler decides \emph{which}
+waiting request runs next. Our predictor feeds the second decision,
+and its budget is set by the first, so a scoring path
+slower than the configured admission timeout is excluded regardless of
+its ranking accuracy; the timeout itself is an operator choice.
+

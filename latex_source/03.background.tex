@@ -1,0 +1,177 @@
+% Outline: Background (1.5 page cap, >=2 figures; defines the paper's vocabulary)
+\section{Background}
+
+\subsection{Serving, Scheduling, and Head-of-Line Blocking}
+Modern LLM engines admit requests continuously and batch them at
+token granularity; continuous batching~\cite{orca2022} and vLLM's paged
+KV-cache~\cite{vllm2023} are the substrate for this work. The scheduler decides which waiting request joins
+the running batch next. First-come-first-served is the default, and its
+weakness is classical: a long-running request admitted early delays every
+short request behind it. A 2026 survey of latency in LLM agent systems
+independently lists FIFO-induced head-of-line blocking among live system
+bottlenecks for agentic traffic~\cite{park2026minimizing}, while placing
+learned scheduling in its future-work section --- the gap this paper works in.
+
+\subsection{Learned Output-Length Prediction}
+Shortest-job-style ordering requires knowing output lengths in
+advance. Since generation length is stochastic, a body of work predicts it:
+S\textsuperscript{3} classifies responses into length buckets; the
+learning-to-rank line~\cite{fuLTR2024} showed that \emph{relative order},
+not absolute length, is what scheduling needs, training a small proxy with a
+ranking loss; PARS~\cite{tao2026ranking} refined this with pairwise margin
+training over a BERT encoder. All of these read the prompt (or scalar request
+statistics); none consume tool-schema text.
+
+\subsection{System Substrate: Gateway and Decision Service}
+Our serving stack (Fig.~\ref{fig:arch}) fronts the engine with an
+LLM gateway (VeloxMesh) that owns routing, admission, and a scheduler hook
+with a documented default timeout: scoring must return within 15\,ms
+(operator-configurable), after which
+the gateway \emph{fails open} to arrival order. The gateway consults a
+separate decision service over HTTP; that service
+hosts the Ranker and applies the Reliability Gate on the gateway's behalf.
+This fail-open contract is load-bearing for everything that follows: an
+unreliable or slow prediction never blocks the request path.
+
+\begin{figure*}[t]
+  \centering
+  % ONE grid, ONE module.
+  % Columns: 0--52 | 62--114 | 124--176 -- three 52 mm columns and a single
+  % 10 mm gutter. Rows: +18..-18 and -26..-62 -- two 36 mm containers and a
+  % single 8 mm row gap, so every container on the page shares one top edge
+  % and one bottom edge. Inside every container: 3 mm of side padding and 2 mm
+  % of top and bottom padding, a header strip of one fixed 6 mm height pinned
+  % top-left, and a 46x24 mm content region cut into a 9 mm body lane at
+  % yc+3.5, a 6 mm connector lane, and a 9 mm body lane at yc-11.5. Every body
+  % box is 46x9 mm, and every connector starts and ends exactly on the border
+  % of the box it names (style: edge gap = 0).
+  \begin{tikzpicture}[x=1mm,y=1mm]
+    \begin{scope}[on background layer]
+      \node[panel, minimum width=52mm, minimum height=42mm] (client) at (26,0) {};
+      \node[panel, minimum width=52mm, minimum height=42mm] (gw)     at (88,0) {};
+      \node[panel, minimum width=52mm, minimum height=42mm] (engine) at (150,0) {};
+      \node[panel accent, minimum width=52mm, minimum height=42mm] (dec) at (88,-52) {};
+      \node[panel, minimum width=52mm, minimum height=42mm] (verd) at (150,-52) {};
+    \end{scope}
+
+    % ---- header strips: one language, one height, one baseline per row ------
+    \node[tier title, anchor=north west] at (3,18)    {Agent client};
+    \node[tier title, anchor=north west] at (65,18)   {Gateway};
+    \node[tier title, anchor=north west] at (127,18)  {vLLM engine};
+    \node[tier title, anchor=north west] at (65,-34)  {Decision service};
+    \node[tier title, anchor=north west] at (127,-34) {Verdict};
+
+    % ---- row 1, col 1: the one captured turn every number in the paper uses --
+    \node[environment component, inner sep=0pt, minimum width=46mm,
+          minimum height=9mm] (cli) at (26,4.5) {OpenCode};
+    \node[environment component, align=center, text width=42mm, inner sep=0pt,
+          minimum width=46mm, minimum height=9mm] (turn) at (26,-13.5)
+      {Captured turn\\{\sub{170 tools, 147\,kB}}};
+    \draw[data flow, edge gap] (26,0) -- (26,-9);
+
+    % ---- row 1, col 2: gateway (one flush strip, then the scoring hook) ------
+    \node[environment component, inner sep=0pt, minimum width=46mm,
+          minimum height=9mm] (strip) at (88,4.5) {};
+    \draw[draw=black!45, line width=.7pt] (80.333,0) -- (80.333,9);
+    \draw[draw=black!45, line width=.7pt] (95.667,0) -- (95.667,9);
+    \node at (72.667,4.5) {Admit};
+    \node at (88,4.5)     {Cache};
+    \node at (103.333,4.5){Route};
+    \node[environment component, align=center, text width=42mm, inner sep=0pt,
+          minimum width=46mm, minimum height=9mm] (hook) at (88,-13.5)
+      {Scheduler hook\\{\sub{verdict due in 15\,ms}}};
+    \draw[data flow, edge gap] (88,0) -- (88,-9);
+
+    % ---- row 1, col 3: the queue lives INSIDE vLLM, not beside it -----------
+    % (verified: the gateway attaches the verdict to the forwarded request,
+    %  VeloxMesh internal/ltr/decision.go:218; the policy reads it back from
+    %  the request's extra_args inside the engine, vllm_scheduler.py:87)
+    \node[proposed component, align=center, text width=42mm, inner sep=0pt,
+          minimum width=46mm, minimum height=9mm] (sched) at (150,4.5)
+      {Scheduler\\{\sub{reorders trusted slots}}};
+    \node[trusted slot, minimum width=10mm, minimum height=9mm] (q1) at (132,-13.5) {};
+    \node[pinned slot,  minimum width=10mm, minimum height=9mm] (q2) at (144,-13.5) {};
+    \node[trusted slot, minimum width=10mm, minimum height=9mm] (q3) at (156,-13.5) {};
+    \node[pinned slot,  minimum width=10mm, minimum height=9mm] (q4) at (168,-13.5) {};
+    % Both ends land on a slot's top border; the swap needs no chip because the
+    % scheduler box above it already says what the swap is.
+    \draw[data flow, edge gap]
+      (156,-9) .. controls (150,-2) and (138,-2) .. (132,-9);
+
+    % ---- row 2, col 2: decision service, one flush three-lane stack ---------
+    \node[proposed component, inner sep=0pt, minimum width=46mm,
+          minimum height=27mm] (stack) at (88,-56.5) {};
+    \draw[draw=sysaccent!85!black, line width=.9pt] (65,-52) -- (111,-52);
+    \draw[draw=sysaccent!85!black, line width=.9pt] (65,-61) -- (111,-61);
+    \node at (88,-47.5) {Stratum classifier};
+    \node at (88,-56.5) {Reliability Gate};
+    \node at (88,-65.5) {Schema-aware Ranker};
+
+    % ---- row 2, col 3: the verdict, as two boxes an arrow can land on -------
+    \node[environment component, align=center, text width=42mm, inner sep=0pt,
+          minimum width=46mm, minimum height=9mm] (fo) at (150,-47.5)
+      {Arrival order\\{\sub{abstain, or 15\,ms passes}}};
+    \node[proposed component, align=center, text width=42mm, inner sep=0pt,
+          minimum width=46mm, minimum height=9mm] (key) at (150,-65.5)
+      {Reorder key\\{\sub{trusted: S3 / S4}}};
+    \draw[degraded flow, edge gap, lane turn]
+      (111,-56.5) -- (119,-56.5) -- (119,-47.5) -- (127,-47.5);
+    \draw[data flow, edge gap] (111,-65.5) -- (127,-65.5);
+
+    % ---- the two inter-row connectors: ask down, verdict up ----------------
+    % Each chip sits beside its own arrow, and the arrow is offset by half the
+    % chip so that arrow+chip centre on the column axis (x=88 and x=150).
+    \draw[data flow, edge gap] (75.75,-21) -- (75.75,-31);
+    \node[metric badge, anchor=west] at (77.25,-26) {score, 15\,ms};
+    \draw[data flow, edge gap] (141.75,-31) -- (141.75,-21);
+    \node[metric badge, anchor=west] at (143.25,-26) {verdict};
+
+    % ---- edges on the serving path -----------------------------------------
+    \draw[data flow, edge gap, lane turn] (49,-13.5) -- (57,-13.5) -- (57,4.5) -- (65,4.5);
+    \draw[data flow, edge gap] (111,4.5) -- (127,4.5);
+
+    % ---- legend: a compact band, deliberately smaller than a subsystem ------
+    \node[tier band, minimum width=52mm, minimum height=16mm, inner sep=0pt]
+      at (26,-52) {};
+    \node[proposed component, inner sep=0pt, minimum width=7mm,
+          minimum height=4.4mm] at (8.5,-47) {};
+    \node[fact label, fill=none, anchor=west, text=black!75] at (13.5,-47)
+      {added by this work};
+    \node[environment component, inner sep=0pt, minimum width=7mm,
+          minimum height=4.4mm] at (8.5,-52) {};
+    \node[fact label, fill=none, anchor=west, text=black!75] at (13.5,-52)
+      {unchanged substrate};
+    \draw[degraded flow] (5,-57) -- (12,-57);
+    \node[fact label, fill=none, anchor=west, text=black!75] at (13.5,-57)
+      {fail-open path};
+  \end{tikzpicture}
+  \caption{The gateway scores at admission inside a 15\,ms budget and
+  forwards the verdict; the engine's scheduler reorders trusted slots among
+  themselves and leaves abstained ones where they arrived. A timeout or an
+  abstention yields arrival order.}
+  \label{fig:arch}
+\end{figure*}
+
+\begin{figure*}[t]\centering
+  % Source: runs/coldstart/ (999 test requests, 3 seeds) and the gate's
+  % validation fit; every number is read from those artifacts at build time.
+  \includegraphics[width=\linewidth]{strata.pdf}
+  \caption{The four cold-start strata, and which of them the paper is
+  allowed to speak for. S1 and S2 hold too few test requests to support a
+  claim, so their Ranking Tau is withheld and the gate routes them to
+  Fallback.}
+  \label{fig:strata}
+\end{figure*}
+
+\subsection{Vocabulary}
+Throughout, the \emph{Ranker} is the fine-tuned BERT model scoring a
+request's expected output length; the \emph{Reliability Gate} is the runtime
+decision of whether that score may influence queue order; \emph{Fallback}
+means serving in arrival order because the gate withheld trust.
+\emph{Ranking Tau} is Kendall's $\tau_b$~\cite{kendall1938} between predicted and true
+output-length order on held-out data. \emph{Cold-Start Transfer} measures
+Ranking Tau on test strata whose tool sets were unseen in training, within
+the same workload family: S1 (seen combination), S2 (new combination of seen
+tools), S3 (partially new tools), S4 (all-new tools); Fig.~\ref{fig:strata}
+gives each stratum's size and what the gate does with it. It is distinct from
+\emph{Cross-Workload Transfer}, which changes the workload family entirely.

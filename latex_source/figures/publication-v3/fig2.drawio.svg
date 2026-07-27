@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" data-editor="draw.io" content="&lt;mxfile host=&quot;Electron&quot; agent=&quot;Mozilla/5.0&quot; version=&quot;27.0.9&quot;&gt;
+  &lt;diagram id=&quot;fig2&quot; name=&quot;Figure 2&quot;&gt;
+    &lt;mxGraphModel dx=&quot;1800&quot; dy=&quot;780&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1800&quot; pageHeight=&quot;780&quot; math=&quot;0&quot; shadow=&quot;0&quot;&gt;
+      &lt;root&gt;
+        &lt;mxCell id=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+        &lt;mxCell id=&quot;panel-a&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8B8B8;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;20&quot; y=&quot;20&quot; width=&quot;680&quot; height=&quot;720&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;panel-a-title&quot; value=&quot;&amp;lt;b&amp;gt;(a) Frozen evidence&amp;lt;/b&amp;gt;&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=10;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;44&quot; y=&quot;38&quot; width=&quot;260&quot; height=&quot;28&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;source-row&quot; value=&quot;&amp;lt;b&amp;gt;Source pins&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;ToolACE 6bda777 · Qwen tokenizer c202236&amp;lt;br&amp;gt;BERT base 86b5e09&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;align=left;spacingLeft=10;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;75&quot; y=&quot;135&quot; width=&quot;570&quot; height=&quot;105&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;table-header&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#4A4A4A;strokeColor=#4A4A4A;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;75&quot; y=&quot;280&quot; width=&quot;570&quot; height=&quot;58&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;header-evidence&quot; value=&quot;Evidence&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;95&quot; y=&quot;291&quot; width=&quot;150&quot; height=&quot;36&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;header-train&quot; value=&quot;Train&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;285&quot; y=&quot;291&quot; width=&quot;90&quot; height=&quot;36&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;header-validation&quot; value=&quot;Validation&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;390&quot; y=&quot;291&quot; width=&quot;120&quot; height=&quot;36&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;header-test&quot; value=&quot;Test&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;535&quot; y=&quot;291&quot; width=&quot;90&quot; height=&quot;36&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;raw-row&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A4A4A;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;75&quot; y=&quot;338&quot; width=&quot;570&quot; height=&quot;72&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;raw-label&quot; value=&quot;Raw split&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;95&quot; y=&quot;352&quot; width=&quot;150&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;raw-train&quot; value=&quot;4,000&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;285&quot; y=&quot;352&quot; width=&quot;90&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;raw-validation&quot; value=&quot;1,000&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;405&quot; y=&quot;352&quot; width=&quot;90&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;raw-test&quot; value=&quot;1,000&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;535&quot; y=&quot;352&quot; width=&quot;90&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;analyzed-row&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#4A4A4A;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;75&quot; y=&quot;410&quot; width=&quot;570&quot; height=&quot;72&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;analyzed-label&quot; value=&quot;Analyzed&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;95&quot; y=&quot;424&quot; width=&quot;150&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;analyzed-train&quot; value=&quot;3,997&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;285&quot; y=&quot;424&quot; width=&quot;90&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;analyzed-validation&quot; value=&quot;998&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;405&quot; y=&quot;424&quot; width=&quot;90&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;analyzed-test&quot; value=&quot;999&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;535&quot; y=&quot;424&quot; width=&quot;90&quot; height=&quot;40&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;panel-b&quot; value=&quot;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8B8B8;strokeWidth=1;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;
+          &lt;mxGeometry x=&quot;720&quot; y=&quot;20&quot; width=&quot;1060&quot; height=&quot;720&quot; as=&quot;geometry&quot;/&gt;
+        &lt;/mxCell&gt;
+        &lt;mxCell id=&quot;panel-b-title&quot; value=&quot;&amp;lt;b&amp;gt;(b) Validation selection and artifact lineage&amp;lt;/b&amp;gt;&quot; style=&quot;text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=10;fontColor=#1A1A1A;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;744&quot; y=&quot;38&quot; width=&quot;520&quot; height=&quot;28&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;matrix&quot; value=&quot;&amp;lt;b&amp;gt;10-run&amp;lt;br&amp;gt;matrix&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;variants&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;770&quot; y=&quot;285&quot; width=&quot;190&quot; height=&quot;100&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;selected-run&quot; value=&quot;&amp;lt;b&amp;gt;Validation-selected&amp;lt;br&amp;gt;run&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 7px;&amp;quot;&amp;gt;prompt + schema&amp;lt;br&amp;gt;seed 17&amp;lt;/font&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 8px;&amp;quot;&amp;gt;validation τ = 0.657&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1080&quot; y=&quot;240&quot; width=&quot;300&quot; height=&quot;180&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;heldout-tag&quot; value=&quot;evaluation only&amp;lt;br&amp;gt;held-out τ = 0.642&quot; style=&quot;rounded=0;dashed=1;dashPattern=4 4;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1;fontFamily=Arial;fontSize=7;fontColor=#4A4A4A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1080&quot; y=&quot;445&quot; width=&quot;300&quot; height=&quot;74&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;checkpoint&quot; value=&quot;&amp;lt;b&amp;gt;Checkpoint&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 8px;&amp;quot;&amp;gt;prompt + schema · seed 17&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1520&quot; y=&quot;150&quot; width=&quot;220&quot; height=&quot;105&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;lookup&quot; value=&quot;&amp;lt;b&amp;gt;Empirical p10–p99 lookup&amp;lt;/b&amp;gt;&amp;lt;br&amp;gt;&amp;lt;font style=&amp;quot;font-size: 8px;&amp;quot;&amp;gt;output-length distribution&amp;lt;/font&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1500&quot; y=&quot;380&quot; width=&quot;250&quot; height=&quot;120&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;labels&quot; value=&quot;&amp;lt;b&amp;gt;6,000&amp;lt;br&amp;gt;output-length&amp;lt;br&amp;gt;labels&amp;lt;/b&amp;gt;&quot; style=&quot;rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;1485&quot; y=&quot;610&quot; width=&quot;280&quot; height=&quot;110&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-matrix-selection&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;matrix&quot; target=&quot;selected-run&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-selection-checkpoint&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A4A4A;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;selected-run&quot; target=&quot;checkpoint&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+        &lt;mxCell id=&quot;edge-labels-lookup&quot; value=&quot;&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;&quot; edge=&quot;1&quot; parent=&quot;1&quot; source=&quot;labels&quot; target=&quot;lookup&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;
+      &lt;/root&gt;
+    &lt;/mxGraphModel&gt;
+  &lt;/diagram&gt;
+&lt;/mxfile&gt;" width="181.9mm" height="78.8mm" viewBox="0 0 1800 780" role="img" aria-labelledby="title desc">
+  <title id="title">Frozen evidence, validation selection, and artifact lineage</title>
+  <desc id="desc">Two-panel methodology diagram. The left panel records frozen source pins and raw versus analyzed split sizes. The right panel shows validation-only selection from a ten-run matrix, then production of a checkpoint and an empirical percentile lookup sourced from six thousand output-length labels. Held-out Kendall tau is evaluation only.</desc>
+  <defs>
+    <marker id="arrow-neutral" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#4A4A4A"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#0072B2"/>
+    </marker>
+    <style>
+      .headline { font: 700 35px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .node-title { font: 700 31px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .body { font: 400 28px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .body-bold { font: 700 28px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .micro { font: 400 24.5px Arial, Helvetica, sans-serif; fill: #4A4A4A; }
+      .micro-white { font: 700 24.5px Arial, Helvetica, sans-serif; fill: #FFFFFF; }
+      .panel { fill: #FFFFFF; stroke: #B8B8B8; stroke-width: 3.5; }
+      .neutral { fill: #F2F2F2; stroke: #4A4A4A; stroke-width: 3.5; }
+      .white-neutral { fill: #FFFFFF; stroke: #4A4A4A; stroke-width: 3.5; }
+      .blue { fill: #EAF4FA; stroke: #0072B2; stroke-width: 4; }
+      .blue-white { fill: #FFFFFF; stroke: #0072B2; stroke-width: 4; }
+      .edge-neutral { fill: none; stroke: #4A4A4A; stroke-width: 3.5; marker-end: url(#arrow-neutral); }
+      .edge-blue { fill: none; stroke: #0072B2; stroke-width: 3.5; marker-end: url(#arrow-blue); }
+    </style>
+  </defs>
+  <rect width="1800" height="780" fill="#FFFFFF"/>
+  <g id="panel-a">
+    <rect class="panel" x="20" y="20" width="680" height="720"/>
+    <text class="headline" x="44" y="65">(a) Frozen evidence</text>
+    <g id="source-pins">
+      <rect class="neutral" x="75" y="135" width="570" height="105"/>
+      <text class="body-bold" x="95" y="168">Source pins</text>
+      <text class="micro" x="95" y="201">ToolACE 6bda777 · Qwen tokenizer c202236</text>
+      <text class="micro" x="95" y="229">BERT base 86b5e09</text>
+    </g>
+    <g id="frozen-mini-table">
+      <rect x="75" y="280" width="570" height="58" fill="#4A4A4A"/>
+      <text class="micro-white" x="95" y="317">Evidence</text>
+      <text class="micro-white" x="330" y="317" text-anchor="middle">Train</text>
+      <text class="micro-white" x="450" y="317" text-anchor="middle">Validation</text>
+      <text class="micro-white" x="575" y="317" text-anchor="middle">Test</text>
+      <rect class="white-neutral" x="75" y="338" width="570" height="72"/>
+      <text class="body" x="95" y="383">Raw split</text>
+      <text class="body" x="330" y="383" text-anchor="middle">4,000</text>
+      <text class="body" x="450" y="383" text-anchor="middle">1,000</text>
+      <text class="body" x="575" y="383" text-anchor="middle">1,000</text>
+      <rect class="blue" x="75" y="410" width="570" height="72"/>
+      <text class="body-bold" x="95" y="455">Analyzed</text>
+      <text class="body-bold" x="330" y="455" text-anchor="middle">3,997</text>
+      <text class="body-bold" x="450" y="455" text-anchor="middle">998</text>
+      <text class="body-bold" x="575" y="455" text-anchor="middle">999</text>
+    </g>
+  </g>
+  <g id="panel-b">
+    <rect class="panel" x="720" y="20" width="1060" height="720"/>
+    <text class="headline" x="744" y="65">(b) Validation selection and artifact lineage</text>
+    <path class="edge-blue" d="M960 335 H1080"/>
+    <path class="edge-neutral" d="M1380 285 H1440 V203 H1520"/>
+    <path class="edge-blue" d="M1625 610 V500"/>
+    <g id="predictor-matrix">
+      <rect class="blue-white" x="770" y="285" width="190" height="100"/>
+      <text class="node-title" x="865" y="317" text-anchor="middle">10-run</text>
+      <text class="node-title" x="865" y="352" text-anchor="middle">matrix</text>
+      <text class="micro" x="865" y="379" text-anchor="middle">variants</text>
+    </g>
+    <g id="validation-selected-run">
+      <rect class="blue" x="1080" y="240" width="300" height="180"/>
+      <text class="node-title" x="1230" y="278" text-anchor="middle">Validation-selected</text>
+      <text class="node-title" x="1230" y="313" text-anchor="middle">run</text>
+      <text class="micro" x="1230" y="347" text-anchor="middle">prompt + schema</text>
+      <text class="micro" x="1230" y="376" text-anchor="middle">seed 17</text>
+      <text class="body" x="1230" y="408" text-anchor="middle">validation τ = 0.657</text>
+    </g>
+    <g id="heldout-evaluation-tag">
+      <rect x="1080" y="445" width="300" height="74" fill="#F2F2F2" stroke="#4A4A4A" stroke-width="3.5" stroke-dasharray="12 10"/>
+      <text class="micro" x="1230" y="476" text-anchor="middle">evaluation only</text>
+      <text class="micro" x="1230" y="507" text-anchor="middle">held-out τ = 0.642</text>
+    </g>
+    <g id="checkpoint-artifact">
+      <rect class="neutral" x="1520" y="150" width="220" height="105"/>
+      <text class="node-title" x="1630" y="189" text-anchor="middle">Checkpoint</text>
+      <text class="micro" x="1630" y="221" text-anchor="middle">prompt + schema</text>
+      <text class="micro" x="1630" y="248" text-anchor="middle">seed 17</text>
+    </g>
+    <g id="empirical-lookup-artifact">
+      <rect class="blue" x="1500" y="380" width="250" height="120"/>
+      <text class="node-title" x="1625" y="418" text-anchor="middle">Empirical</text>
+      <text class="body-bold" x="1625" y="455" text-anchor="middle">p10–p99 lookup</text>
+      <text class="micro" x="1625" y="488" text-anchor="middle">output lengths</text>
+    </g>
+    <g id="output-length-label-source">
+      <rect class="blue-white" x="1485" y="610" width="280" height="110"/>
+      <text class="node-title" x="1625" y="645" text-anchor="middle">6,000</text>
+      <text class="body-bold" x="1625" y="681" text-anchor="middle">output-length</text>
+      <text class="body-bold" x="1625" y="713" text-anchor="middle">labels</text>
+    </g>
+  </g>
+</svg>

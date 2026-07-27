@@ -1,0 +1,30 @@
+% Outline: Conclusion (exactly one paragraph)
+\section{Conclusion}
+
+Agent traffic carries a signal the serving layer currently discards: the
+tool-schema text attached to every tool-bearing request. Read as text, the
+request improves output-length ranking by $+0.19$ Kendall's $\tau$ over the
+tuned scalar family we benchmark, and the schema itself contributes $+0.044$
+of that; ranking quality changes little on the two adequately powered strata
+of tool sets unseen in training (equivalence untested), where identity
+features have nothing to look up. Under the gateway's documented 15\,ms decision timeout the predictor
+silently loses 34.6\% of its decisions; the two CPU rescues we
+pre-registered do not repair that, while a 75\,ms timeout eliminated logged
+fail-open in these runs, permitting up to that much critical-path decision
+latency on each scored request. Whether acting on the signal
+pays depends on how contended the engine is, and that turned out to be a
+configuration we set rather than a property of the traffic. With the
+running-batch cap at its default the queue stayed empty at the 90th
+percentile and no ordering
+policy separated from another; capping the batch at sixteen put most requests
+behind another, and there the learned ranker beat arrival order by 4.2\%
+while ordering by prompt length ran 8.5\% slower than leaving the queue
+alone. The reliability gate follows the same regime split: free when nothing
+waits, and 9.5\% expensive once something does, because the requests it
+declines to vouch for hold their arrival slots and block. Two levers paid in
+the uncapped configuration and neither came from prediction: exchanging the stock scheduler
+for the policy implementation cut mean time-to-last-token by 44\% with
+arrival order held fixed, and prefix caching over the resent schemas cut a
+further 17--23\%. The schema signal is real, the cheap scalar substitute for
+it is worse than doing nothing, and the operator who wants either had better
+check what the batch cap leaves for a scheduler to decide.

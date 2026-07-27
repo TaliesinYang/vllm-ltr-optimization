@@ -1,0 +1,142 @@
+% Outline: Methodology (1 page cap, >=2 tables; recipes + provenance, no results)
+\section{Methodology}
+
+\subsection{Data and Labels}
+Training and offline evaluation use a 6{,}000-request stratified
+sample of ToolACE tool-calling conversations, labeled with completion
+lengths measured against Qwen3.5-9B under frozen generation controls
+(temperature 0, top-p 1, seed 42, max 4096 tokens). We chose Qwen3.5-9B
+because it is open-weight, carries first-class tool-calling support in vLLM
+(native tool-call and reasoning parsers), and at 9B serves in bf16 on a
+single 48\,GB card with 16k context. Using the same model for labeling and
+serving keeps the label distribution matched to the engine under test. Three rows whose labeling
+runs failed are declared as structural exclusions rather than silently
+dropped, and three censored rows are excluded, leaving 5{,}994 eligible rows
+split 3{,}997/998/999 by a per-row split column
+fixed before any experiment; every run in this paper shares that split.
+Label censoring is 0.05\%.
+
+\subsection{Ranker and Feature Variants}
+The Ranker is BERT-base~\cite{bert} producing a scalar score
+$s_\theta(x) \in [0,1]$ from input rendered as
+\texttt{[USER]}\,prompt\,\texttt{[TOOLS]}\,schema, truncated at 512 tokens.
+We fine-tune with the pairwise margin objective
+\begin{equation}
+\mathcal{L}(x_a, x_b) = \max\bigl(0,\; -y \cdot (s_\theta(x_a) - s_\theta(x_b)) + m\bigr),
+\end{equation}
+where $y = \pm 1$ encodes which request produced the longer completion,
+$m{=}1.0$, and pairs enter training only when their normalized length gap
+exceeds $\delta{=}0.2$; three seeds (17/42/73) vary initialization and pair
+shuffling over one fixed split. Table~\ref{tab:variants} lists the Feature Variants; the
+full-context arm is reported void because the same 512-token cap leaves
+80\% of its inputs truncated --- a disclosure, not a result.
+
+\begin{table}[t]
+  \caption{Feature variants and offline recipe. All variants share one fixed
+  3{,}997/998/999 split of the ToolACE tier-2 sample.}
+  \label{tab:variants}
+  \centering\footnotesize
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Variant & Ranker input & Note \\
+    \midrule
+    prompt\_only & prompt text & encoder-strength control \\
+    prompt\_schema & prompt + schema text & the proposed input \\
+    full\_context & + history & void under truncation \\
+    \midrule
+    scalar (LightGBM) & 5 request statistics & fixed + 20-config grid \\
+    identity (hash) & scalar + tool-set fingerprint & lookup emulation \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Baselines and Identity Features}
+The scalar baseline is LightGBM~\cite{lightgbm} over prompt length (chars,
+words),
+schema length, tool count, and history turns --- the scalar family
+gateway-side length predictors describe --- in a fixed-hyperparameter form and a 20-configuration
+grid search whose configuration is chosen on the validation split, never on
+test; the stronger result is the baseline of record. The recipe is
+deterministic with respect to seed (no stochastic sampling consumes the
+random state), verified by bit-exact rerun. Identity baselines fingerprint
+the tool set as SHA-256 over sorted tool names --- never over the raw schema
+string, which embeds per-request timestamps that would fake uniqueness ---
+and add out-of-fold per-fingerprint label statistics, emulating a deployed
+per-client lookup table with a global-mean fallback for unseen keys.
+
+\subsection{Cold-Start Strata and the Gate}
+The fixed test split is partitioned into S1--S4 by fingerprint and
+tool-name novelty against the training vocabulary. Strata under 100 rows
+(S1$=$45, S2$=$78) are withheld from headline claims; they may inform design
+when disclosed with their size. The Reliability Gate assigns each stratum the
+lower bound of the 95\% session-clustered bootstrap~\cite{efron1979}
+confidence interval of
+\emph{validation} Ranking Tau --- fit on validation, evaluated on test ---
+and abstains (confidence 0) on strata it cannot measure, including zero-tool
+requests:
+\begin{equation}
+c(x) = \begin{cases}
+  \max\bigl(0,\ \underline{\tau}_{95}(S(x))\bigr) & S(x) \in \{\mathrm{S3},\mathrm{S4}\} \\
+  0 & \text{otherwise,}
+\end{cases}
+\end{equation}
+where $S(x)$ is the request's stratum under the training vocabulary and
+$\underline{\tau}_{95}$ the lower bootstrap bound of validation Ranking Tau.
+A request is trusted when $c(x) \ge 0.5$; abstained requests keep their
+arrival slots, and trusted requests reorder only among trusted slots. This confidence is a stratum-level abstention score, not a
+calibrated probability.
+
+\subsection{Serving Configuration}
+The gateway runs in its default configuration plus exactly six
+environment variables: listen address, API key, upstream provider and
+model, the decision endpoint, and its timeout. Its request-shaping
+pipeline, provider combos, semantic cache and scheduler-side queue
+limits are all at their disabled defaults. The decision timeout is
+6{,}000\,ms during ordering runs --- deliberately far above the
+documented 15\,ms scheduling budget, so that fail-open never fires;
+differences between ranked and unranked arms then bundle the ranking
+signal with the synchronous scoring cost that carries it, and are read
+as such. The budget itself is enforced and measured in dedicated arms
+at 15\,ms (the documented default), 50 and 75\,ms
+($\approx$1.3$\times$ and 2$\times$ the Ranker's GPU median), tracing
+in-budget coverage against the operating point an operator who had
+measured our scorer would actually set. vLLM prefix caching is disabled uniformly across all
+ordering arms, verified from the engine's reported hit rate rather
+than from the flag alone, and enabled only in the arm that measures
+its effect.
+
+\subsection{Serving Environments and Provenance}
+Table~\ref{tab:envs} pins both environments. Serving experiments
+run on a single cloud RTX~4090 with 48\,GB VRAM (a vendor-modified memory
+configuration common on Chinese GPU clouds); the decision service runs the
+Ranker in fp16 with micro-batching (batch $\le$ 8, 3\,ms window) and a
+reliability threshold of exactly 0.5. All vLLM capacity and cache settings
+are held constant across every arm of every comparison; prefix caching is
+disabled in every ordering arm --- verified from the engine's own reported
+hit rate rather than from the flag alone --- and enabled only in the round
+that measures it. The scheduler is
+replaced through vLLM's~\cite{vllm2023} \texttt{--scheduler-cls} seam; each
+policy arm swaps only its ordering rule, while the stock pair differs in
+scheduler implementation as well --- the difference E5's attribution control
+is built to measure.
+
+\begin{table}[t]
+  \caption{Environment provenance for the two measurement platforms, which
+  are separate rentals: labelling and fine-tuning ran first, serving weeks
+  later.}
+  \label{tab:envs}
+  \centering\footnotesize
+  \setlength{\tabcolsep}{3.5pt}
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+     & Training & Serving \\
+    \midrule
+    GPU & RTX 3090 24\,GB & RTX 4090 48\,GB (modified) \\
+    Driver / CUDA & --- & 580.159.03 / 13.0 wheels \\
+    Engine & vLLM 0.19.1, torch 2.10 & vLLM 0.24, torch 2.11 \\
+    Model & Qwen3.5-9B (labels) & Qwen3.5-9B, bf16 \\
+    Scheduler seam & --- & \texttt{--scheduler-cls} per arm \\
+    \bottomrule
+  \end{tabular}
+\end{table}

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="181.9mm" height="78.8mm" viewBox="0 0 1800 780" role="img" aria-labelledby="title desc">
+  <title id="title">Frozen evidence, validation selection, and artifact lineage</title>
+  <desc id="desc">Two-panel methodology diagram. The left panel records frozen source pins and raw versus analyzed split sizes. The right panel shows validation-only selection from a ten-run matrix, then production of a checkpoint and an empirical percentile lookup sourced from six thousand output-length labels. Held-out Kendall tau is evaluation only.</desc>
+  <defs>
+    <marker id="arrow-neutral" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#4A4A4A"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#0072B2"/>
+    </marker>
+    <style>
+      .headline { font: 700 35px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .node-title { font: 700 31px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .body { font: 400 28px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .body-bold { font: 700 28px Arial, Helvetica, sans-serif; fill: #1A1A1A; }
+      .micro { font: 400 24.5px Arial, Helvetica, sans-serif; fill: #4A4A4A; }
+      .micro-white { font: 700 24.5px Arial, Helvetica, sans-serif; fill: #FFFFFF; }
+      .panel { fill: #FFFFFF; stroke: #B8B8B8; stroke-width: 3.5; }
+      .neutral { fill: #F2F2F2; stroke: #4A4A4A; stroke-width: 3.5; }
+      .white-neutral { fill: #FFFFFF; stroke: #4A4A4A; stroke-width: 3.5; }
+      .blue { fill: #EAF4FA; stroke: #0072B2; stroke-width: 4; }
+      .blue-white { fill: #FFFFFF; stroke: #0072B2; stroke-width: 4; }
+      .edge-neutral { fill: none; stroke: #4A4A4A; stroke-width: 3.5; marker-end: url(#arrow-neutral); }
+      .edge-blue { fill: none; stroke: #0072B2; stroke-width: 3.5; marker-end: url(#arrow-blue); }
+    </style>
+  </defs>
+  <rect width="1800" height="780" fill="#FFFFFF"/>
+  <g id="panel-a">
+    <rect class="panel" x="20" y="20" width="680" height="720"/>
+    <text class="headline" x="44" y="65">(a) Frozen evidence</text>
+    <g id="source-pins">
+      <rect class="neutral" x="75" y="135" width="570" height="105"/>
+      <text class="body-bold" x="95" y="168">Source pins</text>
+      <text class="micro" x="95" y="201">ToolACE 6bda777 · Qwen tokenizer c202236</text>
+      <text class="micro" x="95" y="229">BERT base 86b5e09</text>
+    </g>
+    <g id="frozen-mini-table">
+      <rect x="75" y="280" width="570" height="58" fill="#4A4A4A"/>
+      <text class="micro-white" x="95" y="317">Evidence</text>
+      <text class="micro-white" x="330" y="317" text-anchor="middle">Train</text>
+      <text class="micro-white" x="450" y="317" text-anchor="middle">Validation</text>
+      <text class="micro-white" x="575" y="317" text-anchor="middle">Test</text>
+      <rect class="white-neutral" x="75" y="338" width="570" height="72"/>
+      <text class="body" x="95" y="383">Raw split</text>
+      <text class="body" x="330" y="383" text-anchor="middle">4,000</text>
+      <text class="body" x="450" y="383" text-anchor="middle">1,000</text>
+      <text class="body" x="575" y="383" text-anchor="middle">1,000</text>
+      <rect class="blue" x="75" y="410" width="570" height="72"/>
+      <text class="body-bold" x="95" y="455">Analyzed</text>
+      <text class="body-bold" x="330" y="455" text-anchor="middle">3,997</text>
+      <text class="body-bold" x="450" y="455" text-anchor="middle">998</text>
+      <text class="body-bold" x="575" y="455" text-anchor="middle">999</text>
+    </g>
+  </g>
+  <g id="panel-b">
+    <rect class="panel" x="720" y="20" width="1060" height="720"/>
+    <text class="headline" x="744" y="65">(b) Validation selection and artifact lineage</text>
+    <path class="edge-blue" d="M960 335 H1080"/>
+    <path class="edge-neutral" d="M1380 285 H1440 V203 H1520"/>
+    <path class="edge-blue" d="M1625 610 V500"/>
+    <g id="predictor-matrix">
+      <rect class="blue-white" x="770" y="285" width="190" height="100"/>
+      <text class="node-title" x="865" y="317" text-anchor="middle">10-run</text>
+      <text class="node-title" x="865" y="352" text-anchor="middle">matrix</text>
+      <text class="micro" x="865" y="379" text-anchor="middle">variants</text>
+    </g>
+    <g id="validation-selected-run">
+      <rect class="blue" x="1080" y="240" width="300" height="180"/>
+      <text class="node-title" x="1230" y="278" text-anchor="middle">Validation-selected</text>
+      <text class="node-title" x="1230" y="313" text-anchor="middle">run</text>
+      <text class="micro" x="1230" y="347" text-anchor="middle">prompt + schema</text>
+      <text class="micro" x="1230" y="376" text-anchor="middle">seed 17</text>
+      <text class="body" x="1230" y="408" text-anchor="middle">validation τ = 0.657</text>
+    </g>
+    <g id="heldout-evaluation-tag">
+      <rect x="1080" y="445" width="300" height="74" fill="#F2F2F2" stroke="#4A4A4A" stroke-width="3.5" stroke-dasharray="12 10"/>
+      <text class="micro" x="1230" y="476" text-anchor="middle">evaluation only</text>
+      <text class="micro" x="1230" y="507" text-anchor="middle">held-out τ = 0.642</text>
+    </g>
+    <g id="checkpoint-artifact">
+      <rect class="neutral" x="1520" y="150" width="220" height="105"/>
+      <text class="node-title" x="1630" y="189" text-anchor="middle">Checkpoint</text>
+      <text class="micro" x="1630" y="221" text-anchor="middle">prompt + schema</text>
+      <text class="micro" x="1630" y="248" text-anchor="middle">seed 17</text>
+    </g>
+    <g id="empirical-lookup-artifact">
+      <rect class="blue" x="1500" y="380" width="250" height="120"/>
+      <text class="node-title" x="1625" y="418" text-anchor="middle">Empirical</text>
+      <text class="body-bold" x="1625" y="455" text-anchor="middle">p10–p99 lookup</text>
+      <text class="micro" x="1625" y="488" text-anchor="middle">output lengths</text>
+    </g>
+    <g id="output-length-label-source">
+      <rect class="blue-white" x="1485" y="610" width="280" height="110"/>
+      <text class="node-title" x="1625" y="645" text-anchor="middle">6,000</text>
+      <text class="body-bold" x="1625" y="681" text-anchor="middle">output-length</text>
+      <text class="body-bold" x="1625" y="713" text-anchor="middle">labels</text>
+    </g>
+  </g>
+</svg>

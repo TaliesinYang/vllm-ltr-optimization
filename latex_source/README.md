@@ -1,20 +1,39 @@
-# Final Report LaTeX Source
+# latex_source
 
-This directory is an IEEE two-column conference-paper scaffold. It intentionally contains no AI-generated report prose. Human authors must replace only the marked `% [作者手写区]` regions and must preserve the page-budget comments and evidence constraints.
+The LaTeX source of the submitted report, and the checks that keep its numbers
+honest.
 
-Compile from this directory after Tectonic has its packages available:
+Build with `tectonic -X compile 00.tc_main.tex`. The compiled result is
+`00.tc_main.pdf`.
 
-```bash
-cd latex_source
-tectonic main.tex
-```
+| Path | What it is |
+|---|---|
+| `00.tc_main.tex` | driver; `\input`s the numbered sections in order |
+| `01…09.*.tex` | one file per report section |
+| `reference.bib` | bibliography, audited against Crossref and OpenAlex |
+| `figs/` | the figure PDFs the report includes |
+| `scripts/` | the checks described below |
+| `FIGURE-SPEC.md` | the figure standard the plates are built against |
+| `EVIDENCE-MAP.md` | generated; every printed number and the artifact it came from |
 
-Directory structure:
+The figure *generators* are not here — they live in
+`scripts/report_figures/paper_v1/` at the repository root, next to the run data
+they read. Every number in every plate is read from a committed artifact at
+build time rather than typed into the script.
 
-- `main.tex`: IEEEtran document wiring, title, bibliography, and figure fallback macro.
-- `sections/`: one file per required section. Every section after the abstract starts with `\clearpage`; the platform table's "Hengyuan Cloud" is the ASCII rendering of 恒源云.
-- `figures/`: final `fig1.pdf` through `fig8.pdf` and the Appendix A screenshot PDF. Until those files exist, `main.tex` renders labeled placeholder boxes.
-- `refs.bib`: IEEE/BibTeX records derived from the three approved CSV evidence files. Missing bibliographic fields are explicit TODO comments.
-- `../scripts/plot_final_report_figures.py`: shared Matplotlib style, figure registry, and the system-architecture generators for Fig.1--Fig.2. Fig.3--Fig.8 intentionally refuse to generate until their measured inputs are supplied.
+## Checks
 
-Before submission, the human authors must compile and adjust only human-authored text/figure sizing until the binary page budgets are met, replace the Appendix A placeholder with a GitHub screenshot, wire every claim to a figure/table/citation, remove `\nocite{*}`, and verify that no bullet list exists outside Introduction. Figure axes, ticks, and legends must remain at least 10 pt.
+- `scripts/build_evidence_map.py` re-derives each quantitative claim from the
+  artifact it names and exits non-zero if the artifact disagrees with the number
+  printed in the report. `EVIDENCE-MAP.md` is its output, not a hand-written
+  document.
+- `scripts/figure_contract.py` reports each figure's native size, its placed
+  size, and the smallest type it contains, and fails if a plate would render
+  text below the legibility floor.
+- `scripts/overlap_check.py` finds glyphs printed on top of other glyphs in the
+  compiled PDF. It reads the text layer only, so it cannot see a label sitting
+  on a rule — the figures still need an eye on them.
+
+`_superseded-planning-draft/` holds the earlier outline-stage draft
+(`main.tex` and its `sections/`), kept for history. It is not the submitted
+report and does not compile against the current figures.

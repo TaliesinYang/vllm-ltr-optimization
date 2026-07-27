@@ -1,0 +1,63 @@
+<mxfile host="Electron" agent="Mozilla/5.0" version="27.0.9">
+  <diagram id="fig2" name="Figure 2">
+    <mxGraphModel dx="1800" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="780" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="panel-a" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8B8B8;strokeWidth=1;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="680" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="panel-a-title" value="&lt;b&gt;(a) Frozen evidence&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=10;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="44" y="38" width="260" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="source-row" value="&lt;b&gt;Source pins&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;ToolACE 6bda777 · Qwen tokenizer c202236&lt;br&gt;BERT base 86b5e09&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;align=left;spacingLeft=10;verticalAlign=middle;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="75" y="135" width="570" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="table-header" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4A4A4A;strokeColor=#4A4A4A;strokeWidth=1;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="75" y="280" width="570" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="header-evidence" value="Evidence" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="95" y="291" width="150" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="header-train" value="Train" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="285" y="291" width="90" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="header-validation" value="Validation" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="390" y="291" width="120" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="header-test" value="Test" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="535" y="291" width="90" height="36" as="geometry"/>
+        </mxCell>
+        <mxCell id="raw-row" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#4A4A4A;strokeWidth=1;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="75" y="338" width="570" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="raw-label" value="Raw split" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="95" y="352" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="raw-train" value="4,000" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="285" y="352" width="90" height="40" as="geometry"/></mxCell>
+        <mxCell id="raw-validation" value="1,000" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="405" y="352" width="90" height="40" as="geometry"/></mxCell>
+        <mxCell id="raw-test" value="1,000" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="535" y="352" width="90" height="40" as="geometry"/></mxCell>
+        <mxCell id="analyzed-row" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#4A4A4A;strokeWidth=1;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="75" y="410" width="570" height="72" as="geometry"/>
+        </mxCell>
+        <mxCell id="analyzed-label" value="Analyzed" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="95" y="424" width="150" height="40" as="geometry"/></mxCell>
+        <mxCell id="analyzed-train" value="3,997" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="285" y="424" width="90" height="40" as="geometry"/></mxCell>
+        <mxCell id="analyzed-validation" value="998" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="405" y="424" width="90" height="40" as="geometry"/></mxCell>
+        <mxCell id="analyzed-test" value="999" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontStyle=1;fontSize=8;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="535" y="424" width="90" height="40" as="geometry"/></mxCell>
+        <mxCell id="panel-b" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#B8B8B8;strokeWidth=1;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="720" y="20" width="1060" height="720" as="geometry"/>
+        </mxCell>
+        <mxCell id="panel-b-title" value="&lt;b&gt;(b) Validation selection and artifact lineage&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Arial;fontSize=10;fontColor=#1A1A1A;" vertex="1" parent="1"><mxGeometry x="744" y="38" width="520" height="28" as="geometry"/></mxCell>
+        <mxCell id="matrix" value="&lt;b&gt;10-run&lt;br&gt;matrix&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;variants&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;" vertex="1" parent="1"><mxGeometry x="770" y="285" width="190" height="100" as="geometry"/></mxCell>
+        <mxCell id="selected-run" value="&lt;b&gt;Validation-selected&lt;br&gt;run&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;prompt + schema&lt;br&gt;seed 17&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;validation τ = 0.657&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;" vertex="1" parent="1"><mxGeometry x="1080" y="240" width="300" height="180" as="geometry"/></mxCell>
+        <mxCell id="heldout-tag" value="evaluation only&lt;br&gt;held-out τ = 0.642" style="rounded=0;dashed=1;dashPattern=4 4;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1;fontFamily=Arial;fontSize=7;fontColor=#4A4A4A;align=center;verticalAlign=middle;shadow=0;" vertex="1" parent="1"><mxGeometry x="1080" y="445" width="300" height="74" as="geometry"/></mxCell>
+        <mxCell id="checkpoint" value="&lt;b&gt;Checkpoint&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;prompt + schema · seed 17&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F2F2F2;strokeColor=#4A4A4A;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;" vertex="1" parent="1"><mxGeometry x="1520" y="150" width="220" height="105" as="geometry"/></mxCell>
+        <mxCell id="lookup" value="&lt;b&gt;Empirical p10–p99 lookup&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;output-length distribution&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#EAF4FA;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;" vertex="1" parent="1"><mxGeometry x="1500" y="380" width="250" height="120" as="geometry"/></mxCell>
+        <mxCell id="labels" value="&lt;b&gt;6,000&lt;br&gt;output-length&lt;br&gt;labels&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#0072B2;strokeWidth=1.2;fontFamily=Arial;fontSize=9;fontColor=#1A1A1A;align=center;verticalAlign=middle;shadow=0;" vertex="1" parent="1"><mxGeometry x="1485" y="610" width="280" height="110" as="geometry"/></mxCell>
+        <mxCell id="edge-matrix-selection" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;" edge="1" parent="1" source="matrix" target="selected-run"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-selection-checkpoint" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#4A4A4A;strokeWidth=1;endArrow=block;endFill=1;" edge="1" parent="1" source="selected-run" target="checkpoint"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge-labels-lookup" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0072B2;strokeWidth=1;endArrow=block;endFill=1;" edge="1" parent="1" source="labels" target="lookup"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

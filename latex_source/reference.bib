@@ -1,0 +1,269 @@
+% Entry selection is limited to the three reviewed CSV sources:
+% AGENTIC-SERVING-LITERATURE-MATRIX.csv, AGENTIC-DATASET-MATRIX.csv,
+% and EXPERIMENT-LITERATURE-MAPPING.csv. Metadata for established tools/datasets
+% is completed only from their official publication/project citation. Unverified
+% author fields remain explicit TODOs.
+
+@inproceedings{fuLTR2024,
+  author = {Fu, Yichao and Zhu, Siqi and Su, Runlong and Qiao, Aurick and Stoica, Ion and Zhang, Hao},
+  title     = {Efficient LLM Scheduling by Learning to Rank},
+  booktitle = {NeurIPS 2024},
+  year      = {2024},
+  url       = {https://openreview.net/pdf?id=wlLjYl0Gi6}
+}
+% TODO(author): not present in source CSV row P01.
+
+@misc{ssjf2024,
+  author = {Qiu, Haoran and Mao, Weichao and Patke, Archit and Cui, Shengkun and Jha, Saurabh and
+            Wang, Chen and Franke, Hubertus and Kalbarczyk, Zbigniew T. and Ba{\c s}ar, Tamer and
+            Iyer, Ravishankar K.},
+  title = {Efficient Interactive LLM Serving with Proxy Model-based Sequence Length Prediction},
+  year  = {2024},
+  note  = {ASPLOS 2024 AIOps workshop},
+  eprint = {2404.08509},
+  archivePrefix = {arXiv},
+}
+% TODO(author): not present in source CSV row P02.
+
+@inproceedings{tao2026ranking,
+  author    = {Tao, Yiheng and Zhang, Yihe and Dearing, Matthew and Wang, Xin and Fan, Yuping and Papka, Michael E. and others},
+  title     = {Ranking Before Serving: Low-Latency {LLM} Serving via
+               Pairwise Learning-to-Rank},
+  booktitle = {ISC High Performance 2026 Research Paper Proceedings
+               (41st International Conference)},
+  address   = {Hamburg, Germany},
+  pages     = {1--13},
+  year      = {2026},
+  month     = jun,
+  doi       = {10.23919/ISC.2026.11520485}
+}
+% Verified 2026-07-25: arXiv 2510.03243 retitled twice (v1 "PARS:...", v2 "Prompt-Aware
+% Scheduling...", v3 = ISC camera-ready). System name "PARS" survives inside the paper
+% (Prompt-Aware Ranking Scheduler) -- gloss at first mention. PEER-REVIEWED (Crossref DOI,
+% publisher-deposited). Local v3 PDF: materials/references/ in course repo. The 15.7x
+% latency number exists ONLY in v3.
+
+@misc{tie2026,
+  author = {Zheng, Haoyu and Zhang, Yongqiang and Fu, Fangcheng and Zhou, Xiaokai and Luo, Hao and Zhu, Hongchao and others},
+  title = {Scheduling LLM Inference with Uncertainty-Aware Output Length Predictions},
+  year  = {2026},
+  note  = {arXiv preprint},
+  url   = {https://arxiv.org/abs/2604.00499}
+}
+% TODO(author verification needed)
+
+% egtp2026 REMOVED 2026-07-27: author list could not be verified from any
+% primary source (OpenReview is Cloudflare-blocked, no arXiv mirror found).
+% An unverifiable citation is worse than one fewer citation; the sentence it
+% supported is carried by fastServe2026 and tie2026.
+
+@misc{elis2025,
+  author = {Choi, Seungbeom and Goo, Jeonghoe and Jeon, Eunjoo and Yang, Mingyu and
+            Jang, Minsung},
+  title = {{ELIS}: Efficient {LLM} Iterative Scheduling System with Response Length Predictor},
+  year  = {2025},
+  note  = {arXiv preprint},
+  url   = {https://arxiv.org/abs/2505.09142}
+}
+% TODO(author verification needed)
+
+@inproceedings{beyondPrediction2026,
+  author = {Li, Yueying and Chen, Yuanfan and Chen, Jiayang and Choukse, Esha and Qiu, Haoran and Suh, G. Edward and others},
+  title     = {Beyond Prediction: Tail-Aware Scheduling for LLM Inference},
+  booktitle = {ICML 2026, PMLR 306},
+  year      = {2026},
+  eprint = {2606.18431},
+  archivePrefix = {arXiv},
+}
+% TODO(author verification needed)
+
+@inproceedings{fastServe2026,
+  author = {Wu, Bingyang and Zhong, Yinmin and Zhang, Zili and Liu, Shengyu and Liu, Fangyue and Sun, Yuanhang and others},
+  title     = {FastServe: Iteration-Level Preemptive Scheduling for Large Language Model Inference},
+  booktitle = {NSDI 2026},
+  year      = {2026},
+  url       = {https://www.usenix.org/conference/nsdi26/presentation/wu-bingyang}
+}
+% TODO(author verification needed)
+
+@inproceedings{jitServe2026,
+  author = {Zhang, Wei and Wu, Zhiyu and Mu, Yi and Ning, Rui and Liu, Banruo and Sarda, Nikhil and others},
+  title     = {JITServe: SLO-Aware LLM Serving with Imprecise Request Information},
+  booktitle = {NSDI 2026},
+  year      = {2026},
+  url       = {https://www.usenix.org/conference/nsdi26/presentation/zhang-wei}
+}
+% TODO(author verification needed)
+
+@inproceedings{agentix2026,
+  author = {Luo, Michael and Shi, Xiaoxiang and Cai, Colin and Zhang, Tianjun and Wong, Justin and Wang, Yichuan and others},
+  title     = {Agentix: An Efficient Serving Engine for LLM Agents as General Programs},
+  booktitle = {NSDI 2026},
+  year      = {2026},
+  url       = {https://www.usenix.org/conference/nsdi26/presentation/luo}
+}
+% TODO(author verification needed)
+
+@inproceedings{infercept2024,
+  author = {Abhyankar, Reyna and He, Zijian and Srivatsa, Vikranth and Zhang, Hao and
+            Zhang, Yiying},
+  title     = {InferCept: Efficient Intercept Support for Augmented LLM Inference},
+  booktitle = {ICML 2024, PMLR 235},
+  year      = {2024},
+  eprint = {2402.01869},
+  archivePrefix = {arXiv},
+}
+% TODO(author): not present in source CSV row P11.
+
+@inproceedings{vllm2023,
+  author    = {Woosuk Kwon and Zhuohan Li and Siyuan Zhuang and Ying Sheng and Lianmin Zheng and Cody Hao Yu and others},
+  title     = {Efficient Memory Management for Large Language Model Serving with PagedAttention},
+  booktitle = {Proceedings of the 29th Symposium on Operating Systems Principles},
+  year      = {2023},
+  publisher = {ACM},
+  doi       = {10.1145/3600006.3613165},
+}
+
+@misc{toolace2024,
+  author = {Weiwen Liu and Xu Huang and Xingshan Zeng and Xinlong Hao and Shuai Yu and Dexun Li and others},
+  title  = {ToolACE: Winning the Points of LLM Function Calling},
+  year   = {2024},
+  eprint = {2409.00920},
+  archivePrefix = {arXiv},
+}
+
+@misc{toolathlon2025,
+  author = {Junlong Li and Wenshuo Zhao and Jian Zhao and Weihao Zeng and Haoze Wu and Xiaochen Wang and others},
+  title  = {The Tool Decathlon: Benchmarking Language Agents for Diverse, Realistic, and Long-Horizon Task Execution},
+  year   = {2025},
+  eprint = {2510.25726},
+  archivePrefix = {arXiv},
+}
+
+@misc{bfcl,
+  author = {Fanjia Yan and Huanzhi Mao and Charlie Cheng-Jie Ji and Tianjun Zhang and Shishir G. Patil and Ion Stoica and others},
+  title = {Berkeley Function-Calling Leaderboard},
+  year  = {2024},
+  howpublished = {UC Berkeley Sky Computing Lab project and benchmark},
+  url   = {https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html}
+}
+
+@inproceedings{bert,
+  author    = {Jacob Devlin and Ming-Wei Chang and Kenton Lee and Kristina Toutanova},
+  title     = {BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding},
+  booktitle = {Proceedings of the 2019 Conference of the North American Chapter of the Association for Computational Linguistics: Human Language Technologies},
+  year      = {2019},
+  pages     = {4171--4186},
+  publisher = {Association for Computational Linguistics},
+  doi       = {10.18653/v1/N19-1423},
+}
+
+@inproceedings{lightgbm,
+  author    = {Guolin Ke and Qi Meng and Thomas Finley and Taifeng Wang and Wei Chen and Weidong Ma and others},
+  title     = {LightGBM: A Highly Efficient Gradient Boosting Decision Tree},
+  booktitle = {Advances in Neural Information Processing Systems 30},
+  year      = {2017},
+}
+
+@inproceedings{qin2024toolllm,
+  title     = {{ToolLLM}: Facilitating Large Language Models to Master 16000+ Real-world {APIs}},
+  author    = {Qin, Yujia and Liang, Shihao and Ye, Yining and Zhu, Kunlun and Yan, Lan and Lu, Yaxi and others},
+  booktitle = {Proceedings of the 12th International Conference on Learning Representations (ICLR)},
+  year      = {2024}
+}
+% Verified 2026-07-26 from PDF: I1/I2/I3 x Inst./Tool/Cat. splits (S3.2) = published
+% precedent for tool-novelty-stratified evaluation within one workload family.
+% CAVEAT: their metric is Pass/Win Rate (task quality), NOT length ranking — precedent
+% licenses the experimental DESIGN, not the metric. Say so in prose.
+
+@inproceedings{patil2024gorilla,
+  title     = {Gorilla: Large Language Model Connected with Massive {APIs}},
+  author    = {Patil, Shishir G. and Zhang, Tianjun and Wang, Xin and Gonzalez, Joseph E.},
+  booktitle = {Advances in Neural Information Processing Systems 37 (NeurIPS)},
+  year      = {2024}
+}
+% TRAP (verified): Gorilla has NO unseen-API split (random holdout only); its "zero-shot"
+% means NO RETRIEVER, not unseen APIs. Do not cite it for novelty-stratified eval.
+% Safe: test-time API documentation changes (S4.3); or cite ToolLLM S3.3 for APIBench-as-OOD.
+
+@inproceedings{patil2025bfcl,
+  title     = {The {Berkeley} Function Calling Leaderboard ({BFCL}): From Tool Use to Agentic
+               Evaluation of Large Language Models},
+  author    = {Patil, Shishir G. and Mao, Huanzhi and Yan, Fanjia and Ji, Charlie Cheng-Jie and Suresh, Vishnu and Stoica, Ion and others},
+  booktitle = {Proceedings of the 42nd International Conference on Machine Learning (ICML)},
+  series    = {Proceedings of Machine Learning Research},
+  volume    = {267},
+  pages     = {48371--48392},
+  year      = {2025},
+  publisher = {PMLR}
+}
+% Verified 2026-07-26: "Live" renamed "Crowd-sourced" in the ICML paper (S3.2); its axis is
+% contamination control, not graded tool novelty — separate sentence from the ToolLLM claim.
+
+@article{park2026minimizing,
+  author  = {Park, Gyeongmuk and Lee, Seonghyeon and Park, Yeonsu},
+  title   = {Minimizing Response Latency in {LLM}-Based Agent Systems: A Comprehensive Survey},
+  journal = {IEEE Access},
+  year    = {2026},
+  volume  = {14},
+  pages   = {26140--26168},
+  doi     = {10.1109/ACCESS.2026.3664226}
+}
+% Verified 2026-07-26 from CC-BY PDF + Crossref. Use for: FIFO HOL-blocking problem
+% statement (S II-F) and learned-scheduling-as-future-work positioning (S VII-B).
+
+@misc{switchcraft2026,
+  author = {Agarwal, Sharad and Namyar, Pooria and Wolman, Alec and Ambavat, Rahul and
+            Gupta, Ankur and Zhang, Qizheng},
+  title  = {Switchcraft: {AI} Model Router for Agentic Tool Calling},
+  year   = {2026},
+  eprint = {2605.07112},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG}
+}
+% Internal note (not printed): routes via function signatures packed into
+% DistilBERT; benchmark-shift quantification listed as future work.
+
+@inproceedings{orca2022,
+  author    = {Gyeong-In Yu and Joo Seong Jeong and Geon-Woo Kim and Soojeong Kim and Byung-Gon Chun},
+  title     = {Orca: A Distributed Serving System for Transformer-Based Generative Models},
+  booktitle = {16th USENIX Symposium on Operating Systems Design and Implementation (OSDI 22)},
+  year      = {2022},
+  pages     = {521--538},
+}
+
+@article{kendall1938,
+  author  = {M. G. Kendall},
+  title   = {A New Measure of Rank Correlation},
+  journal = {Biometrika},
+  volume  = {30},
+  number  = {1/2},
+  pages   = {81--93},
+  year    = {1938}
+}
+
+@article{efron1979,
+  author  = {Bradley Efron},
+  title   = {Bootstrap Methods: Another Look at the Jackknife},
+  journal = {The Annals of Statistics},
+  volume  = {7},
+  number  = {1},
+  pages   = {1--26},
+  year    = {1979},
+  doi     = {10.1214/aos/1176344552}
+}
+
+@inproceedings{dagor2018,
+  author    = {Hao Zhou and Ming Chen and Qian Lin and Yong Wang and Xiaobin She and Sifan Liu and others},
+  title     = {Overload Control for Scaling WeChat Microservices},
+  booktitle = {Proceedings of the ACM Symposium on Cloud Computing (SoCC)},
+  year      = {2018},
+  pages     = {149--161}
+}
+
+@inproceedings{sglang2024,
+  author    = {Lianmin Zheng and Liangsheng Yin and Zhiqiang Xie and Chuyue Sun and Jeff Huang and others},
+  title     = {SGLang: Efficient Execution of Structured Language Model Programs},
+  booktitle = {Advances in Neural Information Processing Systems 37 (NeurIPS)},
+  year      = {2024}
+}

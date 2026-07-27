@@ -1,0 +1,37 @@
+% Outline: Abstract (2 paragraphs, 1-2 quantitative results, 1/4 page cap).
+% Ryoo craft: miniature argument; grant prior work in sentence 1, "However," pivot
+% in sentence 2 reframing it as the wrong abstraction; front-load numbers.
+%
+% One spine: a length signal pays only where the engine leaves a queue to
+% reorder. Everything else in the paper is evidence for that sentence or a
+% control against it, and the abstract is ordered accordingly.
+\begin{abstract}
+Length-aware LLM schedulers read the prompt, or a few statistics drawn from
+it. Agent traffic carries something they do not read: the JSON tool schemas a
+tool-calling client attaches to every request, 18--66\% of request bytes
+across the tool sets we captured from a production coding agent, naming
+tools absent from the
+ranker's training corpus. We fine-tune an output-length ranker on that schema
+text and evaluate it in strata defined by how novel each request's tool set
+is. Reading the schema is worth $+0.044$ Kendall's~$\tau$ over the same
+encoder given the prompt alone (95\% paired CI $[+0.024, +0.066]$); the text
+encoder as a whole is worth $+0.19$ over the tuned scalar features it
+replaces, and quality holds at $\tau{=}0.64$--$0.65$ where the tool set is
+partly or wholly unseen, which is where identity-based features have nothing
+to look up.
+
+A better order becomes lower latency only where the engine leaves a queue to
+reorder, and that condition is set by configuration rather than by the
+workload. With vLLM's running-batch cap at its default of 256 slots, mean
+occupancy stayed under a fourteenth of it, the waiting queue was empty at the
+90th percentile, and no ordering policy separated from another by more than
+2\%. Capping the batch at sixteen puts 57--64\% of requests behind another,
+and the same policies then separate: the ranker beats arrival order by 4.2\%
+(0.958, 95\% CI $[0.944, 0.972]$), while ordering by prompt length, which
+costs nothing to compute, runs 8.5\% slower than not reordering at all. The
+signal must be paid for as well as earned --- under the gateway's own
+documented 15\,ms decision timeout a third of the scores arrive too late to
+use. Neither ordering nor prediction produced the largest effects we
+measured: exchanging the stock scheduler cut mean time-to-last-token by 44\%
+with arrival order held fixed, and prefix caching cut a further 17--23\%.
+\end{abstract}

@@ -1,0 +1,90 @@
+% Outline: Discussion (1 page cap; MUST contain 6-month future work)
+\section{Discussion}
+
+Two configured quantities decide how much of the offline schema signal
+survives: the decision timeout, which forfeits 34.6\% of decisions at the
+documented 15\,ms and none at 75\,ms, and the running-batch cap, which
+decides whether a queue forms at all. Uncapped, ordering changed nothing; capped at 16, the learned order
+beats arrival order by 4.2\% while the free length heuristic runs 8.5\%
+worse than doing nothing.
+
+\subsection{Which Gateway Optimizations Apply, and Which We Did Not Test}
+Three caches are in play. \emph{Semantic response caching}, the gateway's
+main lever, was unavailable: its cache excludes streaming requests, and
+every captured request streamed. \emph{Prefix KV caching} is a
+different mechanism that E1's byte-identical schema prefix makes plausible:
+with caching on and nothing else changed, pooled mean TTLT falls by 17\% on
+the two stock-scheduler arms and 22--23\% on the four policy-base arms, at a
+62\% peak hit rate. That run cached the whole stream, so it did not isolate
+the schema's share. E3 reports the third, schema-embedding caching,
+insufficient.
+
+A six-stage run enabled the machinery the ordering rounds disabled: the
+gateway's scheduler path, queue limits and scorer discipline, at 5.76
+requests/s. Mean TTLT never left the run's drift band (largest consecutive
+difference 70\,ms, 1.6\% of the 4.4\,s mean,
+against an ABBA drift spread of up to 1.2\%), nothing was shed, and goodput
+was flat. \emph{Queue-triggered scoring} consults the scorer only when the
+gateway's admission queue forms; that queue did not form at this rate, and
+the decision services
+recorded zero scoring requests, so the run measures trigger-path
+non-activation, not a free scorer.
+
+\subsection{What the Negative Results Buy}
+Identity features fail because tool combinations essentially never repeat in
+training data; removing truncation produced no detected improvement; caching
+fails because a $1.9\times$
+speedup does not bridge a $48\times$ budget violation. Together: neither CPU rescue makes this BERT-base Ranker fit the
+15\,ms default, and fitting it needs either the GPU placement
+with a recalibrated budget (75\,ms covers every decision) or a path off the
+critical path, which E6 makes more valuable still.
+
+\subsection{The Baseline Was the Result}
+The one large effect in our uncontended serving measurements did not come
+from our contribution. Swapping the scheduler implementation while holding
+arrival order fixed cut mean time-to-last-token by 44\%; changing the order
+moved it by less than the session drifted over the same hours. An earlier
+round, benchmarked against the stock scheduler alone, reported uniform gains
+across every policy we tried. That should have raised suspicion: policies
+that order differently should not improve identically.
+Those gains came from the implementation underneath. The same mistake awaits
+anyone who takes a serving engine's default scheduler as a baseline; the
+control must share your implementation and differ only in the variable
+claimed.
+
+\subsection{Limitations}
+Offline claims rest on one workload family (ToolACE) and one label model,
+the live traces come from a single agent product, and the 75 captured
+payloads calibrate the synthetic workload, so they cannot double as a
+validation set. The replay inherits the capture's compressed job-size
+variance, which may leave ordering little room to separate.
+
+One choice bounded the first three ordering rounds: vLLM's running-batch cap
+sat at its 256-slot default. By Little's law our own
+numbers put mean occupancy at roughly eleven requests in flight at
+3.96\,requests/s and nineteen at 6.4, under a fourteenth of that cap. Mean
+occupancy does not forbid queueing, and our logs show it did not: bursts put
+12.4\% of requests behind another, but those queues drained within a
+scheduling step instead of accumulating. Our calibration targeted completion
+(a 95\% success criterion), not contention. E6 removes that bound and the
+ordering result flips, so every ordering number here is conditional on its
+regime. We did not vary how contention arises: E6 constrains the batch, while contexts large enough to
+exhaust the KV cache would reach it another way.
+
+The main matrix rests on three replay repetitions inside a single engine launch
+per arm, and E6 on one cold launch per arm. The Ranker predicts decode
+length
+only, so prefill cost is unmodeled; the offline split is row-level; the
+replay is open-loop; S2 is underpowered at $n{=}78$; and the gate's
+confidence is a measured $\tau$ floor, not a calibrated probability. Serving
+hardware is a vendor-modified 48\,GB RTX~4090.
+
+\subsection{Future Work (Six Months)}
+First, add an oracle-order arm sorting by measured length, separating
+residual ranking error from the mechanism E6 exposes, and test whether the
+gate's cost under contention can be recovered by letting abstained requests
+keep a bounded slot rather than a fixed one. Second, validate
+queue-triggered scoring under a load that forms the gateway queue. Third,
+close the predictor-cost gap by distillation. Fourth, grow the S2 stratum to
+statistical power. Fifth, move to closed-loop session benchmarks. Sixth, explore continual fine-tuning on production traffic under explicit
+leakage discipline: training and evaluation traffic must never mix.

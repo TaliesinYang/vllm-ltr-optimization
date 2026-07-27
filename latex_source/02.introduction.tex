@@ -1,0 +1,104 @@
+% Outline: Introduction (1 page cap; the ONLY section where bullets are allowed)
+\section{Introduction}
+
+When a coding agent talks to a language model, most of what travels
+over the wire is not the user's question. Intercepting a production coding
+agent (OpenCode) with an echo endpoint, we measured a single agent-loop
+request. It declared 170 tools whose JSON schemas occupied 147\,kB, 67\% of
+that payload, before the model read a word of the task. The share is a
+range, not a constant. Within that agent's own tool set it runs 17--57\%
+of request bytes (median 23.5\%), falling as conversation accumulates
+around a schema block that is resent whole each turn; across every tool set
+we captured the range widens to 18--66\%. Figures use
+canonical serialization; raw wire bytes differ by roughly two points. No length predictor in the line we survey reads any of it.
+
+Reading it would matter because schedulers want to know how long
+each request will run. Shortest-job-first ordering needs an output-length
+estimate, and a line of work has learned such estimates from prompt text
+alone~\cite{fuLTR2024,tao2026ranking}. The traffic we captured violates the assumptions
+behind both the scalar and the prompt-only designs. A third of its requests
+carry no tools (title generation and other utility calls), each client's
+schema is byte-constant across turns of the same call kind, and the tool
+vocabulary in the wild is open-ended, so a learned component must handle
+tools it has never seen. In our held-out
+evaluation, 95.5\% of test requests carried a tool combination never seen in
+training, and every tool-bearing request captured from the live agent was
+composed entirely of tools foreign to the training corpus.
+
+Our deployment context is an API gateway. Gateways are an established tier
+in classical service infrastructure, where one layer owns load balancing,
+admission control, caching and failure isolation, and operators now place
+that same tier in front of LLM traffic with little modification. Agent
+requests in this study reach the model through such a gateway (VeloxMesh),
+which owns routing, admission and provider health, and which consults our
+scoring service at admission time (Fig.~\ref{fig:arch}). The gateway treats
+scoring as optional by design: a documented 15\,ms budget bounds the
+decision, and on timeout or error the request proceeds in arrival order.
+The scheduling work we survey optimizes inside the engine and does not
+address this budget, so a learned predictor must fit inside it, recalibrate
+it, or move off the synchronous path. This paper asks which of the gateway's
+classical mechanisms remain useful for agentic LLM traffic, and whether a
+learned signal can operate within the budget the gateway grants it.
+
+We argue for two design changes. The request should be read as
+\emph{text}: a ranker that consumes prompt and schema text orders unseen-tool
+requests with little observed $\tau$ difference across the two adequately
+powered unseen-tool strata (equivalence untested), and none of the identity
+or scalar features we tested can rank tools they have never seen. Prediction
+should also carry its own error bounds: our reliability gate assigns each
+request a confidence measured per cold-start stratum and abstains,
+preserving arrival order, wherever that measurement does not exist.
+
+This paper contributes:
+\begin{itemize}
+  \item a workload characterization of live agent traffic: across captured
+  tool sets, 18--66\% of
+        request bytes are unread tool schema (67\% in the agent's 170-tool
+        configuration), about 2\,kB per tool in its native sets,
+        resent every turn; 33\% zero-tool requests; schemas byte-constant
+        within a call kind;
+        and a tool set entirely out of vocabulary relative to the corpus we
+        train on;
+  \item schema-text ranking: $+0.19$~$\tau$ over a grid-searched scalar
+        baseline, with no drop detected across the two adequately powered
+        unseen-tool strata (equivalence untested),
+        while schema-identity
+        baselines gain $+0.008$ (within noise) and \emph{lose} accuracy when
+        forced to use the identity feature;
+  \item a decision-budget coverage curve: neither un-truncating the schema
+        nor caching its encodings makes the CPU scorer fit the documented
+        15\,ms default, under which 34.6\% of decisions silently fail open;
+        a timeout matched to the measured GPU scorer (50--75\,ms) restores
+        98--100\% coverage, permitting that much decision latency on the
+        critical path of a scored request rather than incurring it;
+  \item a contention threshold for learned ordering: with the engine's
+        running-batch cap at its default the queue never forms and no policy
+        separates, but capping it at sixteen puts 57--64\% of requests behind
+        another, and there the learned ranker beats arrival order by 4.2\%
+        while ordering by prompt length runs 8.5\% slower than not reordering
+        at all;
+  \item a serving-level attribution: switching the scheduler implementation
+        alone moved mean latency 44\% with arrival order held fixed, and
+        prefix caching a further 17--23\%, in both contention regimes;
+  \item an evidence-based abstaining gate: per-stratum confidences derived
+        from measured ranking quality replace a hardcoded constant that
+        overstates reliability by $+0.25$--$+0.46$ everywhere; the lowest
+        observed ranking quality occurred on \emph{new combinations of
+        familiar tools} ($n{=}78$, below our reporting threshold).
+\end{itemize}
+
+We evaluate on tool-calling corpora and on a live gateway stack
+serving Qwen3.5-9B, with pre-registered criteria fixed before each
+measurement. At serving time our pre-registered superiority test fails: no ordering
+policy separates from another by more than 2\%, while swapping the scheduler
+implementation alone cuts mean latency by 44\%. We report this attribution
+result in place of the improvement we expected.
+
+The remainder of this paper is organized as follows.
+Section~II provides serving background and defines our vocabulary;
+Section~III positions this work against prediction-based, prediction-free,
+and imprecise-information scheduling; Section~IV details data, models, and
+pre-registered criteria; Section~V presents workload characterization,
+ranking, cold-start, cost, and gate results; Section~VI discusses design
+consequences and limitations; Section~VII concludes.
+
