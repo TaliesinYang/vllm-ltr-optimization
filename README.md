@@ -1,27 +1,109 @@
 # vllm-ltr-optimization
 
-CSCI 6806 capstone — reproduce + optimize **Learning-to-Rank scheduling** for low-latency LLM serving.
+CSCI 6806 student coursework (Group 05). Not peer reviewed, not submitted
+anywhere, not reviewed by anyone outside the course. A single semester of work
+by three students on one rented GPU.
 
-**Thesis:** *schedule by a predictable property → lower latency.*
+**This is an unfinished line of enquiry, not a result we would ask anyone to
+build on.** We could not establish whether the approach is worth pursuing, and
+the measurements below are the reason.
 
-## Three threads
-- **Scheduling** (Dazhi) — reproduce the LTR scheduler; fix its ranker overfitting with **PARS** (pairwise ranking + BERT backbone).
-- **Gateway** (Mingye) — latency-aware routing / two-layer semantic cache / admission control ("Velox" design).
-- **Evaluation** (Yibo) — a reusable benchmark: MMLU quality gate + serving metrics (TTFT / TPOT / E2E / throughput).
+## Read this before the rest
 
-Built on the base paper (Prof. A. S. Kumar, reproducing Fu et al. NeurIPS'24). Base fork: `hao-ai-lab/vllm-ltr`.
+The short version of what we found: **on our setup, the thing we built did not
+pay off**, and the two changes that did were not ours.
 
-## Where to start
+- At vLLM's default running-batch cap of 256 slots, no ordering policy we
+  tested separated from any other by more than 1.2%. The queue a scheduler
+  would reorder never formed. Three rounds of serving experiments produced
+  nothing.
+- Reducing the cap to 16 does make ordering matter, and there the learned
+  ranker beats arrival order by 4.2%. But we chose that cap ourselves to
+  create the condition. Whether any real deployment sits in that regime is
+  not something we measured.
+- Our own reliability gate — the abstaining mechanism in the report's title —
+  is **4.9% slower than doing nothing at all** once a queue exists. Requests
+  it declines to vouch for hold their slots and block the ones behind them.
+- Ordering by prompt length, which costs nothing, is **8.5% worse than not
+  reordering**. A free heuristic loses to arrival order.
+- The two largest effects we measured came from neither prediction nor
+  ordering: swapping the scheduler implementation with arrival order held
+  fixed cut mean latency 44%, and prefix caching a further 17-23%.
+- The predictor does not fit the gateway's documented 15 ms decision budget.
+  A third of decisions time out and fall back to arrival order.
+
+The offline signal is real — reading tool-schema text improves output-length
+ranking by +0.044 Kendall's tau over the same encoder without it. Turning that
+into latency is where it stops.
+
+## What is not established
+
+- **No equivalence test was run.** Where the report says quality "does not
+  drop" across unseen-tool strata, that is an absence of detected difference,
+  not a demonstration of equivalence.
+- **No machine-level replication.** Every serving comparison resamples within
+  a single engine launch per arm. Nothing here separates our effects from
+  whatever that one machine was doing that day.
+- **One workload family, one client.** Offline work is ToolACE only; the live
+  traces are 75 requests from a single agent product. The replay inherits that
+  capture's compressed job-size variance, which may leave ordering little room
+  to separate in the first place.
+- **One label model, one card.** Labels come from Qwen3.5-9B; serving runs on
+  one vendor-modified 48 GB RTX 4090.
+- **Contention was created one way only.** We constrained the batch. Long
+  contexts exhausting the KV cache would reach the same condition differently
+  and might not behave the same.
+- **S2 is underpowered** at n=78, and the gate's confidence is a measured tau
+  floor, not a calibrated probability.
+- **Prefill is unmodeled.** The ranker predicts decode length only.
+
+## Would we build on this?
+
+Not as it stands, and we would not suggest anyone else does either. The
+question the project set out to answer -- does a better-informed length
+predictor make an LLM serving stack faster -- came back as *it depends on a
+setting we chose ourselves*, which is not an answer. Before this direction is
+worth more effort, at least these would have to be settled:
+
+- Whether any production deployment actually runs in the contended regime
+  where ordering pays. We did not measure one. We manufactured the condition.
+- Whether the effect survives on a second machine. Nothing here is replicated
+  at the machine level, so the 4.2% could be a property of one box on one day.
+- Whether the gate can be made to cost less than it saves. Right now it costs
+  more, and we do not have a design that fixes that.
+- Whether the predictor can be made to fit a realistic decision budget. Two
+  pre-registered attempts to shrink it both failed.
+- Whether any of it generalises past one workload family and one agent client.
+
+Someone starting from scratch on this problem would probably not want our
+scheduler. They might want the negative results, and the experimental
+discipline that produced them, which is the part below.
+
+## The mistake worth copying
+
+An early round benchmarked every policy against vLLM's stock scheduler and
+found uniform gains across all of them. That looked like success. It should
+have looked wrong: policies that order differently should not improve
+identically. The gains came from the implementation underneath, not from
+ordering. Anyone benchmarking a scheduler against a serving engine's default
+will hit this — the control has to share your implementation and differ only
+in the variable you claim.
+
+## Reproducing
+
+Every number in the report is re-derived from a committed artifact at build
+time; `latex_source/scripts/build_evidence_map.py` fails if an artifact
+disagrees with what is printed. Figure generators are under
+`scripts/report_figures/`, run data under `runs/`.
+
 | Doc | Purpose |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Full project context (read first) |
-| [`docs/REPRODUCTION.md`](docs/REPRODUCTION.md) | Environment setup + how to reproduce (**start here to run**) |
-| [`docs/references.md`](docs/references.md) | Papers to reproduce / compare, with `schedule-type` mapping |
-| [`docs/presentation-plan.md`](docs/presentation-plan.md) | Midterm presentation outline (Wed 2026-06-24) |
+| [`docs/REPRODUCTION.md`](docs/REPRODUCTION.md) | Environment setup and how to re-run |
+| [`latex_source/`](latex_source/) | LaTeX source of the report |
+| [`latex_source/EVIDENCE-MAP.md`](latex_source/EVIDENCE-MAP.md) | Every printed number and the artifact it came from |
+| [`docs/references.md`](docs/references.md) | Papers compared against |
 
-## Status
-Reproduction in progress — **baseline first** (FCFS / classification / LTR), PARS after.
-GPU: RTX 4090 48GB.
+Base fork: `hao-ai-lab/vllm-ltr`, reproducing Fu et al., NeurIPS 2024.
 
 ## VeloxMesh `/v1/decision` development service
 
