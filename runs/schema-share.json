@@ -1,0 +1,17 @@
+{
+  "schema_version": "schema-share-v1",
+  "source": "probes/agent-traces-2026-07-26/agent_trace_vanilla.jsonl.gz",
+  "tool_bearing_requests": 50,
+  "configuration": "agent native tool set (10 tools)",
+  "share_pct": {
+    "min": 17.1,
+    "median": 23.5,
+    "max": 57.4
+  },
+  "bytes_per_tool": {
+    "mean": 2067,
+    "min": 1789,
+    "max": 2130
+  },
+  "note": "The share is unstable because the denominator grows with the conversation while the schema block is resent whole every turn. The per-tool cost is the stable quantity; the paper reports the range and the per-tool figure together for that reason."
+}
