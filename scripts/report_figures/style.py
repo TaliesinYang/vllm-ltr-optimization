@@ -68,10 +68,21 @@ mpl.rcParams.update(
         # of the accelerator-paper figure style (EXION/HPCA) this set is
         # benchmarked against. Sans survives small sizes and dense panels
         # better than Times does.
+        #
+        # ONE family, and DejaVu rather than Helvetica, for a reason worth
+        # recording: Helvetica ships no bold or oblique here and no math
+        # glyphs at all, so a Helvetica figure silently renders its bold in
+        # Arial, its italics in DejaVu Oblique and every $\tau$ in DejaVu --
+        # four families in one plate, which is exactly the inconsistency a
+        # reviewer reads as carelessness. DejaVu supplies all four faces, so
+        # the whole set is one family by construction rather than by luck.
         "font.family": "sans-serif",
-        "font.sans-serif": ["Helvetica", "Arial", "Liberation Sans",
-                            "DejaVu Sans"],
-        "mathtext.fontset": "dejavusans",
+        "font.sans-serif": ["DejaVu Sans"],
+        "mathtext.fontset": "custom",
+        "mathtext.rm": "DejaVu Sans",
+        "mathtext.it": "DejaVu Sans:italic",
+        "mathtext.bf": "DejaVu Sans:bold",
+        "mathtext.sf": "DejaVu Sans",
         "font.size": 10.0,
         "axes.labelsize": 10.0,
         "axes.titlesize": 10.0,
@@ -162,3 +173,22 @@ def save_figure(fig: Figure, output_dir: Path, stem: str) -> list[Path]:
     fig.savefig(png_path, dpi=300)
     fig.savefig(pdf_path)
     return [png_path, pdf_path]
+
+
+# ---- EXION palette ---------------------------------------------------------
+# Sampled from the published figures of EXION (HPCA'25, arXiv 2501.05680),
+# which this set is benchmarked against. Two rules matter more than the exact
+# hexes: one sequential ramp per method family (never one hue per bar), and a
+# visibly different light tone for the outside baseline the paper does not own.
+EXION = {
+    # method family, light -> dark; assign by how much of the decision the
+    # variant owns, so ramp position carries meaning rather than order of
+    # appearance.
+    "family": ["#5ABAD1", "#3984B6", "#264992", "#161F63"],
+    # second family, used only when a figure genuinely holds two of them.
+    "family_alt": ["#F4AEA3", "#E8638B", "#A73B8F", "#61208D", "#3C1357"],
+    # the environment we did not build (stock engine, external baseline).
+    "baseline": "#B7DFCB",
+    # structure only: gridlines, frames, header strips, footnote text.
+    "structure": ["#E8E8E8", "#DFDFDF", "#D1D1D1", "#7F7F7F"],
+}

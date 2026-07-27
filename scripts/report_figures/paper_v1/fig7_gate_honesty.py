@@ -1,10 +1,28 @@
 """Figure 7 - what the Reliability Gate claims versus what it delivers.
 
-Each rule assigns a confidence per stratum; the realized value is the measured
-test tau for that stratum. A point above the diagonal claims more reliability
-than it delivers - that region is shaded, because overstatement is the failure
-mode the gate exists to prevent. Rule C's abstain (0.0) on the strata it cannot
-measure is drawn distinctly: it is a refusal to vouch, not a low estimate.
+Vocabulary is fixed for the whole figure: a rule *claims* a number, the held-out
+test split *delivers* one, and the *gap* is claimed minus delivered. That single
+definition of "gap" is used in exactly one place - panel (b) - so no two marks
+in the figure can print two different distances under the same word.
+
+(a) is the shipped rule (C_abstain) per stratum on the raw tau_b axis. The
+delivered 95% CI is drawn as a band spanning the whole row, so the claim mark
+sitting inside or outside that band *is* the containment test; no reader has to
+compare two free-floating marks by eye. Where the rule abstains there is no
+claim, so nothing is plotted on the quantitative axis; a refusal to vouch is
+not the number zero.
+
+(b) compares three rules at each one's largest claim gap - the largest
+|claimed - delivered| over the strata where that rule actually makes a claim.
+Rule C claims on two of the four strata and the baselines on all four, so every
+row states how many strata its worst case is a maximum over: the comparison
+sets are unequal and the panel says so rather than hiding it behind the word
+"largest".
+
+Every number the panels assert is printed once, in the row-label column on the
+left of its own panel. Nothing numeric is set loose inside the data area, so no
+value label can amputate a gridline and no two labels can drift into different
+placement conventions.
 """
 
 from __future__ import annotations
@@ -12,8 +30,10 @@ from __future__ import annotations
 import hashlib
 import json
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import to_hex, to_rgb
 from matplotlib.lines import Line2D
 
 from _common import (
@@ -27,16 +47,88 @@ from _common import (
     record_provenance,
     save,
 )
+from style import EXION  # noqa: E402  (_common puts the style module on sys.path)
 
 T5 = OFFLINE / "t5-gate.json"
 TRACE = PROBE_TRACE / "agent_trace_vanilla.jsonl.gz"
 GATE_VOCAB = REPO / "scheduler_benchmark" / "artifacts" / "gate_confidence.json"
+
+# EXION palette. One dark family tone, one ordered structure grey ramp, one
+# vermillion. The family tone means exactly one thing in this figure: a value the
+# shipped gated rule claims, and it sits at the dark end of the ramp because that
+# rule owns the whole confidence decision. Structure grey means exactly one
+# thing: an estimate with its 95% CI, plus every frame and rule of the figure.
+# Vermillion is reserved for overstatement and is spent only where a rule's whole
+# gap interval sits above zero. Every one of the three has its own legend entry,
+# so no ink carries an undeclared second meaning.
+CLAIM_COLOR = EXION["family"][3]
+GRAY_POINT = EXION["structure"][3]
+GRAY_BAND = EXION["structure"][2]
+GRAY_ZERO = EXION["structure"][3]
+GRAY_NOTE = EXION["structure"][3]
+STRIP_FILL = EXION["structure"][0]
+GRID = EXION["structure"][0]
+FRAME = EXION["structure"][3]
+ORANGE = OKABE_ITO["vermillion"]
+# The overstatement band is the same vermillion at low opacity, never a second
+# warm hex: the figure holds exactly one warm colour and it means failure mode.
+ORANGE_BAND_ALPHA = 0.30
+# The legend swatch must be the pixels the panel actually draws, so it is that
+# same vermillion composited over the white page rather than a sampled tint.
+ORANGE_BAND = to_hex(
+    tuple(
+        1.0 - ORANGE_BAND_ALPHA + ORANGE_BAND_ALPHA * channel
+        for channel in to_rgb(ORANGE)
+    )
+)
+
+MINUS = "−"  # U+2212, so a minus matches the width and height of a plus
+
+# The one piece of loose text left inside a data area: the bound that decides
+# whether "entirely above zero" is a comfortable statement or a hair's breadth.
+VALUE_BBOX = dict(boxstyle="square,pad=0.15", facecolor="white", edgecolor="none")
+# House frame for the vocabulary glosses and the finding callouts.
+CALLOUT_BBOX = dict(
+    boxstyle="square,pad=0.25", facecolor="white", edgecolor=FRAME, linewidth=0.6
+)
+
 RULES = (
-    ("placeholder_0.9", "Placeholder 0.9", OKABE_ITO["vermillion"], "X"),
-    ("global_control_no_stratification", "Global (no strata)", "#8A8A8A", "s"),
-    ("C_abstain", "Rule C (evaluated)", OKABE_ITO["blue"], "o"),
+    ("placeholder_0.9", "Placeholder"),
+    ("global_control_no_stratification", "Global"),
+    ("C_abstain", "Rule C (shipped)"),
 )
 RULE_C = 2  # index into RULES; asserted against the key below
+
+# Both panels use the same four row slots and the same limits, so a row in (a)
+# and a row in (b) are the same height and the same distance apart: one scan
+# rhythm across the pair. (b) fills three of the four slots with rules and
+# spends the fourth on its vocabulary gloss.
+Y_TOP, Y_BOTTOM = -0.62, 3.62
+LANE = 0.115  # half the distance between the claim lane and the delivered lane
+BAND_H = 0.38  # row band height, tall enough to hold both lanes of (a)
+
+# Symmetric padding about the outer tick of each panel, so neither axis looks
+# nudged to one side. Ticks: (a) every 0.10 from 0.30, (b) every 0.20 from -0.20.
+TICK_A, PAD_A = 0.1, 0.02
+TICK_B, PAD_B = 0.2, 0.03
+
+
+def fmt2(value: float, signed: bool = False) -> str:
+    """Every tau_b-scale number in this figure: leading zero, two decimals.
+
+    Signed values carry a real U+2212 rather than a hyphen, so the minus and
+    the plus in panel (b) have the same weight and height.
+    """
+    body = f"{abs(value):.2f}"
+    if signed:
+        return ("+" if value >= 0 else MINUS) + body
+    return (MINUS if value < 0 else "") + body
+
+
+def fmt3(value: float) -> str:
+    """Three decimals, signed: used only for a bound that two decimals would
+    round to +0.00, hiding whether the interval actually clears zero."""
+    return ("+" if value >= 0 else MINUS) + f"{abs(value):.3f}"
 
 
 def live_capture_counts() -> tuple[dict[str, int], int]:
@@ -45,8 +137,8 @@ def live_capture_counts() -> tuple[dict[str, int], int]:
     Each captured request is classified S1-S4 against the shipped gate
     vocabulary (same sorted-tool-name fingerprint rule the scheduler uses), so
     the live-traffic note in the figure is computed from the trace artifact
-    rather than asserted as prose. Zero-tool requests are counted separately:
-    S2-S4 are undefined for rows advertising no tools.
+    rather than asserted as prose. Requests advertising no tools are counted
+    separately: the strata are defined on a tool set, so none applies to them.
     """
     vocab = load_json(GATE_VOCAB)
     prefix = int(vocab["fingerprint_prefix_length"])
@@ -76,23 +168,28 @@ def live_capture_counts() -> tuple[dict[str, int], int]:
 
 
 def _header_strip(ax, text: str) -> None:
-    """Framed light-gray title band spanning the panel top, bold text at left."""
-    ax.add_patch(
+    """Framed light-gray title band spanning the panel top, bold text at left.
+
+    The text is a label for what the panel plots, never a finding: at most four
+    words, no numbers. Findings live in the framed callouts inside the panels,
+    where the marks that support them are.
+    """
+    patch = ax.add_patch(
         plt.Rectangle(
-            (0.0, 1.03),
+            (0.0, 1.04),
             1.0,
             0.095,
             transform=ax.transAxes,
-            facecolor="#f2f2f2",
-            edgecolor="#888888",
+            facecolor=STRIP_FILL,
+            edgecolor=FRAME,
             linewidth=0.6,
             clip_on=False,
             zorder=5,
         )
     )
-    ax.text(
+    label = ax.text(
         0.015,
-        1.0775,
+        1.0875,
         text,
         transform=ax.transAxes,
         fontsize=9,
@@ -101,8 +198,52 @@ def _header_strip(ax, text: str) -> None:
         va="center",
         zorder=6,
     )
-    # A blank real title makes constrained layout reserve room for the strip.
-    ax.set_title(" ", pad=16)
+    return patch, label
+
+
+def _gloss(ax, text: str, x: float = 0.028, y: float = 0.05, va: str = "bottom"):
+    """Framed box in axes coordinates: vocabulary gloss or finding callout.
+
+    Anchoring to the axes rather than to a data coordinate keeps it edge-aligned
+    instead of floating in whatever free region the current numbers happen to
+    leave. Each one sits in dead space its panel would otherwise waste.
+    """
+    return ax.text(
+        x,
+        y,
+        text,
+        transform=ax.transAxes,
+        fontsize=8,
+        color="black",
+        ha="left",
+        va=va,
+        linespacing=1.3,
+        zorder=7,
+        bbox=CALLOUT_BBOX,
+    )
+
+
+def _wrap_to_width(artist, words: list[str], max_px: float, renderer) -> None:
+    """Greedy word wrap measured in rendered pixels, not in characters.
+
+    The footnote is the one block of text as wide as the whole panel block, so
+    its line breaks cannot be hand-placed: the family the set renders in fixes
+    how many words fit, and a break tuned for one metric is wrong for another.
+    Measuring each candidate line with the live renderer keeps every word of the
+    wording and lets the break points follow the font.
+    """
+    lines: list[str] = []
+    current: list[str] = []
+    for word in words:
+        candidate = current + [word]
+        artist.set_text(" ".join(candidate))
+        if current and artist.get_window_extent(renderer).width > max_px:
+            lines.append(" ".join(current))
+            current = [word]
+        else:
+            current = candidate
+    lines.append(" ".join(current))
+    artist.set_text("\n".join(lines))
 
 
 def _contiguous_label(items: list[str], order: list[str]) -> str:
@@ -112,280 +253,221 @@ def _contiguous_label(items: list[str], order: list[str]) -> str:
     return ", ".join(items)
 
 
+def _worst_claim(comparison: dict, key: str, test_realized: dict) -> dict:
+    """The rule's largest claim gap, over the strata where it makes a claim.
+
+    "Largest" is |claimed - delivered|, applied identically to every rule: a
+    rule that only ever understates is still shown at the stratum where its
+    claim is furthest from what the split delivered, never at its most
+    flattering one. Abstentions are excluded because there is no claim to
+    measure a gap from - not because excluding them helps the shipped rule, and
+    the count of claiming strata is carried into the row label so the reader
+    sees that the three maxima are taken over unequal sets.
+
+    The claim is a fixed assigned number, so the uncertainty in
+    claimed - delivered is exactly the uncertainty in delivered, mirrored.
+    """
+    all_rows = comparison[key]["per_stratum"]
+    # Artifact integrity: the summary field must still agree with the rows.
+    largest_over = max(float(row["overstates_by"]) for row in all_rows)
+    if abs(largest_over - float(comparison[key]["max_overstatement"])) > 1e-9:
+        raise SystemExit(f"{key}: max_overstatement disagrees with per_stratum rows")
+    claiming = [row for row in all_rows if float(row["assigned"]) > 0.0]
+    if not claiming:
+        raise SystemExit(f"{key}: no stratum carries a claim")
+    worst = max(claiming, key=lambda row: abs(float(row["overstates_by"])))
+    point = float(worst["overstates_by"])
+    claimed = float(worst["assigned"])
+    ci_low, ci_high = (float(value) for value in test_realized[worst["stratum"]]["ci95_seed17"])
+    return {
+        "stratum": str(worst["stratum"]),
+        "point": point,
+        "low": claimed - ci_high,
+        "high": claimed - ci_low,
+        "claimed": claimed,
+        "n_claiming": len(claiming),
+        "n_strata": len(all_rows),
+    }
+
+
+def _symmetric_limits(lo_data: float, hi_data: float, step: float, pad: float):
+    """Limits that clear the data and sit an equal distance outside the outermost
+    tick on each side, so the axis is not visibly heavier at one end."""
+    first = np.floor(lo_data / step) * step
+    last = np.ceil(hi_data / step) * step
+    return first - pad, last + pad
+
+
 def main() -> None:
+    # A little more breathing room than the set default: this figure's last
+    # footnote line would otherwise sit ~0.03 in from the PDF bounding box and
+    # collide with the LaTeX caption.
+    mpl.rcParams["savefig.pad_inches"] = 0.06
+
     payload = load_json(T5)
     comparison = payload["rule_comparison"]
     if RULES[RULE_C][0] != "C_abstain":
         raise SystemExit("RULE_C index no longer points at C_abstain")
+    test_realized = payload["test_realized"]
+    table = {row["stratum"]: row for row in payload["reliability_table"]}
     live_counts, live_zero_tool = live_capture_counts()
 
     fig, (ax, ax_bar) = plt.subplots(
         1,
         2,
-        figsize=(IEEE_DOUBLE_WIDTH, 3.7),
-        gridspec_kw={"width_ratios": [1.15, 1.0]},
+        figsize=(IEEE_DOUBLE_WIDTH, 4.2),
+        gridspec_kw={"width_ratios": [1.0, 1.0]},
         constrained_layout=True,
     )
+    # Both panels carry a multi-line row-label column; without an explicit
+    # gutter the panels are packed until (b)'s labels nearly touch (a)'s axis.
+    fig.get_layout_engine().set(w_pad=0.01, wspace=0.005)
 
-    # --- assigned vs realized, per stratum -----------------------------------
-    # A realized-tau x-axis puts S3 and S4 0.0075 apart and their markers
-    # overlap, so strata are categorical here. Per stratum: the grey bar is what
-    # the Ranker actually delivers, the shaded band above it is the region where
-    # a rule would be claiming more than that.
-    strata = [row["stratum"] for row in comparison["C_abstain"]["per_stratum"]]
-    realized = {
-        row["stratum"]: float(row["realized"])
-        for row in comparison["C_abstain"]["per_stratum"]
+    # --- (a) the shipped rule, per stratum -----------------------------------
+    # Strata are rows, tau_b is the single quantitative axis, and each row holds
+    # the delivered CI as a band plus two marks: what Rule C claims and what the
+    # split delivered. The stratum-blind baselines are constants and would add
+    # three identical marks per row for one number each, so they are compared in
+    # (b) instead.
+    rows_c = comparison["C_abstain"]["per_stratum"]
+    strata = [row["stratum"] for row in rows_c]
+    claims = [float(row["assigned"]) for row in rows_c]
+    bounds = {
+        stratum: tuple(float(value) for value in test_realized[stratum]["ci95_seed17"])
+        for stratum in strata
     }
-    ceiling = 1.0
-    positions = np.arange(len(strata))
 
+    # Limits are set by the data actually drawn, not by the [0, 1] range of the
+    # coefficient: an axis padded out to 1.00 spends a third of the panel on
+    # emptiness.
+    lo_data = min([low for low, _ in bounds.values()] + [c for c in claims if c > 0.0])
+    hi_data = max([high for _, high in bounds.values()] + claims)
+    xmin, xmax = _symmetric_limits(lo_data, hi_data, TICK_A, PAD_A)
+
+    labels_a = []
     for index, stratum in enumerate(strata):
-        value = realized[stratum]
-        ax.add_patch(
-            plt.Rectangle(
-                (index - 0.42, value),
-                0.84,
-                ceiling - value,
-                color=OKABE_ITO["vermillion"],
-                alpha=0.12,
-                zorder=1,
-                linewidth=0,
-            )
-        )
-        ax.bar(
-            index, value, width=0.84, color=OKABE_ITO["light_gray"], zorder=2
-        )
-        ax.plot(
-            [index - 0.42, index + 0.42],
-            [value, value],
-            color=OKABE_ITO["dark_gray"],
-            linewidth=1.2,
-            zorder=3,
-        )
-        # Delivered value printed inside the bar at its left edge, clear of
-        # the rule markers that cluster around the top edge at mid-slot.
-        ax.text(
-            index - 0.38,
-            value - 0.048,
-            f"{value:.2f}",
-            fontsize=8,
-            color=OKABE_ITO["dark_gray"],
-            ha="left",
-            va="top",
-            zorder=4,
-        )
-
-    offsets = np.linspace(-0.22, 0.22, len(RULES))
-    for offset, (key, label, color, marker) in zip(offsets, RULES):
-        for index, row in enumerate(comparison[key]["per_stratum"]):
-            assigned = float(row["assigned"])
-            is_abstain = assigned == 0.0
-            # The grey square rides within ~0.01 of the realized-tau line at
-            # S3/S4, and above-vs-below is the judgment the panel asks for: a
-            # smaller square with a thicker white halo keeps the line visible
-            # through the overlap. Abstain circles sit exactly on y=0, so they
-            # are drawn unclipped to avoid the bottom spine halving them.
-            ax.scatter(
-                index + offset,
-                assigned,
-                s=52 if is_abstain else (30 if marker == "s" else 38),
-                marker=marker,
-                facecolor="white" if is_abstain else color,
-                edgecolor=color if is_abstain else "white",
-                linewidth=1.4 if is_abstain else (1.2 if marker == "s" else 0.6),
-                zorder=6,
-                clip_on=not is_abstain,
-                label=label if index == 0 else None,
-            )
-
-    ax.text(
-        -0.45,
-        0.975,
-        "shaded: claimed $>$ delivered",
-        fontsize=9,
-        color=OKABE_ITO["vermillion"],
-        ha="left",
-        va="top",
-    )
-    abstain_indices = [
-        index
-        for index, row in enumerate(comparison["C_abstain"]["per_stratum"])
-        if float(row["assigned"]) == 0.0
-    ]
-    if abstain_indices:
-        anchor = abstain_indices[0]
-        ax.annotate(
-            "Rule C\nabstains",
-            xy=(anchor + offsets[RULE_C], 0.0),
-            xytext=(anchor - 0.38, 0.19),
-            fontsize=9,
-            color=OKABE_ITO["blue"],
-            ha="left",
-            va="bottom",
-            linespacing=1.1,
-            arrowprops={
-                "arrowstyle": "->",
-                "color": OKABE_ITO["blue"],
-                "linewidth": 0.8,
-            },
-        )
-
-    ax.set_xticks(positions)
-    ax.set_xticklabels(strata)
-    ax.set_xlim(-0.6, len(strata) - 0.4)
-    ax.set_ylim(0, ceiling)
-    # The stratum meaning moves into the title; the xlabel slot is spent on a
-    # coverage row instead (test n, runtime outcome, live-traffic note).
-    ax.set_xlabel(" \n \n \n ")  # reserves layout space for the coverage row below
-    ax.set_ylabel("Confidence / realized $\\tau_b$")
-    _header_strip(ax, "(a) Claimed vs delivered per stratum")
-
-    # --- coverage row: test n, runtime outcome, live-traffic marking ---------
-    table = {row["stratum"]: row for row in payload["reliability_table"]}
-    exercised = [stratum for stratum in strata if live_counts.get(stratum)]
-    unexercised = [stratum for stratum in strata if stratum not in exercised]
-    xaxis_tf = ax.get_xaxis_transform()
-    # Thin rule above the mini-table so it reads as a table, not stray text.
-    ax.plot(
-        [-0.58, len(strata) - 0.42],
-        [-0.085, -0.085],
-        transform=xaxis_tf,
-        color="#888888",
-        linewidth=0.6,
-        clip_on=False,
-        solid_capstyle="butt",
-    )
-    # Right-aligned just outside the panel edge: below the axis nothing else
-    # occupies that margin, and S1's column entry stays clear.
-    ax.text(
-        -0.66,
-        -0.215,
-        "outcome",
-        transform=xaxis_tf,
-        ha="right",
-        va="top",
-        fontsize=8,
-        fontweight="bold",
-        color=OKABE_ITO["black"],
-        clip_on=False,
-    )
-    for index, stratum in enumerate(strata):
-        row = table[stratum]
-        assigned = float(row["assigned_confidence"])
-        is_live = stratum in exercised
-        is_abstain = assigned == 0.0
-        # Two-line outcome ("trusted" over its value) so neighbouring strata
-        # never collide at 10 pt within one categorical slot.
-        outcome_lines = ("abstain", "") if is_abstain else (
-            "trusted",
-            f"{assigned:.2f}".replace("0.", "."),
-        )
-        ax.text(
+        low, high = bounds[stratum]
+        point = float(test_realized[stratum]["mean_tau_b"])
+        claimed = claims[index]
+        # The band is the containment device: it is the delivered 95% CI and it
+        # spans the whole row, so a claim mark inside it is a claim inside the
+        # interval and a claim beside it is a claim outside, with no drop line
+        # or eyeball comparison needed.
+        ax.barh(
             index,
-            -0.115,
-            f"$n$={row['test_n']}",
-            transform=xaxis_tf,
-            ha="center",
-            va="top",
-            fontsize=8,
-            color=OKABE_ITO["dark_gray"],
-            clip_on=False,
+            high - low,
+            left=low,
+            height=BAND_H,
+            color=GRAY_BAND,
+            linewidth=0,
+            zorder=2,
         )
-        for line_index, line in enumerate(outcome_lines):
-            if not line:
-                continue
-            ax.text(
-                index,
-                -0.215 - 0.095 * line_index,
-                line,
-                transform=xaxis_tf,
-                ha="center",
-                va="top",
-                fontsize=8,
-                color=OKABE_ITO["blue"],
-                fontweight="bold" if is_live else "normal",
-                style="italic" if is_abstain else "normal",
-                clip_on=False,
-            )
-    # Underline the strata the live capture exercised (derived from the trace
-    # artifact against the shipped gate vocabulary, not asserted), and say so.
-    for stratum in exercised:
-        index = strata.index(stratum)
         ax.plot(
-            [index - 0.32, index + 0.32],
-            [-0.405, -0.405],
-            transform=xaxis_tf,
-            color=OKABE_ITO["black"],
-            linewidth=0.9,
-            clip_on=False,
-            solid_capstyle="butt",
+            point,
+            index + LANE,
+            marker="o",
+            markersize=4.5,
+            color=GRAY_POINT,
+            linestyle="none",
+            zorder=5,
         )
-    live_note = "live capture traffic: " + ", ".join(
-        f"{stratum} $n$={live_counts[stratum]}" for stratum in exercised
-    )
-    live_note += f" ($+$ {live_zero_tool} zero-tool)"
-    if unexercised:
-        live_note += f"; {_contiguous_label(unexercised, strata)} unexercised"
-    ax.text(
-        -0.55,
-        -0.455,
-        live_note,
-        transform=xaxis_tf,
-        ha="left",
+
+        # C_abstain assigns 0 to mean "no claim". Plotting that as a point on a
+        # tau_b axis would assert a confidence of zero, so the abstaining rows
+        # simply carry no claim mark; the row label says so in words.
+        if claimed == 0.0:
+            claim_line = "Rule C abstains"
+        else:
+            # (a)'s callout asserts this for every claiming row; a rebuild where
+            # it stops holding must fail the build, not keep the statement.
+            if claimed > high:
+                raise SystemExit(
+                    f"(a) headline broken: the Rule C claim on {stratum} "
+                    f"({claimed:.4f}) exceeds its delivered CI upper bound ({high:.4f})"
+                )
+            claim_line = f"claim {fmt2(claimed)}"
+            ax.plot(
+                claimed,
+                index - LANE,
+                marker="D",
+                markersize=5.0,
+                color=CLAIM_COLOR,
+                linestyle="none",
+                zorder=5,
+            )
+        labels_a.append(
+            f"{stratum}   test $n$={table[stratum]['test_n']}\n"
+            f"{claim_line}\n"
+            f"delivered {fmt2(point)}"
+        )
+
+    abstained = [row["stratum"] for row in rows_c if float(row["assigned"]) == 0.0]
+    if len(abstained) != 2:
+        raise SystemExit(
+            "the gloss and the callout of (a) assume exactly two abstaining strata; "
+            f"the artifact now has {len(abstained)}"
+        )
+    # The finding the header used to carry, moved to where its marks are: it is
+    # the containment statement the loop above just enforced row by row.
+    callout_a = _gloss(
+        ax,
+        "Claims sit inside\nthe delivered CI",
+        x=0.028,
+        y=0.955,
         va="top",
-        fontsize=8,
-        color=OKABE_ITO["black"],
-        clip_on=False,
     )
-    # Legend band across the figure top: rule markers plus the delivered-bar
-    # swatch live outside the data region, so no marker or bar is covered.
-    from matplotlib.patches import Patch
+    # The four row names are the figure's own vocabulary and nothing else in the
+    # figure defines them; this is the only place a standalone reader can learn
+    # what S1-S4 mean. It sits in the corner the wide S1/S2 intervals leave empty.
+    gloss_a = _gloss(
+        ax,
+        "Strata (tool set):\n"
+        "S1 seen in training\n"
+        "S2 new set, all known\n"
+        "S3 known + new mixed\n"
+        "S4 none seen before",
+    )
 
-    rule_handles, rule_labels = ax.get_legend_handles_labels()
-    rule_handles.append(
-        Patch(facecolor=OKABE_ITO["light_gray"], edgecolor=OKABE_ITO["dark_gray"],
-              linewidth=1.0, label="delivered $\\tau_b$")
-    )
-    rule_labels.append("delivered $\\tau_b$")
-    legend = fig.legend(rule_handles, rule_labels, loc="outside upper center",
-                        ncol=4, fontsize=8, frameon=True, framealpha=1.0,
-                        facecolor="white", edgecolor="#888888", borderpad=0.5,
-                        handletextpad=0.5, columnspacing=1.4)
-    legend.get_frame().set_linewidth(0.6)
-    ax.yaxis.grid(True)
+    ax.set_yticks(np.arange(len(strata)))
+    ax.set_yticklabels(labels_a, fontsize=9)
+    ax.set_ylim(Y_BOTTOM, Y_TOP)
+    ax.set_xlim(xmin, xmax)
+    ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(TICK_A))
+    ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda value, _: fmt2(value)))
+    ax.tick_params(axis="x", labelsize=9)
+    ax.set_xlabel("$\\tau_b$: claimed and delivered", fontsize=9, labelpad=6)
+    ax.tick_params(axis="y", length=0)
+    ax.spines["left"].set_visible(False)
+    ax.xaxis.grid(True, color=GRID, alpha=1.0)
     ax.set_axisbelow(True)
+    strip_a, header_a = _header_strip(ax, "(a) Claimed vs delivered")
+    ax.set_title(" ", pad=16)  # reserves room for the strip under constrained layout
 
-    # --- worst overstatement per rule ---------------------------------------
-    names, worst, colors = [], [], []
-    for key, label, color, _ in RULES:
-        names.append(label)
-        worst.append(float(comparison[key]["max_overstatement"]))
-        colors.append(color)
-    bars = ax_bar.barh(np.arange(len(names)), worst, color=colors, height=0.55, zorder=2)
-    ax_bar.axvline(0, color=OKABE_ITO["black"], linewidth=0.9, zorder=3)
-    for bar, value in zip(bars, worst):
-        # Negative bars extend left, so their label goes to the RIGHT of zero;
-        # placing it left of the bar collides with the tick labels.
-        ax_bar.text(
-            value + 0.014 if value >= 0 else 0.014,
-            bar.get_y() + bar.get_height() / 2,
-            f"{value:+.3f}",
-            va="center",
-            ha="left",
-            fontsize=9,
+    # --- (b) largest claim gap per rule --------------------------------------
+    # Point and band, the same encoding as (a): a zero-anchored bar would give
+    # the estimate an area the interval does not support, and a whisker cap on
+    # the smallest bound would print a glyph across the zero reference.
+    labels_b, points, lows, highs = [], [], [], []
+    worst_cases: dict[str, dict] = {}
+    for key, base_label in RULES:
+        case = _worst_claim(comparison, key, test_realized)
+        worst_cases[key] = case
+        # The three worst cases are maxima over different numbers of strata,
+        # because Rule C abstains on two of them. The row label carries that
+        # count, so the comparison is never read as like-for-like.
+        labels_b.append(
+            f"{base_label}\n"
+            f"claims on {case['n_claiming']} of {case['n_strata']} strata\n"
+            f"worst {case['stratum']}, claim {fmt2(case['claimed'])}\n"
+            f"gap {fmt2(case['point'], signed=True)}"
         )
-    ax_bar.set_yticks(np.arange(len(names)))
-    ax_bar.set_yticklabels(names)
-    ax_bar.set_xlabel("Worst overstatement\n(assigned $-$ realized $\\tau_b$)")
-    # Limits track the data: right leaves room for the printed value beside
-    # the widest bar, left keeps the small negative bar visible.
-    ax_bar.set_xlim(min(0.0, min(worst)) - 0.08 * max(worst), max(worst) * 1.35)
-    # Headroom above the top bar for the framed never-overstates callout.
-    ax_bar.set_ylim(-0.5, len(names) + 0.05)
-    _header_strip(ax_bar, "(b) Worst case per rule")
-    ax_bar.xaxis.grid(True)
-    ax_bar.set_axisbelow(True)
+        points.append(case["point"])
+        lows.append(case["low"])
+        highs.append(case["high"])
+
+    positions = np.arange(len(RULES))
+    xmin_b, xmax_b = _symmetric_limits(min(lows), max(highs), TICK_B, PAD_B)
+
     # The annotation is a factual claim about the artifact; a rebuild where
     # Rule C overstates must fail the figure build, not keep the caption.
     if not bool(comparison["C_abstain"]["never_overstates"]):
@@ -393,21 +475,382 @@ def main() -> None:
             "t5-gate.json: rule_comparison.C_abstain.never_overstates is false; "
             "the 'never overstates' annotation no longer holds"
         )
-    bar_c = bars[RULE_C]
-    ax_bar.annotate(
-        "never overstates (this split)",
-        # Framed callout above the Rule C bar; the arrow targets the bar's
-        # top edge so its path clears the value label beside the bar.
-        xy=(worst[RULE_C] / 2, bar_c.get_y() + bar_c.get_height()),
-        xytext=(0.10, RULE_C + 0.62),
-        fontsize=9,
-        color=OKABE_ITO["blue"],
-        ha="left",
-        va="center",
-        bbox=dict(boxstyle="square,pad=0.25", facecolor="white",
-                  edgecolor="#888888", linewidth=0.6),
-        arrowprops={"arrowstyle": "->", "color": OKABE_ITO["blue"], "linewidth": 0.8},
+    overstating = [i for i, low in enumerate(lows) if low > 0.0]
+    below_zero = [i for i, high in enumerate(highs) if high < 0.0]
+    # The callout of (b) asserts exactly this split.
+    if overstating != [i for i in range(len(RULES)) if i != RULE_C] or below_zero != [RULE_C]:
+        raise SystemExit(
+            "panel (b) headline no longer matches the intervals: entirely-above-zero "
+            f"rows {overstating}, entirely-below-zero rows {below_zero}"
+        )
+
+    # The zero reference spans the three rule rows and stops above the gloss, so
+    # nothing opaque is ever laid across the one line the panel is read against.
+    zero_span = (-0.55, len(RULES) - 1 + 0.28)
+    zero_line = ax_bar.vlines(
+        0.0,
+        zero_span[0],
+        zero_span[1],
+        color=GRAY_ZERO,
+        linewidth=0.9,
+        linestyle=(0, (4, 2)),
+        zorder=3,
     )
+    for index, (point, low, high) in enumerate(zip(points, lows, highs)):
+        # Vermillion is the reserved overstatement colour and is spent here: the
+        # two rules whose whole interval sits above zero are drawn in it, so the
+        # finding is carried by the mark and not only by a printed sign.
+        overstates = low > 0.0
+        color = ORANGE if overstates else GRAY_POINT
+        ax_bar.barh(
+            index,
+            high - low,
+            left=low,
+            height=BAND_H,
+            color=ORANGE if overstates else GRAY_BAND,
+            alpha=ORANGE_BAND_ALPHA if overstates else 1.0,
+            linewidth=0,
+            zorder=2,
+        )
+        ax_bar.plot(
+            point,
+            index,
+            marker="o",
+            markersize=4.5,
+            color=color,
+            linestyle="none",
+            zorder=5,
+        )
+
+    # The narrowest margin among the overstating rules decides whether "entirely
+    # above zero" is a comfortable statement or a hair's breadth. That bound is
+    # three thousandths wide and cannot be read off the axis, so it is printed
+    # at the end of the interval it belongs to, at three decimals, because two
+    # would round it to +0.00.
+    tightest = min(overstating, key=lambda i: lows[i])
+    span_b = xmax_b - xmin_b
+    # The label lives in the lane between the zero reference and the first
+    # gridline to its right, and it is centred in that lane rather than set at a
+    # hand-tuned offset from zero: the lane is ~54 px wide and the label is ~41,
+    # so the two clearances the guards below check - 4 px off the zero reference,
+    # 3 px off the gridline - are only both satisfied near the middle. Centring
+    # lets the tick geometry place it instead of a constant tuned to one metric.
+    next_gridline = min(
+        tick for tick in ax_bar.xaxis.get_major_locator().tick_values(xmin_b, xmax_b)
+        if tick > 0.0 and tick <= xmax_b
+    )
+    note_x = 0.5 * next_gridline
+    # Leader and label are separate artists on purpose: the label alone is what
+    # must be held clear of the zero reference and of every gridline, and an
+    # annotation's bounding box would fold the leader into that test.
+    ax_bar.plot(
+        [lows[tightest], note_x - 0.005 * span_b],
+        [tightest - 0.5 * BAND_H, tightest - 0.50],
+        linewidth=0.6,
+        color=FRAME,
+        solid_capstyle="butt",
+        zorder=4,
+    )
+    bound_note = ax_bar.text(
+        note_x,
+        tightest - 0.58,
+        fmt3(lows[tightest]),
+        fontsize=8,
+        color=GRAY_NOTE,
+        ha="center",
+        va="center",
+        zorder=7,
+        bbox=VALUE_BBOX,
+    )
+
+    # The three rule names are the figure's own vocabulary; this is the only
+    # place a standalone reader can learn what they do. It fills the fourth row
+    # slot, which the three-rule comparison leaves empty.
+    gloss_b = _gloss(
+        ax_bar,
+        "Gate rules — Placeholder: 0.90 for\n"
+        "every request; Global: one measured\n"
+        "value for all; Rule C: per-stratum,\n"
+        "abstains below 100 validation rows.",
+    )
+    # The finding the header used to carry, moved onto the row it is about and
+    # into the empty half of that row, so it reads against the mark it describes.
+    callout_b = _gloss(
+        ax_bar,
+        "Only Rule C stays below 0",
+        x=(0.055 - xmin_b) / span_b,
+        y=(Y_BOTTOM - RULE_C) / (Y_BOTTOM - Y_TOP),
+        va="center",
+    )
+
+    ax_bar.set_yticks(positions)
+    ax_bar.set_yticklabels(labels_b, fontsize=8)
+    ax_bar.set_ylim(Y_BOTTOM, Y_TOP)
+    ax_bar.set_xlim(xmin_b, xmax_b)
+    # Same tick format as (a) - a signed tick label is wide enough that the ticks
+    # of this panel run into one another. The sign that matters is on the
+    # estimates and on the zero reference, not on the ruler.
+    ax_bar.xaxis.set_major_locator(mpl.ticker.MultipleLocator(TICK_B))
+    ax_bar.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda value, _: fmt2(value)))
+    ax_bar.tick_params(axis="x", labelsize=9)
+    ax_bar.set_xlabel(
+        "gap = claimed " + MINUS + " delivered $\\tau_b$", fontsize=9, labelpad=6
+    )
+    ax_bar.tick_params(axis="y", length=0)
+    ax_bar.spines["left"].set_visible(False)
+    ax_bar.xaxis.grid(True, color=GRID, alpha=1.0)
+    ax_bar.set_axisbelow(True)
+    strip_b, header_b = _header_strip(ax_bar, "(b) Worst-case gap")
+    ax_bar.set_title(" ", pad=16)
+
+    handles = [
+        Line2D([], [], color=GRAY_BAND, linewidth=5.5, marker="o", markersize=4.2,
+               markerfacecolor=GRAY_POINT, markeredgecolor=GRAY_POINT,
+               label="estimate, 95% CI"),
+        Line2D([], [], linestyle="none", marker="D", markersize=4.6,
+               color=CLAIM_COLOR, label="Rule C claim"),
+        Line2D([], [], color=ORANGE_BAND, linewidth=5.5, marker="o", markersize=4.2,
+               markerfacecolor=ORANGE, markeredgecolor=ORANGE,
+               label="interval entirely > 0: overstates"),
+        Line2D([], [], color=GRAY_ZERO, linewidth=0.9, linestyle=(0, (4, 2)),
+               label="gap = 0"),
+    ]
+    legend = fig.legend(
+        handles=handles,
+        loc="outside upper center",
+        ncol=4,
+        fontsize=8,
+        frameon=True,
+        framealpha=1.0,
+        facecolor="white",
+        edgecolor=FRAME,
+        fancybox=False,  # square frame, same as the header strips
+        borderpad=0.5,
+        handlelength=1.6,
+        handletextpad=0.5,
+        columnspacing=1.2,
+    )
+    legend.get_frame().set_linewidth(0.6)
+
+    # --- figure footnote: method and live-traffic coverage -------------------
+    # Where the delivered numbers come from, and what the live capture is and is
+    # not. The live trace never fed a delivered value; saying so here is the
+    # only way the two facts stop looking like a contradiction.
+    exercised = [stratum for stratum in strata if live_counts.get(stratum)]
+    if not exercised:
+        raise SystemExit("live trace classified no request into any stratum")
+    reach = ", ".join(f"{stratum} ({live_counts[stratum]} requests)" for stratum in exercised)
+    unexercised = [stratum for stratum in strata if stratum not in exercised]
+    reach_note = (
+        f"any number here: it reached {reach} only"
+        if unexercised
+        else f"any number here: it reached {reach}"
+    )
+    footnote_words = (
+        "Delivered $\\tau_b$: offline replay of the held-out test split, "
+        "3-seed mean; band = 95% session-clustered bootstrap CI (seed 17), "
+        "mirrored onto the gap in (b). Live gateway capture is a separate "
+        f"reachability check, not a source of {reach_note}; {live_zero_tool} "
+        "further requests advertised no tools, so no stratum applies to them."
+    ).split()
+    footnote = fig.supxlabel(
+        " ".join(footnote_words),
+        x=0.004,
+        ha="left",
+        fontsize=8,
+        color=GRAY_NOTE,
+    )
+
+    # Constrained layout centres an outside legend on the whole canvas, which
+    # includes the y-label gutter, and leaves the footnote hanging left of the
+    # panel block. Settle the layout once, freeze it, then align both to the
+    # axes block they belong to.
+    fig.canvas.draw()
+    # The footnote may only be as wide as the panel block it annotates, and the
+    # block width is not known until the layout has settled once. Wrap to the
+    # measured width and settle again so the extra line is reserved rather than
+    # pushed into the panels; re-wrapping changes the block a little, so repeat
+    # until the width the wrap was cut to is the width the layout ends up with.
+    block_px = None
+    for _ in range(4):
+        box_a, box_b = ax.get_position(), ax_bar.get_position()
+        settled = (box_b.x1 - box_a.x0) * fig.get_figwidth() * fig.dpi
+        if block_px is not None and abs(settled - block_px) <= 1.0:
+            break
+        block_px = settled
+        # Cut 2 px inside the block: the guard below allows 1 px of slack, and a
+        # line wrapped to the block exactly would rest on that tolerance.
+        _wrap_to_width(footnote, footnote_words, block_px - 2.0, fig.canvas.get_renderer())
+        fig.canvas.draw()
+    fig.set_layout_engine("none")
+    box_a, box_b = ax.get_position(), ax_bar.get_position()
+    block_center = 0.5 * (box_a.x0 + box_b.x1)
+    legend_box = legend.get_window_extent().transformed(fig.transFigure.inverted())
+    legend.set_bbox_to_anchor(
+        (block_center - 0.5 * legend_box.width, legend_box.y0,
+         legend_box.width, legend_box.height)
+    )
+    footnote.set_x(box_a.x0)
+
+    # The legend frame and the two header strips are separate levels of the
+    # hierarchy and must not read as one block. Every other framed clearance in
+    # this figure is ~0.1 in; hold the legend to the same.
+    fig.canvas.draw()
+    strip_top = max(strip.get_window_extent().y1 for strip in (strip_a, strip_b))
+    target = 0.13 * fig.dpi
+    deficit = target - (legend.get_window_extent().y0 - strip_top)
+    if deficit > 0:
+        anchor = legend.get_bbox_to_anchor().transformed(fig.transFigure.inverted())
+        legend.set_bbox_to_anchor(
+            (anchor.x0, anchor.y0 + deficit / (fig.get_figheight() * fig.dpi),
+             anchor.width, anchor.height)
+        )
+        fig.canvas.draw()
+    clearance = legend.get_window_extent().y0 - strip_top
+    if clearance < target - 1.0:
+        raise SystemExit(
+            f"legend frame clears the header strips by only {clearance:.0f} px; "
+            f"{target:.0f} px required"
+        )
+
+    # The figure is saved with a tight bounding box, so any text wider than the
+    # panel block silently widens the PDF past the two-column measure. Fail the
+    # build instead: the fix is shorter wording, never a smaller font.
+    block = (box_a.x0 * fig.get_figwidth() * fig.dpi,
+             box_b.x1 * fig.get_figwidth() * fig.dpi)
+    for artist, name in ((footnote, "footnote"), (legend, "legend")):
+        extent = artist.get_window_extent()
+        if extent.x0 < block[0] - 1.0 or extent.x1 > block[1] + 1.0:
+            raise SystemExit(
+                f"{name} ({extent.x0:.0f}-{extent.x1:.0f} px) runs outside the "
+                f"panel block ({block[0]:.0f}-{block[1]:.0f} px); shorten it"
+            )
+
+    # Header strips, glosses and callouts must fit their own panel at full size.
+    for artist, host, name in (
+        (header_a, ax, "(a) header"),
+        (header_b, ax_bar, "(b) header"),
+        (gloss_a, ax, "(a) gloss"),
+        (gloss_b, ax_bar, "(b) gloss"),
+        (callout_a, ax, "(a) callout"),
+        (callout_b, ax_bar, "(b) callout"),
+    ):
+        extent = artist.get_window_extent()
+        panel = host.get_window_extent()
+        if extent.x0 < panel.x0 - 1.0 or extent.x1 > panel.x1 + 1.0:
+            raise SystemExit(
+                f"{name} ({extent.x0:.0f}-{extent.x1:.0f} px) overruns its panel "
+                f"({panel.x0:.0f}-{panel.x1:.0f} px); shorten it"
+            )
+    # The zero reference is the whole point of (b); nothing opaque may sit on it.
+    zero_x = ax_bar.transData.transform((0.0, 0.0))[0]
+    zero_y = sorted(ax_bar.transData.transform((0.0, value))[1] for value in zero_span)
+    for artist in ax_bar.texts:
+        extent = artist.get_window_extent()
+        if extent.y1 < zero_y[0] or extent.y0 > zero_y[1]:
+            continue  # clear of the segment the reference line actually spans
+        if extent.x0 - 4.0 <= zero_x <= extent.x1 + 4.0:
+            raise SystemExit(
+                f"'{artist.get_text()}' sits on or against (b)'s zero reference "
+                "line; move it"
+            )
+    if not zero_line.get_visible():
+        raise SystemExit("(b) lost its zero reference line")
+
+    # Unframed text inside a data area must not straddle a gridline: an opaque
+    # pad on a gridline leaves a stub abutting a glyph, which reads as a broken
+    # rule. The framed glosses and callouts are deliberate occluders and exempt.
+    for host, name, exempt in (
+        (ax, "(a)", {gloss_a, callout_a}),
+        (ax_bar, "(b)", {gloss_b, callout_b}),
+    ):
+        grid_x = [
+            host.transData.transform((tick, 0.0))[0]
+            for tick in host.get_xticks()
+            if host.get_xlim()[0] <= tick <= host.get_xlim()[1]
+        ]
+        panel = host.get_window_extent()
+        for artist in host.texts:
+            if artist in exempt:
+                continue
+            extent = artist.get_window_extent()
+            if extent.y0 > panel.y1 or extent.y1 < panel.y0:
+                continue  # header strips sit outside the gridded area
+            for position in grid_x:
+                if extent.x0 - 3.0 <= position <= extent.x1 + 3.0:
+                    raise SystemExit(
+                        f"{name}: '{artist.get_text()}' sits on a gridline "
+                        f"({position:.0f} px in {extent.x0:.0f}-{extent.x1:.0f}); move it"
+                    )
+
+    # No two pieces of text inside a panel may touch, including the glosses.
+    for host, name in ((ax, "(a)"), (ax_bar, "(b)")):
+        boxes = [(text.get_text(), text.get_window_extent()) for text in host.texts]
+        for i, (text_i, box_i) in enumerate(boxes):
+            for text_j, box_j in boxes[i + 1:]:
+                if box_i.overlaps(box_j):
+                    raise SystemExit(
+                        f"{name}: '{text_i}' and '{text_j}' overlap; move one"
+                    )
+
+    # No framed box may cover a data mark of its own panel: a finding written on
+    # top of the mark that supports it is not evidence.
+    for host, box, name in (
+        (ax, gloss_a, "(a) gloss"),
+        (ax_bar, gloss_b, "(b) gloss"),
+        (ax, callout_a, "(a) callout"),
+        (ax_bar, callout_b, "(b) callout"),
+    ):
+        extent = box.get_window_extent()
+        for line in host.lines:
+            for x_value, y_value in zip(line.get_xdata(), line.get_ydata()):
+                px, py = host.transData.transform((x_value, y_value))
+                if extent.x0 - 6 <= px <= extent.x1 + 6 and extent.y0 - 6 <= py <= extent.y1 + 6:
+                    raise SystemExit(f"{name}: the box covers a data mark; move it")
+
+    # A gloss box must keep the same ~0.1 in clearance from the axis spine that
+    # every other framed element in this figure keeps, so the two never read as
+    # one block.
+    for host, gloss, name in ((ax, gloss_a, "(a)"), (ax_bar, gloss_b, "(b)")):
+        extent = gloss.get_window_extent()
+        spine_gap = extent.y0 - host.get_window_extent().y0
+        if spine_gap < 0.09 * fig.dpi:
+            raise SystemExit(
+                f"{name}: the gloss box clears the axis by {spine_gap:.0f} px; "
+                f"{0.09 * fig.dpi:.0f} px required"
+            )
+    # The zero reference must stop clear of (b)'s gloss frame rather than run
+    # into it: the one line the panel is read against never touches a box.
+    zero_end = ax_bar.transData.transform((0.0, zero_span[1]))[1]
+    if zero_end - gloss_b.get_window_extent().y1 < 0.05 * fig.dpi:
+        raise SystemExit("(b): the zero reference runs into the gloss frame; shorten it")
+
+    # Neighbouring tick labels must not touch: the fix is fewer ticks or a
+    # narrower tick format, never a smaller tick font.
+    for axis_owner, name in ((ax, "(a)"), (ax_bar, "(b)")):
+        drawn = [
+            label.get_window_extent()
+            for label in axis_owner.get_xticklabels()
+            if label.get_text()
+        ]
+        for left, right in zip(drawn, drawn[1:]):
+            if right.x0 - left.x1 < 4.0:
+                raise SystemExit(
+                    f"{name} x tick labels collide ({left.x1:.0f} then {right.x0:.0f} px)"
+                )
+
+    # Both panels must grid every tick they show, and (b) must actually rule the
+    # negative half it plots on: an unlabelled void is where the shipped rule's
+    # whole result lives.
+    for axis_owner, name in ((ax, "(a)"), (ax_bar, "(b)")):
+        low_lim, high_lim = axis_owner.get_xlim()
+        shown = [tick for tick in axis_owner.get_xticks() if low_lim <= tick <= high_lim]
+        if not shown:
+            raise SystemExit(f"{name} shows no tick inside its limits")
+        if not all(line.get_visible() for line in axis_owner.get_xgridlines()):
+            raise SystemExit(f"{name} has ticks without gridlines")
+    if min(tick for tick in ax_bar.get_xticks() if tick >= xmin_b) >= 0.0:
+        raise SystemExit("(b) plots negative gaps but rules no tick below zero")
 
     save(fig, "gate.pdf")
     record_provenance("gate.pdf", [T5, TRACE, GATE_VOCAB])
@@ -418,20 +861,18 @@ def main() -> None:
                     "per_stratum": live_counts,
                     "zero_tool": live_zero_tool,
                 },
-                **{
-                key: {
-                    "max_overstatement": float(comparison[key]["max_overstatement"]),
-                    "never_overstates": bool(comparison[key]["never_overstates"]),
-                    "per_stratum": {
-                        row["stratum"]: {
-                            "assigned": float(row["assigned"]),
-                            "realized": float(row["realized"]),
-                        }
-                        for row in comparison[key]["per_stratum"]
-                    },
-                }
-                for key, _, _, _ in RULES
+                "panel_a_delivered": {
+                    stratum: {
+                        "mean_tau_b": float(test_realized[stratum]["mean_tau_b"]),
+                        "ci95_seed17": [float(value) for value in bounds[stratum]],
+                        "claimed": claims[index],
+                        "test_n": int(table[stratum]["test_n"]),
+                    }
+                    for index, stratum in enumerate(strata)
                 },
+                "panel_a_xlim": [xmin, xmax],
+                "panel_b_worst_claim": worst_cases,
+                "panel_b_xlim": [xmin_b, xmax_b],
             },
             indent=2,
             sort_keys=True,
