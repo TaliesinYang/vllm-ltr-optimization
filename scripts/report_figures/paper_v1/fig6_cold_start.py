@@ -85,8 +85,8 @@ def main() -> None:
                     ha="left", va="center", fontsize=10,
                     color=OKABE_ITO["dark_gray"])
 
-    save(fig, "fig6.pdf")
-    record_provenance("fig6.pdf", [T1])
+    save(fig, "coldstart.pdf")
+    record_provenance("coldstart.pdf", [T1])
     print("cold-start facets written")
 
 

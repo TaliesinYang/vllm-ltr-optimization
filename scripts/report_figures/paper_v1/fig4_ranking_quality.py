@@ -89,8 +89,8 @@ def main() -> None:
     ax.xaxis.grid(True)
     ax.set_axisbelow(True)
 
-    save(fig, "fig4.pdf")
-    record_provenance("fig4.pdf", [T1])
+    save(fig, "ranking.pdf")
+    record_provenance("ranking.pdf", [T1])
     print(f"baseline of record {record}={baseline:.4f} proposed={proposed:.4f}")
 
 

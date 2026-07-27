@@ -157,8 +157,8 @@ def main() -> None:
     ax.yaxis.grid(True)
     ax.set_axisbelow(True)
 
-    save(fig, "fig3.pdf")
-    record_provenance("fig3.pdf", [CAPTURE, TRACE])
+    save(fig, "workload.pdf")
+    record_provenance("workload.pdf", [CAPTURE, TRACE])
     print(
         json.dumps(
             {

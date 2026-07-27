@@ -164,8 +164,8 @@ def main() -> None:
         arrowprops={"arrowstyle": "->", "color": OKABE_ITO["blue"], "linewidth": 0.8},
     )
 
-    save(fig, "fig7.pdf")
-    record_provenance("fig7.pdf", [T5])
+    save(fig, "gate.pdf")
+    record_provenance("gate.pdf", [T5])
     print(
         json.dumps(
             {
