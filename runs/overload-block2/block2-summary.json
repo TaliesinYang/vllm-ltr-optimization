@@ -1,0 +1,40 @@
+{
+  "arm_meaning": {
+    "D0": "direct to vLLM, no gateway",
+    "G0": "gateway without a decision endpoint",
+    "G1": "gateway + stub decision service",
+    "G2": "gateway + CPU BERT, gate disabled",
+    "G3": "gateway + CPU BERT, gate-first",
+    "G4": "gateway + GPU batched, gate-first"
+  },
+  "arms_present": {
+    "D0": [
+      "first",
+      "second"
+    ],
+    "G0": [
+      "first",
+      "second"
+    ],
+    "G1": [
+      "first",
+      "second"
+    ],
+    "G2": [
+      "first",
+      "second"
+    ],
+    "G3": [
+      "first",
+      "second"
+    ],
+    "G4": [
+      "first",
+      "second"
+    ]
+  },
+  "note": "consecutive arm differences are per-component costs; each half is reported separately so drift is visible rather than averaged away",
+  "ordering": "ABBA: D0 G0 G1 G2 G3 G4 | G4 G3 G2 G1 G0 D0",
+  "run_tag": "overload-block2",
+  "schema_version": "block2-overhead-v1"
+}

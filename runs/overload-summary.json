@@ -1,0 +1,28 @@
+{
+  "source": "fig_overhead_decomposition.py overload-block2, ABBA-averaged halves, 2026-07-27",
+  "offered_rps": 5.76,
+  "offered_vs_calibrated_capacity": "1.31x of capacity_rps 4.4 (calibration grid doubles; true stock knee between 4.4 and 8.8)",
+  "arms_mean_ttlt_ms": {
+    "D0": 4452,
+    "G0": 4453,
+    "G1": 4383,
+    "G2": 4420,
+    "G3": 4387,
+    "G4": 4378
+  },
+  "consecutive_deltas_ms": {
+    "D0->G0": 1,
+    "G0->G1": -70,
+    "G1->G2": 38,
+    "G2->G3": -34,
+    "G3->G4": -9
+  },
+  "abba_drift_spread_pct_max": 1.2,
+  "shed_total": 0,
+  "goodput_tight_range": [
+    2.6,
+    2.64
+  ],
+  "decision_service_scoring_calls": 0,
+  "mechanism_note": "gateway scheduler path consults the scorer only when its own queue forms; decision-service logs across all four service modes record zero scoring requests, so stages G1-G4 measured a deployed but never-consulted decision path"
+}
