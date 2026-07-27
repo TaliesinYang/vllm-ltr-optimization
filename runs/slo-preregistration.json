@@ -1,18 +1,21 @@
 {
-  "schema_version": "slo-preregistration-v1",
-  "metric": "SLO-qualified goodput",
-  "definition": "requests per second returning 2xx with TTLT <= slo_ttlt_ms; 429 and 503 count as offered-and-failed with zero useful completion, never as zero-latency samples",
-  "slo_ttlt_ms": {
-    "tight": 2200,
-    "lax": 16600
-  },
-  "basis": "Two thresholds, both fixed from stock FCFS in the saturated round-A run, which predates every arm they will judge. TIGHT is its median: the latency a user actually experiences most of the time. LAX is its p95: the latency already tolerated in the tail. Both are reported because the choice decides the answer -- a lax cutoff makes shedding look harmful since nearly everything passes anyway, a tight one makes it look helpful. Reporting one would be selecting the verdict; reporting both shows how sensitive the verdict is to a number nobody can derive from first principles.",
+  "schema_version": "slo-preregistration-v2",
+  "metric": "SLO-qualified goodput on normalized slowdown",
+  "definition": "requests per second returning 2xx with slowdown <= threshold, where slowdown = ttlt_ms / baseline_service_ms (the request's own required service time). 429/503 count as offered-and-failed with zero useful completion, never as zero-latency samples.",
+  "basis": "Both thresholds from stock FCFS in the saturated round-A run, which predates every arm they judge. TIGHT is its median slowdown, LAX its p95. Both are reported side by side because the choice moves the verdict.",
   "stock_fcfs_round_a": {
     "n": 6224,
     "p50_ms": 2241.9,
     "p95_ms": 16633.4,
-    "p99_ms": 30787.3
+    "p99_ms": 30787.3,
+    "slowdown_p50": 38.5,
+    "slowdown_p95": 552.7
   },
   "frozen_before": "the overload arm (C') and any 15 ms contract arm (B)",
-  "reporting_rule": "goodput at both thresholds, side by side, with the rejection rate and the status breakdown that produced it"
+  "reporting_rule": "goodput at both thresholds, side by side, with the rejection rate and the status breakdown that produced it",
+  "why_not_absolute_ttlt": "v1 fixed absolute TTLT cutoffs, which is wrong for this workload: a request generating thousands of tokens cannot meet a 2.2 s bound however well it is scheduled, so an absolute cutoff conflates queued-too-long with intrinsically-long, and shedding long requests would fake a goodput gain. Slowdown judges each request against its own service time.",
+  "slo_slowdown": {
+    "tight": 38,
+    "lax": 553
+  }
 }
