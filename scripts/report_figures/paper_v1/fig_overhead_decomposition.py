@@ -31,6 +31,7 @@ Run: python3 fig_overhead_decomposition.py [run-tag]
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -51,9 +52,13 @@ PREREG = REPO / "runs" / "slo-preregistration.json"
 
 
 def load_arm(run_dir: Path, arm: str) -> dict:
-    """Both ABBA halves of one arm, or None if the run did not reach it."""
+    """Both ABBA halves of one arm, or None if the run did not reach it.
+
+    The runner names the halves "first" and "second" (the ABBA order makes
+    "forward"/"reverse" a property of the arm sequence, not of a file).
+    """
     halves = {}
-    for half in ("forward", "reverse"):
+    for half in ("first", "second"):
         path = run_dir / "arms" / f"{arm}-{half}.json"
         if path.exists():
             halves[half] = json.loads(path.read_text())
@@ -68,16 +73,39 @@ def samples_of(blob: dict) -> list[dict]:
     return []
 
 
+def _status_of(row: dict) -> int | None:
+    """HTTP status, recovered from the error string when the sample lost it.
+
+    The runner wraps an HTTP >=400 response in a RuntimeError whose message
+    starts "HTTP <code>:", and RuntimeError has no .status attribute, so the
+    recorded http_status is None for exactly the rows where it matters.
+    """
+    status = row.get("http_status")
+    if status is not None:
+        return int(status)
+    match = re.match(r"HTTP (\d{3})\b", (row.get("error") or "").strip())
+    return int(match.group(1)) if match else None
+
+
 def summarize(halves: dict, thresholds: dict) -> dict | None:
-    """Mean TTLT and goodput per half, then the ABBA average and its spread."""
+    """Mean TTLT and goodput per half, then the ABBA average and its spread.
+
+    A failed request must never improve a metric: shed (429/503) and every
+    other errored row count as offered-and-failed, and their timestamps are
+    excluded from the served-latency pool.
+    """
     per_half = {}
     for half, blob in halves.items():
         rows = samples_of(blob)
-        served, shed = [], 0
+        served, shed, failed = [], 0, 0
         for row in rows:
-            status = row.get("http_status")
+            errored = bool((row.get("error") or "").strip())
+            status = _status_of(row)
             if status in (429, 503):
                 shed += 1
+                continue
+            if errored:
+                failed += 1
                 continue
             ttlt = row.get("ttlt_ms")
             base = row.get("baseline_service_ms") or 0
@@ -86,14 +114,15 @@ def summarize(halves: dict, thresholds: dict) -> dict | None:
             served.append((float(ttlt), float(ttlt) / float(base)))
         if not served:
             continue
-        offered = len(served) + shed
+        offered = len(served) + shed + failed
         wall = (blob.get("gateway") or blob.get("direct") or {}).get("wall_time_s") or 1.0
         per_half[half] = {
             "mean_ttlt_ms": float(np.mean([t for t, _ in served])),
             "shed": shed,
+            "failed": failed,
             "offered": offered,
-            # Goodput counts a shed request as offered-and-failed: it must not
-            # improve the metric by removing its own latency from the mean.
+            # Goodput counts a shed or failed request as offered-and-failed: it
+            # must not improve the metric by removing its latency from the mean.
             "goodput_tight": sum(1 for _, s in served if s <= thresholds["tight"]) / wall,
             "goodput_lax": sum(1 for _, s in served if s <= thresholds["lax"]) / wall,
         }
@@ -103,9 +132,10 @@ def summarize(halves: dict, thresholds: dict) -> dict | None:
     out = {k: float(np.mean([h[k] for h in per_half.values()])) for k in keys}
     out["halves"] = len(per_half)
     out["drift_spread_pct"] = (
-        100 * abs(per_half["forward"]["mean_ttlt_ms"] - per_half["reverse"]["mean_ttlt_ms"])
+        100 * abs(per_half["first"]["mean_ttlt_ms"] - per_half["second"]["mean_ttlt_ms"])
         / out["mean_ttlt_ms"] if len(per_half) == 2 else float("nan"))
     out["shed"] = sum(h["shed"] for h in per_half.values())
+    out["failed"] = sum(h["failed"] for h in per_half.values())
     out["offered"] = sum(h["offered"] for h in per_half.values())
     return out
 
