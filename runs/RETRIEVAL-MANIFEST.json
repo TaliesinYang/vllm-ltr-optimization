@@ -1,0 +1,69 @@
+{
+  "retrieved_from": "rented GPU box i-1.gpushare.com:/hy-tmp/ltr, 2026-07-27, before decommission",
+  "runs_bytes": 2648757104,
+  "artifacts_bytes": 466972631,
+  "runs_files": 850,
+  "evidence_files": {
+    "runs/schema-share.json": {
+      "bytes": 843,
+      "sha256_16": "dde1fa5784945687"
+    },
+    "runs/queue-depth.json": {
+      "bytes": 2339,
+      "sha256_16": "e093622d4d0f391d"
+    },
+    "runs/reorder-opportunity.json": {
+      "bytes": 2282,
+      "sha256_16": "f4b77baaf952af67"
+    },
+    "runs/dprime-summary.json": {
+      "bytes": 3217,
+      "sha256_16": "8171382df5243030"
+    },
+    "runs/prefix-cache-summary.json": {
+      "bytes": 1085,
+      "sha256_16": "57d778a65858750e"
+    },
+    "runs/overload-summary.json": {
+      "bytes": 892,
+      "sha256_16": "1d0c6942df75d753"
+    },
+    "runs/budget-coverage.json": {
+      "bytes": 937,
+      "sha256_16": "dc6d51826802d6d5"
+    },
+    "runs/slo-preregistration.json": {
+      "bytes": 1409,
+      "sha256_16": "1d797e50b97bbdc8"
+    },
+    "runs/offline-experiments-2026-07-25/t1-strata.json": {
+      "bytes": 13636,
+      "sha256_16": "9394c43a7062177b"
+    },
+    "runs/offline-experiments-2026-07-25/e4-latency.json": {
+      "bytes": 30312,
+      "sha256_16": "6a5e6e9eab7cddc6"
+    },
+    "runs/offline-experiments-2026-07-25/t5-gate.json": {
+      "bytes": 13015,
+      "sha256_16": "ec4c394cfb690c9c"
+    },
+    "runs/block1-2026-07-26/workload-block1.jsonl.gz": {
+      "bytes": 201556,
+      "sha256_16": "b03da09a2206024a"
+    },
+    "runs/order-logs/order-logs-all.tar.gz": {
+      "bytes": 5912641,
+      "sha256_16": "8a4fee5f1cdf0713"
+    },
+    "artifacts/current/checkpoints_best_predictor/model.safetensors": {
+      "bytes": 437955548,
+      "sha256_16": "8a00b458fe7d983a"
+    },
+    "artifacts/current/workload-block1.jsonl": {
+      "bytes": 3887611,
+      "sha256_16": "c332e3ceb3646e08"
+    }
+  },
+  "note": "runs/ and artifacts/ are complete local copies; git tracks the derived JSON evidence plus compressed workload and order logs. Model weights and raw sample CSVs live here and in OSS, not in git."
+}
