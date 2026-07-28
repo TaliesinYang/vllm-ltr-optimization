@@ -134,10 +134,13 @@ The attribution control comes first (Fig.~\ref{fig:block1}).
 \emph{PolicyFCFS} and stock serve the same requests in the same arrival
 order and differ only in scheduler implementation; PolicyFCFS records a
 paired mean-TTLT ratio of $0.560$ ($[0.540, 0.581]$), so that 44\% reduction
-arrives with the switch of implementation itself. We did not isolate which
-internal difference produces it, and none of it is contributed by ordering.
-Interposition does not explain it: the shim lands within 2\,ms of stock
-(4903 vs.\ 4905\,ms).
+arrives with the switch of implementation itself, none of it contributed by
+ordering. Interposition does not explain it: the shim lands within 2\,ms of
+stock (4903 vs.\ 4905\,ms). What does differ is the base class: the policy
+arms subclass vLLM's \texttt{AsyncScheduler}, which overlaps scheduling with
+model execution, while stock and the shim run the synchronous one --- the
+likeliest mechanism, though the one-line ablation confirming it did not make
+our budget.
 
 Against the same-base control, ordering does not move the endpoint here. The
 superiority test fails: GatedRuleC versus PromptLengthSJF gives $1.008$
