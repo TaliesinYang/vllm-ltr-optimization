@@ -21,10 +21,8 @@ insufficient.
 
 A six-stage run enabled the machinery the ordering rounds disabled: the
 gateway's scheduler path, queue limits and scorer discipline, at 5.76
-requests/s. Mean TTLT never left the run's drift band (largest consecutive
-difference 70\,ms, 1.6\% of the 4.4\,s mean,
-against an ABBA drift spread of up to 1.2\%), nothing was shed, and goodput
-was flat. \emph{Queue-triggered scoring} consults the scorer only when the
+requests/s. Mean TTLT never left the run's drift band (largest step 70\,ms,
+1.6\% of the mean), nothing was shed, and goodput was flat. \emph{Queue-triggered scoring} consults the scorer only when the
 gateway's admission queue forms; that queue did not form at this rate, and
 the decision services
 recorded zero scoring requests, so the run measures trigger-path
@@ -34,10 +32,10 @@ non-activation, not a free scorer.
 Identity features fail because tool combinations essentially never repeat in
 training data; removing truncation produced no detected improvement; caching
 fails because a $1.9\times$
-speedup does not bridge a $48\times$ budget violation. Together: neither CPU rescue makes this BERT-base Ranker fit the
-15\,ms default, and fitting it needs either the GPU placement
-with a recalibrated budget (75\,ms covers every decision) or a path off the
-critical path, which E6 makes more valuable still.
+speedup does not bridge a $48\times$ budget violation. Neither rescue fits
+this BERT-base Ranker to the 15\,ms default; fitting it needs the GPU
+placement with a recalibrated budget (75\,ms covers every decision) or a
+path off the critical path, which E6 makes more valuable still.
 
 \subsection{The Baseline Was the Result}
 The one large effect in our uncontended serving measurements did not come
@@ -60,10 +58,9 @@ validation set. The replay inherits the capture's compressed job-size
 variance, which may leave ordering little room to separate.
 
 One choice bounded the first three ordering rounds: vLLM's running-batch cap
-sat at its 256-slot default. By Little's law our own
-numbers put mean occupancy at roughly eleven requests in flight at
-3.96\,requests/s and nineteen at 6.4, under a thirteenth of that cap. Mean
-occupancy does not forbid queueing, and our logs show it did not: bursts put
+sat at its 256-slot default, mean occupancy under a thirteenth of it
+(Sec.~II). Mean occupancy does not forbid queueing, and our logs show it
+did not: bursts put
 11.9--12.5\% of requests behind another, but those queues drained within a
 scheduling step instead of accumulating. Our calibration targeted completion
 (a 95\% success criterion), not contention. E6 removes that bound and the
@@ -81,11 +78,14 @@ hardware is a vendor-modified 48\,GB RTX~4090.
 
 \subsection{Future Work}
 Six directions would occupy the next six months, in the order we would take
-them. First, add an oracle-order arm sorting by measured length, separating
-residual ranking error from the mechanism E6 exposes, and test whether the
-gate's cost under contention can be recovered by letting abstained requests
-keep a bounded slot rather than a fixed one. Second, validate
-queue-triggered scoring under a load that forms the gateway queue. Third,
-close the predictor-cost gap by distillation. Fourth, grow the S2 stratum to
-statistical power. Fifth, move to closed-loop session benchmarks. Sixth, explore continual fine-tuning on production traffic under explicit
-leakage discipline: training and evaluation traffic must never mix.
+them. First, the two attribution ablations still owed: re-parent the shim onto
+the asynchronous base to confirm the 44\%, and an oracle-order arm sorted by
+measured length to separate residual ranking error from the mechanism E6
+exposes. Second, test whether the gate's cost
+under contention can be recovered by letting abstained requests keep a
+bounded slot rather than a fixed one. Third, validate queue-triggered
+scoring under a load that forms the gateway queue. Fourth, close the
+predictor-cost gap by distillation and grow the S2 stratum to statistical
+power. Fifth, move to closed-loop session benchmarks. Sixth, explore
+continual fine-tuning on production traffic under explicit leakage
+discipline: training and evaluation traffic must never mix.

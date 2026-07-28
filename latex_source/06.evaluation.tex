@@ -140,7 +140,10 @@ stock (4903 vs.\ 4905\,ms). What does differ is the base class: the policy
 arms subclass vLLM's \texttt{AsyncScheduler}, which overlaps scheduling with
 model execution, while stock and the shim run the synchronous one --- the
 likeliest mechanism, though the one-line ablation confirming it did not make
-our budget.
+our budget. The mode's trade is explicit: the GPU never waits for the
+scheduler, and in exchange each step is planned on state one step old ---
+completions free their slots a step late, arrivals join a step later, and a
+token scheduled past a stop is discarded. Timing changes; output never does.
 
 Against the same-base control, ordering does not move the endpoint here. The
 superiority test fails: GatedRuleC versus PromptLengthSJF gives $1.008$
@@ -182,12 +185,11 @@ PromptLengthSJF, PolicyFCFS and PureLTR, all inside the 3\% margin.
 None of those rounds formed a queue: the running-batch cap sat at vLLM's
 default of 256 slots while only eleven to nineteen requests were in flight.
 E6 caps it at 16 and repeats the question at 6.4 requests/s with prefix
-caching on and one cold launch per arm. Three conditions therefore differ
-from round~A besides the cap --- rate, caching and launch structure --- so
-the comparison across panels is between regimes rather than between two
-otherwise identical runs; what is held exactly is the workload, the arrival
-offsets, the checkpoint, and the four policies being contrasted, which is
-what makes the ordering comparison \emph{within} each regime clean. The cap
+caching on and one cold launch per arm. Three conditions besides the cap
+differ from round~A --- rate, caching, launch structure --- so the panels
+compare regimes, not otherwise-identical runs; held exactly are the
+workload, arrival offsets, checkpoint and the four policies, which keeps the
+ordering comparison \emph{within} each regime clean. The cap
 is an instrument, not a recommendation. A scheduler can only act where
 requests wait, and what we could vary at our budget was the number of slots
 rather than the arrival rate needed to fill 256 of them; a deployment
