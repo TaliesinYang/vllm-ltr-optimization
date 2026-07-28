@@ -315,7 +315,7 @@ def main() -> None:
     takeaways = [
         f"{min(kib):.1f}{DASH}{max(kib):.1f} KiB, "
         f"{min(shares):.0f}{DASH}{max(shares):.0f}% of body\n"
-        "size fixed per count, share median",
+        "fixed per count; % are medians",
         f"{n_zero / n_all * 100:.0f}% of requests carry no tools\n"
         f"{n_by_kind[kinds[-1]] / n_tool * 100:.0f}% of the rest "
         f"use {kinds[-1]} tools",
@@ -323,6 +323,17 @@ def main() -> None:
         f"({p50_tool / p50_zero:.1f}x)\n"
         f"ranges disjoint, n = {n_tool} vs {n_zero}",
     ]
+    # Frame-width guard: a takeaway line that outgrows its strip is exactly
+    # the defect the overlap checker cannot see (the frame is a rule, not a
+    # glyph), so it is enforced here. 8 pt DejaVu averages ~0.072 in/char at
+    # this panel width; 30 characters is the measured safe line.
+    for takeaway in takeaways:
+        for line in takeaway.split("\n"):
+            if len(line) > 30:
+                raise SystemExit(
+                    f"takeaway line {line!r} is {len(line)} chars; the strip "
+                    "holds 30 -- shorten the wording, not the type"
+                )
     for ax, header, takeaway in zip(axes, headers, takeaways):
         strip(ax, HEAD_Y0, HEAD_H, header, bold=True, fill=FRAME_HEAD_FILL)
         strip(ax, FOOT_Y0, FOOT_H, takeaway, bold=False)
