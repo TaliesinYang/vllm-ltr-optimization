@@ -130,7 +130,7 @@ unreliable or slow prediction never blocks the request path.
     % ---- row 2, col 3: the verdict, as two boxes an arrow can land on -------
     \node[environment component, align=center, text width=42mm, inner sep=0pt,
           minimum width=46mm, minimum height=9mm] (fo) at (150,-40.5)
-      {Arrival order\\{\sub{abstain, or 15\,ms passes}}};
+      {Arrival order\\{\sub{abstain, or budget passes}}};
     \node[proposed component, align=center, text width=42mm, inner sep=0pt,
           minimum width=46mm, minimum height=9mm] (key) at (150,-55.5)
       {Reorder key\\{\sub{trusted: S3 / S4}}};
@@ -142,7 +142,7 @@ unreliable or slow prediction never blocks the request path.
     % Each chip sits beside its own arrow, and the arrow is offset by half the
     % chip so that arrow+chip centre on the column axis (x=88 and x=150).
     \draw[data flow, edge gap] (75.75,-18) -- (75.75,-26);
-    \node[metric badge, anchor=west] at (77.25,-22) {score, 15\,ms};
+    \node[metric badge, anchor=west] at (77.25,-22) {score};
     \draw[data flow, edge gap] (141.75,-26) -- (141.75,-18);
     \node[metric badge, anchor=west] at (143.25,-22) {verdict};
 
@@ -165,10 +165,12 @@ unreliable or slow prediction never blocks the request path.
     \node[fact label, fill=none, anchor=west, text=black!75] at (13.5,-49)
       {fail-open path};
   \end{tikzpicture}
-  \caption{The gateway scores at admission inside a 15\,ms budget and
-  forwards the verdict; the engine's scheduler reorders trusted slots among
-  themselves and leaves abstained ones where they arrived. A timeout or an
-  abstention yields arrival order.}
+  \caption{The gateway scores at admission inside its budget and forwards the
+  verdict; the engine's scheduler reorders trusted slots among themselves and
+  leaves abstained ones where they arrived, and a timeout or an abstention
+  yields arrival order. The 15\,ms shown is the gateway's documented default,
+  not a fixed cost: it is operator-configurable, and at 75\,ms none of our
+  scores arrive late.}
   \label{fig:arch}
 \end{figure*}
 

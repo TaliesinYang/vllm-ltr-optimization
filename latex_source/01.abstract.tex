@@ -22,20 +22,18 @@ features have nothing to look up.
 
 A better order becomes lower latency only where the engine leaves a queue to
 reorder, and across our runs nothing but an engine setting decided whether it
-did. With vLLM's running-batch cap at its default of 256 slots, mean
-occupancy stayed under a thirteenth of it, the waiting queue was empty at the
-90th percentile, and no ordering policy separated from another by more than
-1.2\%. Capping the batch at sixteen puts 57--64\% of requests behind another,
-and the same policies then separate: the ranker beats arrival order by 4.2\%
-(0.958, 95\% CI $[0.944, 0.972]$), while ordering by prompt length, which
-costs nothing to compute, runs 8.5\% slower than not reordering at all. The
-gate is the part that does not pay: abstained requests hold their arrival
-slots and block the ones behind them, which costs 9.5\% against the ungated
-ranker and leaves the gated system 4.9\% slower than plain arrival order
-(1.049, $[1.033, 1.065]$). The
-signal must be paid for as well as earned --- under the gateway's own
+did. With vLLM's running-batch cap at its default of 256 slots the waiting
+queue was empty at the 90th percentile, and no ordering policy separated from
+another by more than 1.2\%. Capping the batch at sixteen puts 57--64\% of
+requests behind another, and the same policies then separate: the ranker
+beats arrival order by 4.2\% (95\% CI $[0.944, 0.972]$), while ordering by
+prompt length, which costs nothing to compute, runs 8.5\% slower than not
+reordering at all. The gate does not pay either --- abstained requests hold
+their slots and block those behind them, leaving the gated system 4.9\%
+slower than arrival order itself. Nor is the signal free: under the gateway's
 documented 15\,ms decision timeout a third of the scores arrive too late to
-use. Neither ordering nor prediction produced the largest effects we
+use, though a budget recalibrated to the measured scorer loses none by
+75\,ms. Neither ordering nor prediction produced the largest effects we
 measured: exchanging the stock scheduler cut mean time-to-last-token by 44\%
 with arrival order held fixed, and prefix caching cut a further 17--23\%.
 \end{abstract}
