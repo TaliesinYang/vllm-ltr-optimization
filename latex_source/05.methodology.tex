@@ -121,10 +121,11 @@ are held constant across every arm of every comparison; prefix caching is
 disabled in every default-cap ordering arm --- verified from the engine's own
 reported hit rate rather than from the flag alone --- and enabled in the
 round that measures it and throughout the capped-batch round. The scheduler is
-replaced through vLLM's~\cite{vllm2023} \texttt{--scheduler-cls} seam; each
-policy arm swaps only its ordering rule, while the stock pair differs in
-scheduler implementation as well --- the difference E5's attribution control
-is built to measure.
+replaced through vLLM's~\cite{vllm2023} \texttt{--scheduler-cls} seam. Each
+policy arm subclasses the engine's scheduler and re-sorts only the waiting
+queue before each step, all else stock code; the stock pair differs in
+scheduler implementation as well, the difference E5's attribution control
+measures.
 
 \begin{table}[t]
   \caption{Environment provenance for the two measurement platforms, which
