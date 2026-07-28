@@ -34,6 +34,7 @@ slower than arrival order itself. Nor is the signal free: under the gateway's
 documented 15\,ms decision timeout a third of the scores arrive too late to
 use, though a budget recalibrated to the measured scorer loses none by
 75\,ms. Neither ordering nor prediction produced the largest effects we
-measured: exchanging the stock scheduler cut mean time-to-last-token by 44\%
-with arrival order held fixed, and prefix caching cut a further 17--23\%.
+measured: exchanging the stock scheduler for our policy implementation cut
+mean time-to-last-token by 44\% with arrival order held fixed, and prefix
+caching cut a further 17--23\%.
 \end{abstract}
