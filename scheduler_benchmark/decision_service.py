@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
+import time
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import TYPE_CHECKING, Mapping
@@ -457,7 +459,9 @@ class DecisionRequestHandler(BaseHTTPRequestHandler):
                 request = json.loads(body)
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise DecisionError(422, "invalid_request") from exc
+            started = time.monotonic()
             response = self.server.application.decide(request)
+            elapsed_ms = (time.monotonic() - started) * 1000.0
         except DecisionError as exc:
             self._write_error(exc)
             return
@@ -466,7 +470,38 @@ class DecisionRequestHandler(BaseHTTPRequestHandler):
                 DecisionError(503, "internal_error", retryable=True)
             )
             return
+        self._append_decision_log(request, response, elapsed_ms)
         self._write_json(200, response)
+
+    def _append_decision_log(
+        self,
+        request: Mapping[str, object],
+        response: Mapping[str, object],
+        elapsed_ms: float,
+    ) -> None:
+        """Optional per-decision JSONL trail for observers (dashboards).
+
+        Enabled only when DECISION_LOG_PATH is set; never allowed to break
+        request handling.
+        """
+        path = os.environ.get("DECISION_LOG_PATH")
+        if not path:
+            return
+        try:
+            row = {
+                "ts": time.time(),
+                "request_id": request.get("request_id"),
+                "decision_id": response.get("decision_id"),
+                "confidence": response.get("reliability_probability"),
+                "vouched": response.get("prediction_reliable"),
+                "reason_code": response.get("reason_code"),
+                "estimated_tokens": response.get("estimated_tokens"),
+                "decision_ms": round(elapsed_ms, 2),
+            }
+            with open(path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row, separators=(",", ":")) + "\n")
+        except OSError:
+            pass
 
     def _content_length(self) -> int:
         raw_length = self.headers.get("Content-Length")
