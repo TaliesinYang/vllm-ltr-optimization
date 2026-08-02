@@ -103,20 +103,31 @@ Paired over the same 42 head/run cells: **33 better, 3 worse, 6 tied**.
 
 The offline prediction is reproduced group by group:
 
-| group | offline | measured |
-|---|---:|---:|
-| 10 tools — shared toolset, n=33 | +25.5 pp | **+25.5 pp** |
-| pooled | +25.0 pp | **+24.9 pp** |
-| 8 tools — different toolset, n=3 | negative | **−25.0 pp** |
+`n` counts head×restart **cells, not independent sessions** — each head is
+replayed once per restart, so a head's three values are repeat measurements of
+one case:
 
-**The sign flips**, as predicted. Heads whose toolset differs from the majority
-are *hurt* by hoisting: a differing schema at offset 0 destroys the prefix
-immediately, instead of after the shared system preamble. With n=3 that is a
-direction, not a quantity — but it is the direction the offline audit called.
+| group | distinct heads | cells | offline | measured |
+|---|---:|---:|---:|---:|
+| 10 tools — shared toolset | 11 | 33 | +25.5 pp | **+25.5 pp** |
+| 5 tools | 2 | 6 | — | **+15.9 pp** |
+| 8 tools — different toolset | **1** | 3 | negative | **−25.0 pp** |
+| pooled | 14 | 42 | +25.0 pp | **+24.9 pp** |
 
-That flip is what makes this a research question rather than a tuning tip. The
-right layout is conditional on whether the sessions sharing a server share a
-schema, which is a property of the deployment, not of the model.
+**The sign flips** in the predicted direction: the head whose toolset differs
+from the majority is *hurt* by hoisting, because a differing schema at offset 0
+destroys the prefix immediately instead of after the shared system preamble.
+
+Be precise about how weak that is. The negative group is **one session head,
+measured three times** — three repeat measurements of a single case, not three
+cases. It agrees with the offline prediction and with the mechanism, and that is
+all it does. Establishing the flip needs a trace with genuinely mixed toolsets.
+
+If the flip holds up, it is what makes this a research question rather than a
+tuning tip: the right layout would be conditional on whether co-resident sessions
+share a schema, which is a property of the deployment rather than the model. On
+this trace that conditionality is a hypothesis with one supporting case, not a
+finding.
 
 ---
 
@@ -175,8 +186,13 @@ it works, but it is the one with the correctness problem attached.
 - **One arrival order.** Heads were replayed in capture order. A different order
   changes which head is cold and how much each can inherit; the pooled number
   would move, though the mechanism would not.
-- **The sign flip rests on 3 heads.** Directionally consistent with the offline
-  audit, far too small to quantify.
+- **The sign flip rests on one head.** The negative group is a single session
+  head measured across 3 restarts, not 3 independent sessions. Directionally
+  consistent with the offline audit; far too little to quantify or to build a
+  conditional policy on.
+- **Paired counts are over cells, not sessions.** "33 better, 3 worse, 6 tied" is
+  over 42 head×restart cells drawn from 14 distinct heads. Restarts control for
+  server-state noise; they do not add independent sessions.
 
 **About trimming**
 
