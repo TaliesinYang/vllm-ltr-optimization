@@ -75,6 +75,51 @@ attention is super-linear in sequence length, so trimming the schema shortens th
 uncached span by more than its token share. This is a mechanism, not an
 accounting identity, and it is the strongest result in the run.
 
+## Group 1b — request layout, cross-session (84 measurements, 3 restarts)
+
+Group 1 asked whether the schema can be made *more* reusable within a session;
+the answer was no, because it is already reused. This asks the question the
+offline audit raised instead: across sessions the earliest divergence sits in the
+**system prompt**, so a byte-stable schema placed behind it is unreachable. Does
+moving the schema in front recover the loss?
+
+The chat endpoint renders server-side, so layout cannot be controlled through it.
+Prompts are rendered locally with the same tokenizer, permuted (asserted
+byte-preserving), and posted to `/v1/completions`. `prompt_tokens` returned by
+the server matched the locally counted tokens exactly on every request, so the
+rendering is faithful. Session heads are sent in arrival order within one server
+lifetime — head N may reuse whatever heads 1..N-1 left behind.
+
+| layout | n | prompt tok | cached | new prefill | cached frac | wall ms |
+|---|---:|---:|---:|---:|---:|---:|
+| as-is | 42 | 20,418 | 7,672 | 12,611 | 0.3808 | 4,806.3 |
+| hoisted | 42 | 20,419 | 11,864 | 7,447 | 0.6303 | 3,211.4 |
+
+**+24.9 pp cached fraction, −40.9% new prefill tokens, −33.2% wall time.**
+Paired across the same 42 head/run cells: 33 better, 3 worse, 6 tied.
+
+The offline prediction is reproduced group by group:
+
+| group | offline | measured |
+|---|---:|---:|
+| 10 tools (shared toolset), n=33 | +25.5 pp | **+25.5 pp** |
+| pooled | +25.0 pp | **+24.9 pp** |
+| 8 tools (different toolset), n=3 | negative | **−25.0 pp** |
+
+The sign flip survives: heads whose toolset differs from the majority are *hurt*
+by hoisting, because a differing schema at offset 0 destroys the prefix
+immediately instead of after the shared system preamble. With n=3 that is a
+direction, not a measurement, but it is the direction the offline audit
+predicted.
+
+**Why this is the stronger of the two positive results.** Frozen Thin is an
+oracle — it needs hindsight about which tools the session will call, and pruning
+a tool the model later needs can change what it can do. Hoisting sends *exactly
+the same bytes* in a different order: no information is removed, so there is no
+correctness question of that kind, and any client or gateway can do it today.
+It also has a genuine policy structure — the sign depends on whether sessions
+share a schema — where Frozen Thin only has "cut more, go faster".
+
 ## Scoped Go/No-Go
 
 | # | Criterion | Result |
@@ -84,8 +129,12 @@ accounting identity, and it is the strongest result in the run.
 | 3 | Queue time or goodput ≥ ~15% near saturation | ⬜ not run |
 | 4 | Original/Stable/Shuffled match the offline prediction | ✅ delta ≤ 0.0005 |
 
-Three of four → **Go**. The direction narrows from *cache preservation* to
-**tool working-set reduction**: the win is in prefill cost, not in cache reuse.
+Three of four → **Go**. The win is in prefill cost, not in cache reuse — but
+after Group 1b the better framing is **request layout**, not tool working-set
+reduction. Reordering recovers more new-prefill savings than trimming (−40.9% vs
+−36.5%), needs no hindsight, removes no capability, and has a real policy
+decision inside it. Tool trimming remains a legitimate second lever; it is just
+the one with the correctness problem attached.
 
 ## What this does not show
 
@@ -109,6 +158,20 @@ Three of four → **Go**. The direction narrows from *cache preservation* to
 - **Wall time is not TTFT.** `max_tokens=1` makes wall time a close proxy for
   prefill plus one decode step, but it is measured client-side and includes HTTP
   overhead. Per-request TTFT from the server would be cleaner.
+- **Hoisting is untested for output quality.** It puts 5 K tokens of schema ahead
+  of the system prompt. The bytes are identical, but the model reads them in a
+  different order, and nothing here measures whether tool selection or
+  instruction-following changes. That is the first thing to check before treating
+  it as deployable.
+- **The layout result is one arrival order.** Heads were replayed in capture
+  order. A different order changes which head is cold and how much each can
+  inherit; the pooled number would move even though the mechanism would not.
+- **The sign flip rests on 3 heads.** The negative group is directionally
+  consistent with the offline audit but far too small to quantify.
+- **The super-proportional latency effect is expected physics, not a discovery.**
+  Prefill attention is quadratic in sequence length, so any token cut should beat
+  its own proportion. Worth reporting; not worth claiming as a mechanism nobody
+  knew about.
 
 ## Reproduce
 
