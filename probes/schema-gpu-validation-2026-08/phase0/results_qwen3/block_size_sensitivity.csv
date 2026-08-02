@@ -1,0 +1,25 @@
+dataset,block_size,policy,n_pairs,median_reuse_ratio,median_invalidated_suffix
+vanilla_10tool,8,Original,21,0.9898,203
+vanilla_10tool,8,Stable Full,21,0.9899,200
+vanilla_10tool,8,Shuffled Full,21,0.7388,5344
+vanilla_10tool,8,Frozen Thin,21,0.9868,202
+vanilla_10tool,16,Original,21,0.9894,203
+vanilla_10tool,16,Stable Full,21,0.9895,203
+vanilla_10tool,16,Shuffled Full,21,0.7388,5344
+vanilla_10tool,16,Frozen Thin,21,0.9868,202
+vanilla_10tool,32,Original,21,0.9894,217
+vanilla_10tool,32,Stable Full,21,0.9887,203
+vanilla_10tool,32,Shuffled Full,21,0.7382,5344
+vanilla_10tool,32,Frozen Thin,21,0.9866,211
+full_170tool,8,Original,14,0.9975,138.5
+full_170tool,8,Stable Full,14,0.9975,138.5
+full_170tool,8,Shuffled Full,14,0.3144,38056.0
+full_170tool,8,Frozen Thin,14,0.9922,137.0
+full_170tool,16,Original,14,0.9974,142.0
+full_170tool,16,Stable Full,14,0.9974,143.0
+full_170tool,16,Shuffled Full,14,0.3144,38058.5
+full_170tool,16,Frozen Thin,14,0.9919,143.0
+full_170tool,32,Original,14,0.9971,153.5
+full_170tool,32,Stable Full,14,0.9971,152.0
+full_170tool,32,Shuffled Full,14,0.3142,38074.5
+full_170tool,32,Frozen Thin,14,0.9912,152.5
