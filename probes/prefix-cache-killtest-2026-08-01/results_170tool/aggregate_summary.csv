@@ -1,0 +1,5 @@
+policy,n_pairs,median_total_tokens,median_token_lcp,median_reuse_ratio,median_invalidated_suffix,mean_reuse_ratio,segment_breakdown
+Original,14,55559.0,55425.0,0.9974,142.0,0.9956,messages=14
+Stable Full,14,55468.0,55334.0,0.9974,143.0,0.9955,messages=14
+Shuffled Full,14,55468.0,17381.0,0.3144,38058.5,0.4953,tools=14
+Frozen Thin,14,17866.0,17732.0,0.9919,143.0,0.9916,messages=14

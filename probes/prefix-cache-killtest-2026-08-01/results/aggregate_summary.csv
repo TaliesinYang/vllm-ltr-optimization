@@ -1,0 +1,5 @@
+policy,n_pairs,median_total_tokens,median_token_lcp,median_reuse_ratio,median_invalidated_suffix,mean_reuse_ratio,segment_breakdown
+Original,21,20606,20418,0.9894,203,0.9799,messages=21
+Stable Full,21,20587,20399,0.9895,203,0.9798,messages=21
+Shuffled Full,21,20587,15239,0.7388,5344,0.6632,tools=21
+Frozen Thin,21,16016,15779,0.9868,202,0.9685,messages=21

@@ -1,0 +1,29 @@
+session_id,policy,n_pairs,median_reuse_ratio,median_invalidated_suffix,n_tools_universe
+2f945485ae18a796,Original,2,0.9975,139.0,170
+2f945485ae18a796,Stable Full,2,0.9974,144.0,170
+2f945485ae18a796,Shuffled Full,2,0.3144,38128.0,170
+2f945485ae18a796,Frozen Thin,2,0.9921,142.0,170
+999e6975a8612b07,Original,2,0.9974,142.0,170
+999e6975a8612b07,Stable Full,2,0.9975,139.0,170
+999e6975a8612b07,Shuffled Full,2,0.3137,38123.0,170
+999e6975a8612b07,Frozen Thin,2,0.9924,137.0,170
+7869a427dc73d66e,Original,2,0.9974,142.0,170
+7869a427dc73d66e,Stable Full,2,0.9975,139.0,170
+7869a427dc73d66e,Shuffled Full,2,0.3132,38131.0,170
+7869a427dc73d66e,Frozen Thin,2,0.9919,145.0,170
+150ed338ede92bd3,Original,2,0.9931,141.5,10
+150ed338ede92bd3,Stable Full,2,0.9929,146.5,10
+150ed338ede92bd3,Shuffled Full,2,0.7392,5362.5,10
+150ed338ede92bd3,Frozen Thin,2,0.9906,148.5,10
+a5e75c7fcd80edde,Original,2,0.9931,142.5,10
+a5e75c7fcd80edde,Stable Full,2,0.9928,147.5,10
+a5e75c7fcd80edde,Shuffled Full,2,0.7391,5371.5,10
+a5e75c7fcd80edde,Frozen Thin,2,0.991,141.5,10
+1dbcf11d9f016d38,Original,2,0.993,145.5,10
+1dbcf11d9f016d38,Stable Full,2,0.9932,142.5,10
+1dbcf11d9f016d38,Shuffled Full,2,0.7358,5510.5,10
+1dbcf11d9f016d38,Frozen Thin,2,0.9912,141.5,10
+2cf9dff03beff5d0,Original,2,0.9974,144.0,170
+2cf9dff03beff5d0,Stable Full,2,0.9975,141.0,170
+2cf9dff03beff5d0,Shuffled Full,2,0.3114,38421.0,170
+2cf9dff03beff5d0,Frozen Thin,2,0.9924,139.0,170

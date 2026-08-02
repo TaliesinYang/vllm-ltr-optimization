@@ -1,0 +1,12 @@
+model: "Qwen/Qwen2.5-7B-Instruct"
+tokenizer: "Qwen/Qwen2.5-7B-Instruct"
+trace: "../schema-variability-2026-07-25/captured_requests_v2.jsonl"
+trace_sha256: "96eee46f35fa46177578f1bf059b2253d688ba3034d3ad480e126a50515deac5"
+chat_template_sha256: "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+kv_block_size: 16
+seed: 20260801
+n_requests: 28
+n_sessions: 14
+n_singleton_sessions_skipped: 7
+n_sessions_thin_fallback_to_full: 0
+n_pairs_per_policy: 14
