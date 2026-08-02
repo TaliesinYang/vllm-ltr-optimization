@@ -11,8 +11,8 @@ Three findings, in the order they were established:
 2. Across sessions the earliest divergence sits in the **system prompt**, not the
    tools — so the stable schema is parked behind a volatile prefix and the cache
    can never reach it. Reordering the prompt so the schema leads recovers
-   **+24.9 pp** of cached fraction and **−40.9%** of newly computed prefill
-   tokens, using the identical bytes.
+   **+24.9 pp** of cached fraction and **−40.9%** of uncached prompt tokens,
+   using the same constituent text in a different segment order.
 3. Trimming the schema to the tools a session actually uses cuts prompt tokens
    23.3% and latency 33–42%. Real, but it is an oracle and it removes capability,
    so it is the weaker of the two positive levers.
@@ -98,8 +98,27 @@ head N may reuse whatever heads 1..N−1 left behind.
 | as-is | 42 | 20,418 | 7,672 | 12,611 | 0.3808 | 4,806.3 |
 | hoisted | 42 | 20,419 | 11,864 | 7,447 | 0.6303 | 3,211.4 |
 
-**+24.9 pp cached fraction · −40.9% new prefill tokens · −33.2% wall time.**
+**+24.9 pp cached fraction · −40.9% uncached prompt tokens.**
 Paired over the same 42 head/run cells: **33 better, 3 worse, 6 tied**.
+
+"Uncached prompt tokens" is `prompt_tokens − cached_tokens`, where
+`cached_tokens` is the APC hit-counter delta. It is a serving-level proxy for the
+KV that must be built, **not** a kernel-level count of recomputed tokens —
+chunked prefill, attention kernels and scheduling all sit between the two.
+
+**The wall-time reduction is not a stable estimate and should not be quoted as a
+headline.** The pooled median falls 4,806 → 3,211 ms (−33.2%), but per restart:
+
+| restart | as-is | hoisted | reduction |
+|---|---:|---:|---:|
+| 1 | 4,293.0 | 3,042.9 | −29.1% |
+| 2 | 4,806.3 | 4,598.2 | **−4.3%** |
+| 3 | 11,260.7 | 3,006.4 | **−73.3%** |
+
+Restart 2 also contains a 22.4-second hoisted outlier. The cache-hit counts are
+deterministic and repeat exactly across restarts; the timings do not. Treat the
+latency effect as exploratory until server-side TTFT and prefill histograms are
+collected with more repetitions.
 
 The offline prediction is reproduced group by group:
 
@@ -175,6 +194,34 @@ it works, but it is the one with the correctness problem attached.
 
 ---
 
+## Prior art — the general principle is already published
+
+An external adversarial audit (GPT-5.6 Sol, 64 min, cloned this branch and read
+the raw CSVs; transcript
+`https://chatgpt.com/c/6a6f6d4f-d888-83e8-8a40-0be75261a6ec`) established that
+**"put stable content before volatile content for prefix caching" is established
+practice, not a new idea.** Closest prior work:
+
+| Work | Relation |
+|---|---|
+| OpenAI *Prompt Caching* docs | Explicitly instructs putting static content at the beginning, variable content at the end |
+| Anthropic *Prompt caching* / *Tool use with prompt caching* | Cache prefix is built `tools → system → messages`, i.e. tool definitions are already placed early by design |
+| *Don't Break the Cache* (arXiv 2601.06007, 2026) | Closest paper: prompt caching for long-horizon agents, advises putting dynamic system content last |
+| OpenClaw issue #27732 (2026) | Closest engineering antecedent: proposes reordering system-prompt sections so a static prefix precedes dynamic metadata — same mechanism, closed unimplemented |
+| *CacheSlide* (FAST 2026) | Closest peer-reviewed systems work: models agent prompts as invariant + dynamic segments, **considers reordering and rejects it as semantically unsafe**, building an engine-side sliding cache instead |
+| *ContextPilot* (MLSys 2026), *TokenPilot* (2026) | Automatic layout/reordering for context reuse |
+| *EPIC* (ICML 2025), *Irminsul*, *MEPIC*, *Prompt Cache* (MLSys 2024) | Solve the same occlusion problem position-independently, without moving anything the model reads |
+
+**What may still be new is narrow**: the measurement that this captured OpenCode
+layout places volatile per-session context *in front of* a stable tool schema,
+plus a controlled vLLM APC replay quantifying the recoverable loss. That is a
+case study, not a mechanism contribution.
+
+CacheSlide is the pointed one: it reached the reordering idea and declined it on
+semantic-safety grounds — the exact question this work has not tested. Any
+write-up must answer why reordering what the model reads is preferable to a
+position-independent cache that preserves order.
+
 ## What this does not show
 
 **About hoisting**
@@ -185,7 +232,23 @@ it works, but it is the one with the correctness problem attached.
   first thing to check before calling it deployable.
 - **One arrival order.** Heads were replayed in capture order. A different order
   changes which head is cold and how much each can inherit; the pooled number
-  would move, though the mechanism would not.
+  would move, though the mechanism would not. The three restarts repeat the
+  *same* trajectory, so their exact agreement demonstrates engine determinism,
+  not workload robustness.
+- **The hoist assertion is weaker than it reads.** `sorted(hoisted) ==
+  sorted(text)` proves only that both strings hold the same multiset of
+  characters. It does not prove that exactly one contiguous schema block moved,
+  that every other region stayed byte-identical, or that delimiters kept their
+  intended ownership. Slice-level SHA-256 equality would.
+- **Groups are keyed by tool count, not schema identity.** `analyze_layout.py`
+  buckets by `n_tools`; two 10-tool schemas can differ entirely. The correct
+  sharing key is a hash of the rendered schema token sequence.
+- **Group 1 and Group 1b are not two arms of one experiment.** 0.9889 is
+  within-session via `/v1/chat/completions`; 0.3808 is cross-session-head via
+  `/v1/completions` with locally rendered prompts. Different denominators — do
+  not compare them directly. Matching `prompt_tokens` shows no tokens were added
+  or dropped, but that is length equality, not token-ID identity with the
+  server-side chat path.
 - **The sign flip rests on one head.** The negative group is a single session
   head measured across 3 restarts, not 3 independent sessions. Directionally
   consistent with the offline audit; far too little to quantify or to build a
@@ -237,7 +300,7 @@ bash phase1/run_phase1.sh "$TRACE" Qwen/Qwen3-8B-AWQ 1 32768 <outdir> 3
 python phase1/analyze_phase1.py --csv <outdir>/phase1_measurements.csv
 
 # Group 1b — layout (2 layouts x 3 restarts); driver hardcodes model and trace
-bash run_p1b.sh
+bash phase1b/run_p1b.sh
 python phase1b/analyze_layout.py --csv <outdir>/layout_measurements.csv
 
 # Group 2 — cold start (2 policies x cache on/off x 2 restarts)

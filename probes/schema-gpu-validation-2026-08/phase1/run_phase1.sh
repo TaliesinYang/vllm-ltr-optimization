@@ -16,8 +16,11 @@ RESTARTS=${6:-3}
 VENV=${VENV:-$HOME/.venv126}/bin
 PORT=8000
 
-# vLLM refuses V1 below compute capability 8.0, and this rig is Volta (sm_70).
-# Recorded here rather than left implicit: every number from this script is V0.
+# vLLM refuses V1 below compute capability 8.0. The first rig attempted was
+# Volta (sm_70) and could only have run V0, hence the default below; the
+# committed results were NOT produced that way. They come from an RTX 4090
+# Laptop (sm_89) with VLLM_USE_V1=1 exported by the caller. Always pass
+# VLLM_USE_V1 explicitly and record it — do not rely on this default.
 export VLLM_USE_V1=${VLLM_USE_V1:-0}
 BASE="http://127.0.0.1:$PORT"
 POLICIES=("Original" "Stable Full" "Shuffled Full")
