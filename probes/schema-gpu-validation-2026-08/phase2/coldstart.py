@@ -29,8 +29,9 @@ spec.loader.exec_module(kt)
 
 GAUGES = ["vllm:kv_cache_usage_perc", "vllm:gpu_cache_usage_perc",
           "vllm:num_requests_running", "vllm:num_requests_waiting"]
-COUNTERS = ["vllm:prefix_cache_queries", "vllm:prefix_cache_hits",
-            "vllm:gpu_prefix_cache_queries", "vllm:gpu_prefix_cache_hits"]
+# Prometheus counters carry a _total suffix.
+COUNTERS = ["vllm:prefix_cache_queries_total", "vllm:prefix_cache_hits_total",
+            "vllm:gpu_prefix_cache_queries_total", "vllm:gpu_prefix_cache_hits_total"]
 
 
 def scrape(base: str) -> dict:
@@ -121,8 +122,16 @@ def main():
 
         usage = (resp or {}).get("usage", {}) or {}
         details = usage.get("prompt_tokens_details") or {}
-        cached = details.get("cached_tokens")
         ptok = usage.get("prompt_tokens")
+        # vLLM 0.9.2 leaves prompt_tokens_details null; the hits counter delta is
+        # the fallback, valid because this client sends one request at a time.
+        cached = details.get("cached_tokens")
+        cached_source = "usage"
+        if cached is None:
+            b, a = before.get("vllm:gpu_prefix_cache_hits_total"), \
+                   after.get("vllm:gpu_prefix_cache_hits_total")
+            cached = None if (b is None or a is None) else a - b
+            cached_source = "metrics_delta" if cached is not None else "unavailable"
         rec = {
             "dataset": args.dataset, "policy": args.policy,
             "cache_mode": args.cache_mode, "run_id": args.run_id, "model": args.model,
@@ -131,6 +140,7 @@ def main():
             "n_tools_sent": len(tools),
             "prompt_tokens": ptok,
             "cached_tokens": cached,
+            "cached_source": cached_source,
             "new_prefill_tokens": (None if (cached is None or ptok is None)
                                    else ptok - cached),
             "wall_ms": round(wall_ms, 3),

@@ -30,17 +30,23 @@ spec.loader.exec_module(kt)
 
 POLICIES = ["Original", "Stable Full", "Shuffled Full", "Frozen Thin"]
 
-# /metrics families we read. Counters are differenced across a request.
-METRIC_KEYS = [
-    "vllm:prefix_cache_queries",
-    "vllm:prefix_cache_hits",
-    "vllm:gpu_prefix_cache_queries",
-    "vllm:gpu_prefix_cache_hits",
+# /metrics families we read. Prometheus counters carry a _total suffix; the
+# gauges do not. vLLM 0.9.2 leaves prompt_tokens_details null, so the counter
+# diff across a request is the only per-request cache signal available -- valid
+# because this client is strictly serial.
+COUNTER_KEYS = [
+    "vllm:gpu_prefix_cache_queries_total",
+    "vllm:gpu_prefix_cache_hits_total",
+    "vllm:prefix_cache_queries_total",
+    "vllm:prefix_cache_hits_total",
+]
+GAUGE_KEYS = [
     "vllm:num_requests_running",
     "vllm:num_requests_waiting",
     "vllm:gpu_cache_usage_perc",
     "vllm:kv_cache_usage_perc",
 ]
+METRIC_KEYS = COUNTER_KEYS + GAUGE_KEYS
 
 
 def scrape(base: str) -> dict:
@@ -162,8 +168,20 @@ def main():
 
             usage = r["resp"].get("usage", {}) or {}
             details = usage.get("prompt_tokens_details") or {}
-            cached = details.get("cached_tokens")
             prompt_tokens = usage.get("prompt_tokens")
+
+            def delta(key):
+                b, a = before.get(key), after.get(key)
+                return None if (b is None or a is None) else a - b
+
+            # Prefer the API field; fall back to the hits counter delta when the
+            # server does not populate it (vLLM 0.9.2 does not).
+            cached = details.get("cached_tokens")
+            cached_source = "usage"
+            if cached is None:
+                cached = delta("vllm:gpu_prefix_cache_hits_total")
+                cached_source = "metrics_delta" if cached is not None else "unavailable"
+            queried = delta("vllm:gpu_prefix_cache_queries_total")
             rec = {
                 "policy": args.policy,
                 "cache_mode": args.cache_mode,
@@ -182,13 +200,17 @@ def main():
                     None if (cached is None or not prompt_tokens)
                     else round(cached / prompt_tokens, 6)),
                 "completion_tokens": usage.get("completion_tokens"),
+                "cached_source": cached_source,
+                "queried_tokens": queried,
                 "wall_ms": round(r["wall_ms"], 3),
                 "n_tools_sent": len(body.get("tools") or []),
             }
-            for k in METRIC_KEYS:
+            for k in COUNTER_KEYS:
                 b, a = before.get(k), after.get(k)
                 rec[f"d_{k.replace('vllm:', '')}"] = (
                     None if (b is None or a is None) else round(a - b, 6))
+            for k in GAUGE_KEYS:
+                rec[f"g_{k.replace('vllm:', '')}"] = after.get(k)
             rec["scrape_error"] = before.get("_scrape_error") or after.get("_scrape_error") or ""
 
             if writer is None:
